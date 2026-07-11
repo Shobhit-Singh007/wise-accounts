@@ -1,0 +1,349 @@
+package com.gstbilling.app.ui.dashboard
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gstbilling.app.data.local.entity.InvoiceEntity
+import com.gstbilling.app.data.remote.api.DashboardData
+import com.gstbilling.app.data.repository.BusinessRepository
+import com.gstbilling.app.data.repository.InvoiceRepository
+import com.gstbilling.app.util.AppResult
+import com.gstbilling.app.util.SessionManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class DashboardViewModel @Inject constructor(
+    private val businessRepository: BusinessRepository,
+    private val invoiceRepository: InvoiceRepository,
+    private val sessionManager: SessionManager
+) : ViewModel() {
+
+    var dashboardData by mutableStateOf<DashboardData?>(null)
+    var isLoading by mutableStateOf(true)
+    var errorMessage by mutableStateOf<String?>(null)
+    var invoices by mutableStateOf<List<InvoiceEntity>>(emptyList())
+        private set
+
+    init {
+        viewModelScope.launch {
+            sessionManager.getBusinessId()?.let { id ->
+                invoiceRepository.getInvoices(id).collect { invoices = it }
+            }
+        }
+        loadDashboard()
+    }
+
+    fun loadDashboard() {
+        viewModelScope.launch {
+            isLoading = true
+            when (val result = businessRepository.getDashboard()) {
+                is AppResult.Success -> {
+                    dashboardData = result.data
+                    isLoading = false
+                }
+                is AppResult.Error -> {
+                    errorMessage = result.message
+                    isLoading = false
+                }
+                is AppResult.Loading -> { }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardScreen(
+    onNavigateToCustomers: () -> Unit,
+    onNavigateToProducts: () -> Unit,
+    onNavigateToCreateInvoice: () -> Unit,
+    onNavigateToInvoices: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    viewModel: DashboardViewModel = hiltViewModel()
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Dashboard") },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        if (viewModel.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DashboardCard(
+                            title = "Sales",
+                            value = "₹${String.format("%.0f", viewModel.dashboardData?.total_sales ?: 0)}",
+                            icon = Icons.Default.TrendingUp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardCard(
+                            title = "Customers",
+                            value = "${viewModel.dashboardData?.total_customers ?: 0}",
+                            icon = Icons.Default.People,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DashboardCard(
+                            title = "Products",
+                            value = "${viewModel.dashboardData?.total_products ?: 0}",
+                            icon = Icons.Default.Inventory2,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardCard(
+                            title = "Pending",
+                            value = "₹${String.format("%.0f", viewModel.dashboardData?.pending_amount ?: 0)}",
+                            icon = Icons.Default.PendingActions,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Quick Actions",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionButton(
+                            title = "New Invoice",
+                            icon = Icons.Default.AddShoppingCart,
+                            onClick = onNavigateToCreateInvoice,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Add Customer",
+                            icon = Icons.Default.PersonAdd,
+                            onClick = onNavigateToCustomers,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Add Product",
+                            icon = Icons.Default.AddBox,
+                            onClick = onNavigateToProducts,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Recent Invoices",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                val recentInvoices = viewModel.dashboardData?.recent_invoices ?: emptyList()
+                if (recentInvoices.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No invoices yet",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
+                } else {
+                    items(recentInvoices.size) { index ->
+                        val invoice = recentInvoices[index]
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = onNavigateToInvoices
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = invoice.invoice_number,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = invoice.customer_name ?: "Walk-in Customer",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "₹${String.format("%.0f", invoice.total_amount)}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = invoice.status.replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = when (invoice.status) {
+                                            "paid" -> Color(0xFF2E7D32)
+                                            "unpaid" -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onNavigateToInvoices,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("View All Invoices")
+                        }
+                        OutlinedButton(
+                            onClick = onNavigateToReports,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Reports")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun ActionButton(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}

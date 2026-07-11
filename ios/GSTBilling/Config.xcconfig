@@ -1,0 +1,15 @@
+// Configuration file for Wise Accounts iOS App
+// Fill in your values before building for production
+
+API_BASE_URL = https://api.yourdomain.com/api/v1
+RAZORPAY_KEY_ID = your_razorpay_key_id
+UPI_ID = yourbusiness@upi
+
+// Apple Developer - fill after creating account
+APPLE_TEAM_ID = your_apple_team_id
+BUNDLE_ID = com.gstbilling.app
+
+// Feature flags
+ENABLE_RAZORPAY = YES
+ENABLE_OFFLINE_SYNC = YES
+ENABLE_PUSH_NOTIFICATIONS = NO

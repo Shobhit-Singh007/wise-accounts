@@ -1,0 +1,111 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: [ios/**]
+  pull_request:
+    branches: [main]
+    paths: [ios/**]
+
+env:
+  SCHEME: GSTBilling
+  XCODE_VERSION: latest-stable
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/**') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ios/.build
+          key: ${{ runner.os }}-spm-${{ hashFiles('ios/**/Package.swift', 'ios/**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+      - name: Build
+        run: |
+          xcodebuild build \
+            -scheme "$SCHEME" \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+
+  test:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+      - name: Cache derived data
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/**') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -scheme "$SCHEME" \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/
+
+  archive:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+      - name: Install provisioning profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+      - name: Archive app
+        run: |
+          xcodebuild archive \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -archivePath build/GSTBilling.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="${{ secrets.IOS_SIGNING_IDENTITY }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.IOS_PROVISIONING_PROFILE_SPECIFIER }}" | xcpretty
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/GSTBilling.xcarchive \
+            -exportPath build/ \
+            -exportOptionsPlist ExportOptions.plist | xcpretty
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: ios/build/*.ipa
