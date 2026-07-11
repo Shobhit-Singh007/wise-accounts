@@ -255,3 +255,45 @@ struct InvoiceTemplate: Codable, Identifiable {
     let font: String
     let isActive: Bool
 }
+
+// MARK: - Staff Management
+
+struct StaffMember: Codable, Identifiable {
+    var id: String { userId }
+    let userId: String
+    let name: String
+    let phone: String
+    let email: String?
+    let avatarUrl: String?
+    let role: String
+    let permissions: [String]
+    let isDefault: Bool
+    let joinedAt: String
+}
+
+struct StaffInvite: Codable, Identifiable {
+    let id: String
+    let phone: String
+    let email: String?
+    let name: String?
+    let role: String
+    let permissions: [String]
+    let token: String
+    let invitedBy: String
+    let expiresAt: String
+    let createdAt: String
+}
+
+struct InviteStaffRequest: Codable {
+    let phone: String
+    let email: String?
+    let name: String?
+    let rolePreset: String?
+    let permissions: [String]?
+    let role: String?
+}
+
+struct UpdatePermissionsRequest: Codable {
+    let permissions: [String]
+    let role: String?
+}

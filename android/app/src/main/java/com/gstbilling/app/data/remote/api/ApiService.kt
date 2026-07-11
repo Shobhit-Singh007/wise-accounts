@@ -220,6 +220,42 @@ interface ApiService {
         @Body request: UpiLinkRequest
     ): Response<ApiResponse<UpiLinkResponse>>
 
+    // ── Staff Management ──
+    @GET("businesses/{businessId}/staff")
+    suspend fun getStaff(
+        @Path("businessId") businessId: String
+    ): Response<ApiResponse<List<StaffMember>>>
+
+    @POST("businesses/{businessId}/staff/invite")
+    suspend fun inviteStaff(
+        @Path("businessId") businessId: String,
+        @Body request: InviteStaffRequest
+    ): Response<ApiResponse<Map<String, Any>>>
+
+    @PUT("businesses/{businessId}/staff/{userId}/permissions")
+    suspend fun updateStaffPermissions(
+        @Path("businessId") businessId: String,
+        @Path("userId") userId: String,
+        @Body request: UpdatePermissionsRequest
+    ): Response<ApiResponse<Map<String, Any>>>
+
+    @DELETE("businesses/{businessId}/staff/{userId}")
+    suspend fun removeStaff(
+        @Path("businessId") businessId: String,
+        @Path("userId") userId: String
+    ): Response<ApiResponse<Map<String, Any>>>
+
+    @GET("businesses/{businessId}/staff/invites")
+    suspend fun getStaffInvites(
+        @Path("businessId") businessId: String
+    ): Response<ApiResponse<List<StaffInvite>>>
+
+    @DELETE("businesses/{businessId}/staff/invites/{inviteId}")
+    suspend fun cancelStaffInvite(
+        @Path("businessId") businessId: String,
+        @Path("inviteId") inviteId: String
+    ): Response<ApiResponse<Map<String, Any>>>
+
     // ── Reports ──
     @GET("reports/sales")
     suspend fun getSalesReport(
@@ -868,6 +904,46 @@ data class LowStockAlertRequest(
     val product_id: Long,
     val current_stock: Int,
     val threshold: Int
+)
+
+// ── Staff Management Models ──
+data class StaffMember(
+    val userId: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val email: String? = null,
+    val avatarUrl: String? = null,
+    val role: String = "BUSINESS_VIEWER",
+    val permissions: List<String> = emptyList(),
+    val isDefault: Boolean = false,
+    val joinedAt: String = ""
+)
+
+data class StaffInvite(
+    val id: String = "",
+    val phone: String = "",
+    val email: String? = null,
+    val name: String? = null,
+    val role: String = "BUSINESS_EDITOR",
+    val permissions: List<String> = emptyList(),
+    val token: String = "",
+    val invitedBy: String = "",
+    val expiresAt: String = "",
+    val createdAt: String = ""
+)
+
+data class InviteStaffRequest(
+    val phone: String,
+    val email: String? = null,
+    val name: String? = null,
+    val rolePreset: String? = null,
+    val permissions: List<String>? = null,
+    val role: String? = null
+)
+
+data class UpdatePermissionsRequest(
+    val permissions: List<String>,
+    val role: String? = null
 )
 
 // ── Ledger Entry Models --

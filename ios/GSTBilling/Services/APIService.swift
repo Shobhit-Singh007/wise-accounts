@@ -439,6 +439,38 @@ final class APIService {
         return try await requestRaw(path: url)
     }
 
+    // MARK: - Staff Management
+
+    func getStaff(businessId: String) async throws -> [StaffMember] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff"
+        return try await requestRaw(path: url)
+    }
+
+    func inviteStaff(businessId: String, data: InviteStaffRequest) async throws -> [String: Any] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff/invite"
+        return try await requestRaw(path: url, method: "POST", body: data)
+    }
+
+    func updateStaffPermissions(businessId: String, userId: String, data: UpdatePermissionsRequest) async throws -> [String: Any] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff/\(userId)/permissions"
+        return try await requestRaw(path: url, method: "PUT", body: data)
+    }
+
+    func removeStaff(businessId: String, userId: String) async throws -> [String: Any] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff/\(userId)"
+        return try await requestRaw(path: url, method: "DELETE")
+    }
+
+    func getStaffInvites(businessId: String) async throws -> [StaffInvite] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff/invites"
+        return try await requestRaw(path: url)
+    }
+
+    func cancelStaffInvite(businessId: String, inviteId: String) async throws -> [String: Any] {
+        let url = "\(Constants.baseURL)/businesses/\(businessId)/staff/invites/\(inviteId)"
+        return try await requestRaw(path: url, method: "DELETE")
+    }
+
     // MARK: - Payments
     func getPayments(businessId: String) async throws -> [Payment] {
         try await request(.payments(businessId), endpoint: "")

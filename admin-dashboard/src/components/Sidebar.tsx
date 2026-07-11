@@ -20,6 +20,7 @@ import {
   Payment as PaymentIcon,
   Assessment as AssessmentIcon,
   Settings as SettingsIcon,
+  Group as GroupIcon,
   ChevronLeft,
   ChevronRight,
 } from '@mui/icons-material';
@@ -35,6 +36,7 @@ const navItems = [
   { label: 'Products', icon: <InventoryIcon />, path: '/products' },
   { label: 'Invoices', icon: <ReceiptIcon />, path: '/invoices' },
   { label: 'Payments', icon: <PaymentIcon />, path: '/payments' },
+  { label: 'Staff', icon: <GroupIcon />, path: '/staff' },
   { label: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
   { label: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];

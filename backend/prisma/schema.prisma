@@ -79,6 +79,8 @@ model User {
   createdInvoices Invoice[]       @relation("CreatedBy")
   creditNotes     CreditNote[]    @relation("CreditNoteCreatedBy")
   auditLogs       AuditLog[]
+  sentInvites     StaffInvite[]   @relation("InviteSentBy")
+  receivedInvites StaffInvite[]   @relation("InviteForUser")
 }
 
 model RefreshToken {
@@ -92,14 +94,15 @@ model RefreshToken {
 }
 
 model UserBusiness {
-  id         String   @id @default(uuid())
-  userId     String
-  businessId String
-  role       UserRole @default(BUSINESS_ADMIN)
-  isDefault  Boolean  @default(false)
-  joinedAt   DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-  business   Business @relation(fields: [businessId], references: [id])
+  id          String   @id @default(uuid())
+  userId      String
+  businessId  String
+  role        UserRole @default(BUSINESS_ADMIN)
+  isDefault   Boolean  @default(false)
+  permissions Json     @default("[]")
+  joinedAt    DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  business    Business @relation(fields: [businessId], references: [id])
 
   @@unique([userId, businessId])
 }
@@ -131,6 +134,7 @@ model Business {
   payments        Payment[]
   purchaseOrders  PurchaseOrder[]
   auditLogs       AuditLog[]
+  staffInvites    StaffInvite[]
 }
 
 model Warehouse {
@@ -527,4 +531,28 @@ model SyncLog {
   syncedAt  DateTime?
 
   @@index([businessId])
+}
+
+model StaffInvite {
+  id           String   @id @default(uuid())
+  businessId   String
+  phone        String
+  email        String?
+  name         String?
+  permissions  Json     @default("[]")
+  role         UserRole @default(BUSINESS_EDITOR)
+  token        String   @unique
+  invitedById  String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  business  Business @relation(fields: [businessId], references: [id])
+  inviter   User     @relation("InviteSentBy", fields: [invitedById], references: [id])
+  invitee   User?    @relation("InviteForUser", fields: [inviteeId], references: [id])
+  inviteeId String?
+
+  @@index([businessId])
+  @@index([token])
+  @@index([phone])
 }

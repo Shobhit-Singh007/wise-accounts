@@ -14,6 +14,7 @@ import InvoicesPage from './pages/InvoicesPage';
 import PaymentsPage from './pages/PaymentsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import StaffPage from './pages/StaffPage';
 import CustomerLedgerPage from './pages/CustomerLedgerPage';
 import { CircularProgress, Box } from '@mui/material';
 
@@ -82,6 +83,7 @@ function AppRoutes() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
+        <Route path="/staff" element={<StaffPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
