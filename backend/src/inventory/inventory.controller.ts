@@ -106,6 +106,25 @@ export class InventoryController {
     return this.inventoryService.findAllCategories(businessId, page, limit);
   }
 
+  @Put('categories/:categoryId')
+  @ApiOperation({ summary: 'Update a category' })
+  async updateCategory(
+    @Param('businessId') businessId: string,
+    @Param('categoryId') categoryId: string,
+    @Body() dto: { name?: string; parentId?: string },
+  ) {
+    return this.inventoryService.updateCategory(businessId, categoryId, dto);
+  }
+
+  @Delete('categories/:categoryId')
+  @ApiOperation({ summary: 'Delete a category' })
+  async removeCategory(
+    @Param('businessId') businessId: string,
+    @Param('categoryId') categoryId: string,
+  ) {
+    return this.inventoryService.removeCategory(businessId, categoryId);
+  }
+
   @Post('suppliers')
   @ApiOperation({ summary: 'Create a supplier' })
   async createSupplier(@Param('businessId') businessId: string, @Body() dto: CreateSupplierDto) {
@@ -122,6 +141,25 @@ export class InventoryController {
     @Query('limit') limit?: number,
   ) {
     return this.inventoryService.findAllSuppliers(businessId, page, limit);
+  }
+
+  @Put('suppliers/:supplierId')
+  @ApiOperation({ summary: 'Update a supplier' })
+  async updateSupplier(
+    @Param('businessId') businessId: string,
+    @Param('supplierId') supplierId: string,
+    @Body() dto: any,
+  ) {
+    return this.inventoryService.updateSupplier(businessId, supplierId, dto);
+  }
+
+  @Delete('suppliers/:supplierId')
+  @ApiOperation({ summary: 'Delete a supplier' })
+  async removeSupplier(
+    @Param('businessId') businessId: string,
+    @Param('supplierId') supplierId: string,
+  ) {
+    return this.inventoryService.removeSupplier(businessId, supplierId);
   }
 
   @Post('purchase-orders')
@@ -142,9 +180,41 @@ export class InventoryController {
     return this.inventoryService.findAllPurchaseOrders(businessId, page, limit);
   }
 
+  @Put('purchase-orders/:orderId')
+  @ApiOperation({ summary: 'Update a purchase order' })
+  async updatePurchaseOrder(
+    @Param('businessId') businessId: string,
+    @Param('orderId') orderId: string,
+    @Body() dto: any,
+  ) {
+    return this.inventoryService.updatePurchaseOrder(businessId, orderId, dto);
+  }
+
+  @Delete('purchase-orders/:orderId')
+  @ApiOperation({ summary: 'Cancel a purchase order' })
+  async removePurchaseOrder(
+    @Param('businessId') businessId: string,
+    @Param('orderId') orderId: string,
+  ) {
+    return this.inventoryService.removePurchaseOrder(businessId, orderId);
+  }
+
   @Post('purchase-orders/:orderId/receive')
   @ApiOperation({ summary: 'Mark purchase order as received and add stock' })
   async receivePurchaseOrder(@Param('businessId') businessId: string, @Param('orderId') orderId: string) {
     return this.inventoryService.receivePurchaseOrder(businessId, orderId);
+  }
+
+  @Get('products/:productId/stock-movements')
+  @ApiOperation({ summary: 'Get stock movement history for a product' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async getStockMovements(
+    @Param('businessId') businessId: string,
+    @Param('productId') productId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.inventoryService.getStockMovements(businessId, productId, page, limit);
   }
 }

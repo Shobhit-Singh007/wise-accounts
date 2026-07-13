@@ -348,6 +348,18 @@ final class APIService {
         try await request(.inventory(businessId), endpoint: "purchase-orders/\(orderId)/receive", method: "POST")
     }
 
+    func getStockMovements(businessId: String, startDate: String? = nil, endDate: String? = nil, productId: String? = nil) async throws -> StockMovementsReport {
+        var qi: [URLQueryItem] = []
+        if let s = startDate { qi.append(URLQueryItem(name: "startDate", value: s)) }
+        if let e = endDate { qi.append(URLQueryItem(name: "endDate", value: e)) }
+        if let p = productId { qi.append(URLQueryItem(name: "productId", value: p)) }
+        return try await request(.inventory(businessId), endpoint: "stock-movements", queryItems: qi.isEmpty ? nil : qi)
+    }
+
+    func getInventoryDashboard(businessId: String) async throws -> InventoryDashboard {
+        try await request(.inventory(businessId), endpoint: "inventory-dashboard")
+    }
+
     // MARK: - Billing
     func getInvoices(businessId: String, status: String? = nil, customerId: String? = nil, direction: String? = nil) async throws -> [Invoice] {
         var qi: [URLQueryItem] = []
@@ -595,6 +607,25 @@ final class APIService {
         if let l = lastSyncAt { qi.append(URLQueryItem(name: "lastSyncAt", value: l)) }
         qi.append(URLQueryItem(name: "deviceId", value: deviceId))
         return try await request(.sync(businessId), endpoint: "pull", queryItems: qi)
+    }
+
+    // MARK: - Customer Groups
+    func getCustomerGroups(businessId: String) async throws -> [CustomerGroup] {
+        try await request(.customers(businessId), endpoint: "groups")
+    }
+
+    func createCustomerGroup(businessId: String, name: String, discount: Double?) async throws -> CustomerGroup {
+        let dto = CreateCustomerGroupRequest(name: name, discount: discount)
+        return try await request(.customers(businessId), endpoint: "groups", method: "POST", body: dto)
+    }
+
+    func updateCustomerGroup(businessId: String, groupId: String, name: String?, discount: Double?) async throws -> CustomerGroup {
+        let dto = UpdateCustomerGroupRequest(name: name, discount: discount)
+        return try await request(.customers(businessId), endpoint: "groups/\(groupId)", method: "PUT", body: dto)
+    }
+
+    func deleteCustomerGroup(businessId: String, groupId: String) async throws {
+        try await deleteNoContent(.customers(businessId), path: "groups/\(groupId)")
     }
 }
 

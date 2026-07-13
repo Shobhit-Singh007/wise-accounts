@@ -53,6 +53,11 @@ class SettingsViewModel @Inject constructor(
 fun SettingsScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToStaff: () -> Unit = {},
+    onNavigateToWarehouses: () -> Unit = {},
+    onNavigateToSuppliers: () -> Unit = {},
+    onNavigateToLowStock: () -> Unit = {},
+    onNavigateToPurchaseOrders: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -158,7 +163,16 @@ fun SettingsScreen(
                     title = "Warehouses",
                     subtitle = "Manage warehouse locations",
                     icon = Icons.Default.Warehouse,
-                    onClick = { }
+                    onClick = onNavigateToWarehouses
+                )
+            }
+
+            item {
+                SettingsItem(
+                    title = "Staff Management",
+                    subtitle = "Invite and manage your team",
+                    icon = Icons.Default.Groups,
+                    onClick = onNavigateToStaff
                 )
             }
 

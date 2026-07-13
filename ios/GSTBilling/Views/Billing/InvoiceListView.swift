@@ -136,6 +136,12 @@ struct InvoiceDetailView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPrintConfirm = false
+    @State private var printMethod: PrintMethod = .airprint
+
+    enum PrintMethod {
+        case airprint, thermal
+    }
 
     var body: some View {
         List {
@@ -231,6 +237,20 @@ struct InvoiceDetailView: View {
                 }
 
                 Button {
+                    printMethod = .airprint
+                    showPrintConfirm = true
+                } label: {
+                    Label("Print via AirPrint", systemImage: "printer.fill")
+                }
+
+                Button {
+                    printMethod = .thermal
+                    showPrintConfirm = true
+                } label: {
+                    Label("Print via Thermal Printer", systemImage: "printer.filled.and.paper")
+                }
+
+                Button {
                     Task { await downloadPdf() }
                 } label: {
                     Label("Download PDF", systemImage: "arrow.down.doc")
@@ -290,6 +310,46 @@ struct InvoiceDetailView: View {
         } message: {
             Text(errorMessage)
         }
+        .alert("Print Invoice", isPresented: $showPrintConfirm) {
+            Button("Print") {
+                if printMethod == .airprint {
+                    printViaAirPrint()
+                } else {
+                    printViaThermal()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(printMethod == .airprint ? "Send this invoice to AirPrint?" : "Send this invoice to the connected thermal printer?")
+        }
+    }
+
+    private func printViaAirPrint() {
+        let items: [(name: String, qty: Int, amount: Double)] = invoice.items?.map { ($0.itemName, Int($0.quantity), $0.total ?? 0) } ?? []
+        AirPrintService.shared.printInvoice(
+            businessName: business.name,
+            invoiceNo: invoice.invoiceNo,
+            customerName: invoice.customer?.name ?? "Walk-in",
+            items: items,
+            subtotal: invoice.subtotal ?? 0,
+            tax: invoice.taxAmount ?? 0,
+            total: invoice.grandTotal ?? 0
+        )
+    }
+
+    private func printViaThermal() {
+        let printItems: [PrintItem] = invoice.items?.map { PrintItem(name: $0.itemName, quantity: Int($0.quantity), amount: $0.total ?? 0) } ?? []
+        ThermalPrinter.shared.printInvoice(
+            businessName: business.name,
+            invoiceNo: invoice.invoiceNo,
+            customerName: invoice.customer?.name ?? "Walk-in",
+            items: printItems,
+            subtotal: invoice.subtotal ?? 0,
+            tax: invoice.taxAmount ?? 0,
+            total: invoice.grandTotal ?? 0,
+            amountPaid: invoice.paidAmount ?? 0,
+            balance: (invoice.grandTotal ?? 0) - (invoice.paidAmount ?? 0)
+        )
     }
 
     private func cancelInvoice() async {

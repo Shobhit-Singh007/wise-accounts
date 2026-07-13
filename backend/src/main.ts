@@ -6,11 +6,17 @@ import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { SentryInterceptor } from './common/sentry.interceptor';
+import { CloudWatchLogger } from './common/cloudwatch.logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: process.env.NODE_ENV === 'production' ? new CloudWatchLogger() : undefined,
+  });
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
+
+  app.useGlobalInterceptors(new SentryInterceptor());
 
   app.setGlobalPrefix('api/v1');
 

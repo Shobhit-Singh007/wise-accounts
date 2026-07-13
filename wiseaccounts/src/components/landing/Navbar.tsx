@@ -15,6 +15,8 @@ import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import MenuIcon from '@mui/icons-material/Menu'
 import CloseIcon from '@mui/icons-material/Close'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import LightModeIcon from '@mui/icons-material/LightMode'
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -59,9 +61,12 @@ function Navbar() {
   const drawer = (
     <Box sx={{ textAlign: 'center' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-          Wise Accounts
-        </Typography>
+        <Box
+          component="img"
+          src="/logo.svg"
+          alt="Wise Accounts"
+          sx={{ height: 28 }}
+        />
         <IconButton onClick={() => setMobileOpen(false)}>
           <CloseIcon />
         </IconButton>
@@ -107,20 +112,12 @@ function Navbar() {
       >
         <Container maxWidth="lg">
           <Toolbar disableGutters sx={{ minHeight: { xs: 64, md: 72 } }}>
-            <Typography
-              variant="h5"
-              component={RouterLink}
-              to="/"
-              sx={{
-                fontWeight: 800,
-                color: scrolled || !isHome ? 'primary.main' : '#fff',
-                textDecoration: 'none',
-                letterSpacing: '-0.5px',
-                mr: 'auto',
-              }}
-            >
-              Wise Accounts
-            </Typography>
+            <Box
+              component="img"
+              src={scrolled || !isHome ? '/logo.svg' : '/logo-light.svg'}
+              alt="Wise Accounts"
+              sx={{ height: 32, mr: 'auto' }}
+            />
 
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
               {navItems.map((item) => (

@@ -1,22 +1,34 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateCreditNoteDto } from './dto/create-credit-note.dto';
 import { EwayBillApiService } from './services/ewaybill-api.service';
 import { EinvoiceApiService } from './services/einvoice-api.service';
 import { InvoiceTemplatesService } from './services/invoice-templates.service';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
+  private snsClient: SNSClient | null = null;
+  private sesClient: SESClient | null = null;
 
   constructor(
     private prisma: PrismaService,
     private ewayBillApi: EwayBillApiService,
     private einvoiceApi: EinvoiceApiService,
     private templatesService: InvoiceTemplatesService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    const region = this.configService.get<string>('AWS_REGION', 'ap-south-1');
+    if (this.configService.get<string>('AWS_ACCESS_KEY_ID')) {
+      this.snsClient = new SNSClient({ region });
+      this.sesClient = new SESClient({ region });
+    }
+  }
 
   async createInvoice(businessId: string, userId: string, dto: CreateInvoiceDto) {
     const business = await this.prisma.business.findUnique({ where: { id: businessId } });
@@ -920,5 +932,222 @@ ${settings.showBankDetails && settings.bankName ? `<div class="bank-details"><st
 
   private async deductStock(invoiceId: string) {
     return this.prisma.$transaction((tx) => this.deductStockInTx(tx, invoiceId));
+  }
+
+  async bulkCreateInvoices(businessId: string, userId: string, invoices: any[]) {
+    const results = [];
+    for (const entry of invoices) {
+      try {
+        const invoice = await this.createInvoice(businessId, userId, {
+          customerId: entry.customerId,
+          type: 'B2C',
+          direction: 'SALE',
+          invoiceDate: entry.invoiceDate,
+          dueDate: entry.dueDate,
+          items: entry.items,
+          notes: entry.notes,
+          discount: entry.discount,
+        });
+        results.push({ status: 'success', invoiceId: invoice.id, invoiceNo: invoice.invoiceNo });
+      } catch (error) {
+        results.push({ status: 'error', error: error.message, items: entry.items });
+      }
+    }
+    return {
+      total: invoices.length,
+      successful: results.filter(r => r.status === 'success').length,
+      failed: results.filter(r => r.status === 'error').length,
+      results,
+    };
+  }
+
+  async shareInvoice(businessId: string, invoiceId: string, dto: { method: 'email' | 'sms' | 'whatsapp'; recipientPhone?: string; recipientEmail?: string; message?: string }) {
+    const invoice = await this.findOneInvoice(businessId, invoiceId);
+    const business = await this.prisma.business.findUnique({ where: { id: businessId } });
+    const balanceDue = invoice.grandTotal - (invoice.paidAmount || 0);
+    const baseUrl = this.configService.get<string>('BASE_URL', 'https://api.wiseaccounts.app');
+    const pdfUrl = `${baseUrl}/api/v1/businesses/${businessId}/invoices/${invoiceId}/pdf`;
+    const viewUrl = `${baseUrl}/api/v1/businesses/${businessId}/invoices/${invoiceId}/print`;
+    const upiId = (business?.settings as any)?.upiId || '';
+    const upiLink = upiId ? `upi://pay?pa=${upiId}&am=${balanceDue.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Invoice ${invoice.invoiceNo}`)}` : '';
+
+    const defaultMessage = `Dear ${invoice.customer?.name || 'Customer'},\nInvoice ${invoice.invoiceNo} for ₹${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} is ready.${balanceDue > 0 ? `\nBalance Due: ₹${balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}\nView: ${viewUrl}\nPay: ${upiLink || pdfUrl}`;
+
+    const message = dto.message || defaultMessage;
+    const sentVia: string[] = [];
+    const errors: string[] = [];
+
+    if (dto.method === 'sms' || dto.method === 'whatsapp') {
+      const phone = dto.recipientPhone || invoice.customer?.phone;
+      if (!phone) {
+        errors.push('No phone number available');
+      } else {
+        if (dto.method === 'whatsapp') {
+          const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+          sentVia.push(`whatsapp:${whatsappUrl}`);
+        } else if (this.snsClient) {
+          try {
+            await this.snsClient.send(new PublishCommand({
+              PhoneNumber: phone,
+              Message: message,
+              MessageAttributes: {
+                'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_TRANSACTIONAL_TYPE') || 'Transactional' },
+                'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
+              },
+            }));
+            sentVia.push(`sms:${phone}`);
+          } catch (err) {
+            errors.push(`SMS failed: ${(err as Error).message}`);
+          }
+        } else {
+          this.logger.warn(`SMS not configured, returning payload for ${phone}`);
+          sentVia.push(`sms:${phone}(unsent)`);
+        }
+      }
+    }
+
+    if (dto.method === 'email') {
+      const email = dto.recipientEmail || invoice.customer?.email;
+      if (!email) {
+        errors.push('No email address available');
+      } else if (this.sesClient) {
+        try {
+          await this.sesClient.send(new SendEmailCommand({
+            Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@wiseaccounts.app'),
+            Destination: { ToAddresses: [email] },
+            Message: {
+              Subject: { Data: `Invoice ${invoice.invoiceNo} from ${business?.name || 'Wise Accounts'}` },
+              Body: { Text: { Data: message } },
+            },
+          }));
+          sentVia.push(`email:${email}`);
+        } catch (err) {
+          errors.push(`Email failed: ${(err as Error).message}`);
+        }
+      } else {
+        this.logger.warn(`SES not configured, returning payload for ${email}`);
+        sentVia.push(`email:${email}(unsent)`);
+      }
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        businessId,
+        action: 'INVOICE_SHARED',
+        entity: 'Invoice',
+        entityId: invoiceId,
+        newValues: { method: dto.method, sentVia, balanceDue },
+      },
+    });
+
+    return {
+      invoiceNo: invoice.invoiceNo,
+      method: dto.method,
+      sentVia,
+      errors,
+      balanceDue,
+      pdfUrl,
+      upiLink: upiLink || undefined,
+    };
+  }
+
+  async generatePaymentReceipt(businessId: string, paymentId: string): Promise<Buffer> {
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: paymentId, businessId },
+      include: { customer: true, invoice: true },
+    });
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    const business = await this.prisma.business.findUnique({ where: { id: businessId } });
+    const settings = (business?.settings as any) || {};
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => buffers.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const accent = settings.accentColor || '#1565c0';
+
+      doc.rect(0, 0, doc.page.width, 80).fill(accent);
+      doc.fillColor('white').fontSize(20).font('Helvetica-Bold').text('PAYMENT RECEIPT', 40, 20);
+      doc.fontSize(10).font('Helvetica').text(`${business?.name || ''}`, 40, 48);
+      if (business?.gstin) doc.text(`GSTIN: ${business.gstin}`, 40, 62);
+
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#333').text('Business Details', doc.page.width - 250, 15, { width: 210, align: 'right' });
+      doc.fontSize(8).font('Helvetica');
+      if (business?.address) doc.text(business.address, doc.page.width - 250, 30, { width: 210, align: 'right' });
+      if (business?.city || business?.state) doc.text(`${business?.city || ''} ${business?.state || ''} ${business?.pincode || ''}`.trim(), doc.page.width - 250, 42, { width: 210, align: 'right' });
+      if (business?.phone) doc.text(`Ph: ${business.phone}`, doc.page.width - 250, 54, { width: 210, align: 'right' });
+
+      doc.fillColor(accent).rect(40, 95, doc.page.width - 80, 1).fill(accent);
+
+      let y = 115;
+      doc.fillColor(accent).rect(40, y, doc.page.width - 80, 18).fill(accent + '12');
+      doc.fillColor(accent).fontSize(9).font('Helvetica-Bold').text('RECIPIENT DETAILS', 50, y + 4);
+      y += 25;
+
+      doc.fillColor('#333').font('Helvetica').fontSize(9);
+      if (payment.customer) {
+        doc.text(payment.customer.name || '', 50, y);
+        if (payment.customer.phone) doc.text(`Ph: ${payment.customer.phone}`, 50, y + 14);
+        if (payment.customer.email) doc.text(`Email: ${payment.customer.email}`, 50, y + 28);
+        if (payment.customer.gstin) doc.text(`GSTIN: ${payment.customer.gstin}`, 50, y + 42);
+      } else {
+        doc.text('Walk-in Customer', 50, y);
+      }
+
+      y += 75;
+      doc.fillColor(accent).rect(40, y, doc.page.width - 80, 18).fill(accent + '12');
+      doc.fillColor(accent).fontSize(9).font('Helvetica-Bold').text('PAYMENT DETAILS', 50, y + 4);
+      y += 28;
+
+      const details = [
+        ['Receipt No', `RCP-${Date.now().toString(36).toUpperCase()}`],
+        ['Payment Date', new Date(payment.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })],
+        ['Payment Method', payment.method.replace('_', ' ')],
+        ['Reference', payment.reference || '-'],
+      ];
+
+      if (payment.invoice) {
+        details.push(['Invoice No', payment.invoice.invoiceNo]);
+        details.push(['Invoice Total', `₹${payment.invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
+      }
+
+      for (const [label, value] of details) {
+        doc.fillColor('#666').fontSize(9).font('Helvetica').text(`${label}:`, 50, y, { width: 150 });
+        doc.fillColor('#333').font('Helvetica-Bold').text(value, 200, y, { width: doc.page.width - 250 });
+        y += 16;
+      }
+
+      y += 10;
+      doc.rect(40, y, doc.page.width - 80, 50).fill('#e8f5e9');
+      doc.rect(40, y, 5, 50).fill('#2e7d32');
+      doc.fillColor('#2e7d32').fontSize(14).font('Helvetica-Bold').text('AMOUNT RECEIVED', 55, y + 8);
+      doc.fillColor('#1b5e20').fontSize(22).font('Helvetica-Bold').text(`₹${payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 55, y + 26, { width: doc.page.width - 100, align: 'left' });
+
+      y += 70;
+      if (payment.notes) {
+        doc.fillColor('#333').font('Helvetica-Bold').fontSize(9).text('Notes:', 50, y);
+        doc.font('Helvetica').fontSize(8).text(payment.notes, 50, y + 14, { width: doc.page.width - 100 });
+        y += 30;
+      }
+
+      y += 20;
+      doc.fillColor(accent).rect(40, y, doc.page.width - 80, 1).fill(accent);
+      y += 10;
+      doc.fillColor('#333').font('Helvetica-Bold').fontSize(9).text('Declaration', 50, y);
+      doc.font('Helvetica').fontSize(8).fillColor('#666').text(
+        'This is a computer-generated payment receipt. No signature is required. This receipt confirms that payment has been received as per the details mentioned above.',
+        50, y + 14, { width: doc.page.width - 100 },
+      );
+
+      doc.fontSize(7).fillColor('#999').font('Helvetica')
+        .text(`Generated by Wise Accounts | ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+          40, doc.page.height - 30, { width: doc.page.width - 80, align: 'center' });
+
+      doc.end();
+    });
   }
 }

@@ -33,6 +33,9 @@ interface ApiService {
     @GET("businesses/{id}/warehouses")
     suspend fun getWarehouses(@Path("id") id: Long): Response<ApiResponse<List<Warehouse>>>
 
+    @POST("businesses/{id}/warehouses")
+    suspend fun createWarehouse(@Path("id") id: Long, @Body warehouse: Warehouse): Response<ApiResponse<Warehouse>>
+
     // ── Customers ──
     @GET("customers")
     suspend fun getCustomers(
@@ -201,11 +204,49 @@ interface ApiService {
         @Path("businessId") businessId: String
     ): Response<ApiResponse<List<InvoiceTemplate>>>
 
+    // ── Invoice Share ──
+    @POST("businesses/{businessId}/invoices/{invoiceId}/share")
+    suspend fun shareInvoice(
+        @Path("businessId") businessId: String,
+        @Path("invoiceId") invoiceId: String,
+        @Body request: InvoiceShareRequest
+    ): Response<ApiResponse<InvoiceShareResponse>>
+
+    // ── Invoice Print HTML ──
+    @GET("businesses/{businessId}/invoices/{invoiceId}/print")
+    suspend fun getInvoicePrintHtml(
+        @Path("businessId") businessId: String,
+        @Path("invoiceId") invoiceId: String
+    ): Response<ApiResponse<InvoicePrintResponse>>
+
+    // ── Bulk Invoice ──
+    @POST("businesses/{businessId}/invoices/bulk")
+    suspend fun createBulkInvoices(
+        @Path("businessId") businessId: String,
+        @Body request: BulkInvoiceRequest
+    ): Response<ApiResponse<BulkInvoiceResponse>>
+
     // ── Payments ──
+    @GET("businesses/{businessId}/payments")
+    suspend fun getBusinessPayments(
+        @Path("businessId") businessId: String,
+        @Query("customer_id") customerId: Long? = null,
+        @Query("from_date") fromDate: String? = null,
+        @Query("to_date") toDate: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("per_page") perPage: Int? = null
+    ): Response<ApiResponse<List<Payment>>>
+
     @GET("payments")
     suspend fun getPayments(
         @Query("invoice_id") invoiceId: Long? = null
     ): Response<ApiResponse<List<Payment>>>
+
+    @POST("businesses/{businessId}/payments")
+    suspend fun recordBusinessPayment(
+        @Path("businessId") businessId: String,
+        @Body request: RecordPaymentRequest
+    ): Response<ApiResponse<Payment>>
 
     @POST("payments")
     suspend fun recordPayment(@Body request: RecordPaymentRequest): Response<ApiResponse<Payment>>
@@ -215,10 +256,22 @@ interface ApiService {
         @Body request: RazorpayOrderRequest
     ): Response<ApiResponse<RazorpayOrderResponse>>
 
+    @POST("businesses/{businessId}/payments/upi-link")
+    suspend fun generateUpiLinkForBusiness(
+        @Path("businessId") businessId: String,
+        @Body request: UpiLinkRequest
+    ): Response<ApiResponse<UpiLinkResponse>>
+
     @POST("payments/upi/link")
     suspend fun generateUpiLink(
         @Body request: UpiLinkRequest
     ): Response<ApiResponse<UpiLinkResponse>>
+
+    @GET("businesses/{businessId}/payments/{paymentId}/receipt")
+    suspend fun getPaymentReceipt(
+        @Path("businessId") businessId: String,
+        @Path("paymentId") paymentId: Long
+    ): Response<okhttp3.ResponseBody>
 
     // ── Staff Management ──
     @GET("businesses/{businessId}/staff")
@@ -269,7 +322,9 @@ interface ApiService {
         @Query("business_id") businessId: Long,
         @Query("period") period: String? = null,
         @Query("month") month: Int? = null,
-        @Query("year") year: Int? = null
+        @Query("year") year: Int? = null,
+        @Query("from_date") fromDate: String? = null,
+        @Query("to_date") toDate: String? = null
     ): Response<ApiResponse<Gstr1Report>>
 
     @GET("reports/gstr3b")
@@ -284,6 +339,13 @@ interface ApiService {
     suspend fun getCustomerReport(
         @Query("business_id") businessId: Long
     ): Response<ApiResponse<List<CustomerReport>>>
+
+    @GET("reports/products")
+    suspend fun getProductReport(
+        @Query("business_id") businessId: Long,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null
+    ): Response<ApiResponse<ProductReportResponse>>
 
     @GET("reports/profit-loss")
     suspend fun getProfitLoss(
@@ -302,6 +364,34 @@ interface ApiService {
     ): Response<ApiResponse<SyncResponse>>
 
     // ── Notifications ──
+    @GET("notifications")
+    suspend fun getNotifications(
+        @Query("business_id") businessId: Long,
+        @Query("page") page: Int? = null,
+        @Query("per_page") perPage: Int? = null
+    ): Response<ApiResponse<List<AppNotification>>>
+
+    @GET("notifications")
+    suspend fun getNotificationCount(
+        @Query("business_id") businessId: Long,
+        @Query("limit") limit: Int = 1
+    ): Response<ApiResponse<NotificationCountResponse>>
+
+    @PUT("notifications/{id}/read")
+    suspend fun markNotificationRead(
+        @Path("id") id: Long
+    ): Response<ApiResponse<Unit>>
+
+    @PUT("notifications/read-all")
+    suspend fun markAllNotificationsRead(
+        @Query("business_id") businessId: Long
+    ): Response<ApiResponse<Unit>>
+
+    @DELETE("notifications/{id}")
+    suspend fun deleteNotification(
+        @Path("id") id: Long
+    ): Response<ApiResponse<Unit>>
+
     @POST("notifications/payment-reminder")
     suspend fun sendPaymentReminder(
         @Body request: PaymentReminderRequest
@@ -311,6 +401,20 @@ interface ApiService {
     suspend fun sendLowStockAlert(
         @Body request: LowStockAlertRequest
     ): Response<ApiResponse<Unit>>
+
+    // ── Inventory Dashboard & Stock Movements ──
+    @GET("inventory/dashboard")
+    suspend fun getInventoryDashboard(
+        @Query("business_id") businessId: Long
+    ): Response<ApiResponse<InventoryDashboard>>
+
+    @GET("inventory/stock-movements")
+    suspend fun getStockMovements(
+        @Query("business_id") businessId: Long,
+        @Query("start_date") startDate: String? = null,
+        @Query("end_date") endDate: String? = null,
+        @Query("product_id") productId: Long? = null
+    ): Response<ApiResponse<List<StockMovement>>>
 
     // -- Ledger Entries --
     @POST("customers/{id}/ledger")
@@ -813,7 +917,11 @@ data class Gstr1Report(
     val toDate: String,
     val summary: Gstr1Summary,
     val b2b: List<Gstr1B2bEntry>,
-    val b2c: Gstr1B2cSummary
+    val b2c: Gstr1B2cSummary,
+    val b2cLarge: List<Gstr1B2cLargeEntry> = emptyList(),
+    val b2cSmall: List<Gstr1B2cSmallEntry> = emptyList(),
+    val hsnSummary: List<Gstr1HsnEntry> = emptyList(),
+    val documents: Gstr1Documents? = null
 )
 
 data class Gstr1Summary(
@@ -827,7 +935,13 @@ data class Gstr1B2bEntry(
     val date: String,
     val customerName: String?,
     val customerGstin: String?,
+    val placeOfSupply: String? = null,
+    val reverseCharge: Boolean = false,
+    val invoiceValue: Double = 0.0,
     val taxableValue: Double,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0,
     val taxAmount: Double,
     val grandTotal: Double
 )
@@ -838,10 +952,54 @@ data class Gstr1B2cSummary(
     val totalTax: Double
 )
 
+data class Gstr1B2cLargeEntry(
+    val placeOfSupply: String,
+    val rate: Double,
+    val taxableValue: Double,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0
+)
+
+data class Gstr1B2cSmallEntry(
+    val placeOfSupply: String,
+    val rate: Double,
+    val taxableValue: Double,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0
+)
+
+data class Gstr1HsnEntry(
+    val hsnCode: String,
+    val description: String,
+    val uqc: String,
+    val quantity: Double,
+    val totalValue: Double,
+    val taxableValue: Double,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0
+)
+
+data class Gstr1Documents(
+    val invoicesIssued: Gstr1DocEntry = Gstr1DocEntry(),
+    val creditNotes: Gstr1DocEntry = Gstr1DocEntry()
+)
+data class Gstr1DocEntry(
+    val count: Int = 0,
+    val totalValue: Double = 0.0
+)
+
 data class Gstr3bReport(
     val month: Int,
     val year: Int,
-    val summary: Gstr3bSummary
+    val summary: Gstr3bSummary,
+    val outwardSupplies: List<Gstr3bLabeledSupply> = emptyList(),
+    val interStateSupplies: List<Gstr3bInterStateEntry> = emptyList(),
+    val eligibleItc: List<Gstr3bLabeledItc> = emptyList(),
+    val exemptNilNonGst: List<Gstr3bLabeledExempt> = emptyList(),
+    val paymentOfTax: List<Gstr3bPaymentRow> = emptyList()
 )
 
 data class Gstr3bSummary(
@@ -850,6 +1008,58 @@ data class Gstr3bSummary(
     val totalTax: Double,
     val totalPaid: Double,
     val outstanding: Double
+)
+
+data class Gstr3bInterStateEntry(
+    val placeOfSupply: String,
+    val taxableValue: Double,
+    val igst: Double
+)
+
+data class Gstr3bTaxAmount(
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0,
+    val cess: Double = 0.0,
+    val interest: Double = 0.0,
+    val lateFee: Double = 0.0
+)
+
+data class Gstr3bLabeledSupply(
+    val label: String = "",
+    val taxableValue: Double = 0.0,
+    val igst: Double = 0.0,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val cess: Double = 0.0
+)
+
+data class Gstr3bLabeledItc(
+    val label: String = "",
+    val igst: Double = 0.0,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val cess: Double = 0.0
+)
+
+data class Gstr3bLabeledExempt(
+    val label: String = "",
+    val taxableValue: Double = 0.0,
+    val igst: Double = 0.0,
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val cess: Double = 0.0
+)
+
+data class Gstr3bPaymentRow(
+    val label: String = "",
+    val cgst: Double = 0.0,
+    val sgst: Double = 0.0,
+    val igst: Double = 0.0,
+    val cess: Double = 0.0,
+    val interest: Double = 0.0,
+    val lateFee: Double = 0.0,
+    val total: Double = 0.0
 )
 
 data class CustomerReport(
@@ -975,6 +1185,44 @@ data class LedgerSmsResponse(
     val sentAt: String
 )
 
+// ── Product Report Models ──
+data class ProductReportResponse(
+    val products: List<ProductReportEntry> = emptyList(),
+    val top_products: List<ProductReportEntry> = emptyList(),
+    val period: ProductReportPeriod? = null
+)
+
+data class ProductReportEntry(
+    val product_id: Long,
+    val product_name: String,
+    val sku: String? = null,
+    val quantity_sold: Int = 0,
+    val revenue: Double = 0.0,
+    val tax: Double = 0.0,
+    val invoice_count: Int = 0
+)
+
+data class ProductReportPeriod(
+    val from: String? = null,
+    val to: String? = null
+)
+
+// ── Notification Models (list / count) ──
+data class AppNotification(
+    val id: Long,
+    val type: String = "info",
+    val title: String,
+    val message: String,
+    val is_read: Boolean = false,
+    val created_at: String? = null,
+    val data: Map<String, Any>? = null
+)
+
+data class NotificationCountResponse(
+    val unread_count: Int = 0,
+    val total: Int = 0
+)
+
 // ── Generic Wrapper ──
 data class ApiResponse<T>(
     val success: Boolean,
@@ -987,4 +1235,81 @@ data class LedgerImageUploadResponse(
     val filename: String,
     val size: Long,
     val mimetype: String
+)
+
+// ── Invoice Share Models ──
+data class InvoiceShareRequest(
+    val method: String,
+    val recipient: String,
+    val message: String? = null
+)
+
+data class InvoiceShareResponse(
+    val success: Boolean,
+    val message: String,
+    val method: String,
+    val recipient: String
+)
+
+// ── Invoice Print Models ──
+data class InvoicePrintResponse(
+    val html: String
+)
+
+// ── Bulk Invoice Models ──
+data class BulkInvoiceRequest(
+    val invoices: List<CreateInvoiceRequest>
+)
+
+data class BulkInvoiceResponse(
+    val success_count: Int,
+    val fail_count: Int,
+    val results: List<BulkInvoiceResult>
+)
+
+data class BulkInvoiceResult(
+    val invoice_id: Long?,
+    val invoice_number: String?,
+    val success: Boolean,
+    val error: String? = null
+)
+
+// ── Inventory Dashboard Models ──
+data class InventoryDashboard(
+    val totalProducts: Int = 0,
+    val stockValue: Double = 0.0,
+    val retailValue: Double = 0.0,
+    val potentialProfit: Double = 0.0,
+    val lowStockCount: Int = 0,
+    val outOfStockCount: Int = 0,
+    val stockByWarehouse: List<WarehouseStock> = emptyList(),
+    val recentMovements: List<StockMovement> = emptyList(),
+    val lowStockAlerts: List<LowStockAlertItem> = emptyList()
+)
+
+data class WarehouseStock(
+    val warehouse: String = "",
+    val value: Double = 0.0
+)
+
+data class StockMovement(
+    val id: Long = 0,
+    val date: String = "",
+    val productName: String = "",
+    val productId: Long = 0,
+    val warehouseName: String = "",
+    val warehouseId: Long = 0,
+    val type: String = "",
+    val quantity: Int = 0,
+    val batchNo: String? = null,
+    val notes: String? = null,
+    val createdAt: String? = null
+)
+
+data class LowStockAlertItem(
+    val productId: Long = 0,
+    val productName: String,
+    val currentStock: Int,
+    val threshold: Int,
+    val unit: String? = null
 )

@@ -5,7 +5,11 @@ struct Gstr1Report: Codable {
     let toDate: String
     let summary: Gstr1Summary
     let b2b: [Gstr1B2bEntry]
-    let b2c: Gstr1B2cSummary
+    let b2cLarge: [Gstr1B2cLargeEntry]
+    let b2cSmall: [Gstr1B2cSmallEntry]
+    let hsnSummary: [Gstr1HsnEntry]
+    let documents: Gstr1DocumentSummary?
+    let b2c: Gstr1B2cSummary?
 }
 
 struct Gstr1Summary: Codable {
@@ -19,11 +23,62 @@ struct Gstr1B2bEntry: Codable, Identifiable {
     let date: String
     let customerName: String?
     let customerGstin: String?
+    let placeOfSupply: String?
+    let reverseCharge: Bool?
+    let invoiceValue: Double?
     let taxableValue: Double
+    let cgst: Double?
+    let sgst: Double?
+    let igst: Double?
     let taxAmount: Double
     let grandTotal: Double
 
     var id: String { invoiceNo }
+}
+
+struct Gstr1B2cLargeEntry: Codable, Identifiable {
+    let placeOfSupply: String
+    let rate: Double
+    let taxableValue: Double
+    let cgst: Double
+    let sgst: Double
+    let igst: Double
+
+    var id: String { "\(placeOfSupply)-\(rate)" }
+}
+
+struct Gstr1B2cSmallEntry: Codable, Identifiable {
+    let placeOfSupply: String
+    let rate: Double
+    let taxableValue: Double
+    let cgst: Double
+    let sgst: Double
+    let igst: Double
+
+    var id: String { "\(placeOfSupply)-\(rate)-\(taxableValue)" }
+}
+
+struct Gstr1HsnEntry: Codable, Identifiable {
+    let hsnCode: String
+    let description: String
+    let uqc: String
+    let quantity: Double
+    let totalValue: Double
+    let taxableValue: Double
+    let cgst: Double
+    let sgst: Double
+    let igst: Double
+
+    var id: String { hsnCode }
+}
+
+struct Gstr1DocumentSummary: Codable {
+    let invoicesIssued: Gstr1DocEntry?
+    let creditNotes: Gstr1DocEntry?
+}
+struct Gstr1DocEntry: Codable {
+    let count: Int
+    let totalValue: Double
 }
 
 struct Gstr1B2cSummary: Codable {
@@ -36,6 +91,11 @@ struct Gstr3bReport: Codable {
     let month: Int
     let year: Int
     let summary: Gstr3bSummary
+    let outwardSupplies: [Gstr3bLabeledSupply]?
+    let interStateSupplies: [Gstr3bInterStateSupply]?
+    let eligibleItc: [Gstr3bLabeledItc]?
+    let exemptNilNonGst: [Gstr3bLabeledExempt]?
+    let paymentOfTax: [Gstr3bPaymentRow]?
 }
 
 struct Gstr3bSummary: Codable {
@@ -44,6 +104,55 @@ struct Gstr3bSummary: Codable {
     let totalTax: Double
     let totalPaid: Double
     let outstanding: Double
+}
+
+struct Gstr3bLabeledSupply: Codable, Identifiable {
+    let label: String
+    let taxableValue: Double
+    let igst: Double
+    let cgst: Double
+    let sgst: Double
+    let cess: Double
+    var id: String { label }
+}
+
+struct Gstr3bLabeledItc: Codable, Identifiable {
+    let label: String
+    let igst: Double
+    let cgst: Double
+    let sgst: Double
+    let cess: Double
+    var id: String { label }
+}
+
+struct Gstr3bLabeledExempt: Codable, Identifiable {
+    let label: String
+    let taxableValue: Double
+    let igst: Double
+    let cgst: Double
+    let sgst: Double
+    let cess: Double
+    var id: String { label }
+}
+
+struct Gstr3bPaymentRow: Codable, Identifiable {
+    let label: String
+    let cgst: Double
+    let sgst: Double
+    let igst: Double
+    let cess: Double
+    let interest: Double
+    let lateFee: Double
+    let total: Double
+    var id: String { label }
+}
+
+struct Gstr3bInterStateSupply: Codable, Identifiable {
+    let placeOfSupply: String
+    let taxableValue: Double
+    let igst: Double
+
+    var id: String { placeOfSupply }
 }
 
 struct SalesReport: Codable {
@@ -94,6 +203,54 @@ struct ProfitLossReport: Codable {
     let expenses: Double?
     let netProfit: Double?
     let period: String?
+}
+
+struct StockMovementItem: Codable, Identifiable {
+    let id: String
+    let productId: String?
+    let productName: String
+    let warehouseId: String?
+    let warehouseName: String?
+    let type: String
+    let quantity: Int
+    let batchNo: String?
+    let notes: String?
+    let date: String
+}
+
+struct StockMovementsReport: Codable {
+    let movements: [StockMovementItem]
+    let monthlySummary: [MonthlyStockSummary]?
+}
+
+struct MonthlyStockSummary: Codable, Identifiable {
+    let month: String
+    let purchases: Int
+    let sales: Int
+    let transfers: Int
+    let adjustments: Int
+    let returns: Int
+
+    var id: String { month }
+}
+
+struct InventoryDashboard: Codable {
+    let totalProducts: Int
+    let stockValue: Double
+    let retailValue: Double
+    let potentialProfit: Double
+    let lowStockCount: Int
+    let outOfStockCount: Int
+    let stockByWarehouse: [WarehouseStock]
+    let recentMovements: [StockMovementItem]
+    let lowStockAlerts: [Product]
+}
+
+struct WarehouseStock: Codable, Identifiable {
+    let warehouse: String
+    let value: Double
+
+    var id: String { warehouse }
 }
 
 struct SyncRequest: Codable {

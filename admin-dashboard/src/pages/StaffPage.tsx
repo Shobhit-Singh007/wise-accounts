@@ -56,16 +56,22 @@ export default function StaffPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const [inviteLink, setInviteLink] = useState('');
+
   const handleInvite = async () => {
     if (!currentBusinessId || !inviteForm.phone) return;
     try {
-      await staffApi.invite(currentBusinessId, {
+      const res = await staffApi.invite(currentBusinessId, {
         name: inviteForm.name,
         phone: inviteForm.phone,
         email: inviteForm.email || undefined,
         rolePreset: inviteForm.rolePreset,
         permissions: inviteForm.customPermissions ? inviteForm.permissions : undefined,
       });
+      const token = res.data?.invite?.token || res.data?.token;
+      if (token) {
+        setInviteLink(`${window.location.origin}/staff/accept-invite/${token}`);
+      }
       setInviteOpen(false);
       setInviteForm({ name: '', phone: '', email: '', rolePreset: 'sales', customPermissions: false, permissions: [] });
       setSuccess('Invitation sent successfully');
@@ -168,7 +174,18 @@ export default function StaffPage() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => { setSuccess(''); setInviteLink(''); }}>{success}</Alert>}
+      {inviteLink && (
+        <Alert severity="info" sx={{ mb: 2 }} onClose={() => setInviteLink('')}>
+          <Typography variant="body2" fontWeight={600} gutterBottom>Share this invite link:</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'grey.100', p: 1, borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>
+              {inviteLink}
+            </Typography>
+            <Button size="small" startIcon={<CopyIcon />} onClick={() => { navigator.clipboard.writeText(inviteLink); }}>Copy</Button>
+          </Box>
+        </Alert>
+      )}
 
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>

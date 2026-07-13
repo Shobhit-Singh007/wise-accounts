@@ -17,6 +17,32 @@ enum AppRoute: Hashable {
     case payments
     case reports
     case settings
+    case staff
+    case productDetail(Product)
+    case stockAdjust(Product)
+    case warehouses
+    case stockTransfer
+    case lowStockAlerts
+    case purchaseOrders
+    case suppliers
+    case invoiceShare(Invoice)
+    case invoicePreview(Invoice)
+    case bulkInvoices
+    case customerReport
+    case productReportView
+    case profitLoss
+    case notifications
+    case paymentCollection
+    case recordPayment
+    case upiPayment
+    case paymentHistory
+    case batchExpiry
+    case barcodeScanner
+    case customerGroups
+    case paymentReminders
+    case inventoryDashboard
+    case stockMovements
+    case razorpayCheckout(amount: Double, invoiceNo: String?, customerName: String, razorpayKeyId: String)
 }
 
 struct AppNavigation: View {
@@ -73,6 +99,71 @@ struct AppNavigation: View {
             ReportsView(business: business)
         case .settings:
             SettingsView(business: business)
+        case .staff:
+            StaffView(business: business)
+        case .productDetail(let product):
+            ProductDetailView(business: business, productId: product.id)
+        case .stockAdjust(let product):
+            StockAdjustView(business: business, productId: product.id)
+        case .warehouses:
+            WarehousesView(business: business)
+        case .stockTransfer:
+            StockTransferView(business: business)
+        case .lowStockAlerts:
+            LowStockAlertsView(business: business)
+        case .purchaseOrders:
+            PurchaseOrdersView(business: business)
+        case .suppliers:
+            SuppliersView(business: business)
+        case .invoiceShare(let invoice):
+            InvoiceShareView(business: business, invoiceId: invoice.id, invoiceNo: invoice.invoiceNo, grandTotal: invoice.grandTotal ?? 0, paidAmount: invoice.paidAmount ?? 0)
+        case .invoicePreview(let invoice):
+            InvoicePreviewView(business: business, invoiceId: invoice.id, invoiceNo: invoice.invoiceNo)
+        case .bulkInvoices:
+            BulkInvoiceView(business: business)
+        case .customerReport:
+            CustomerReportView(business: business)
+        case .productReportView:
+            ProductReportView(business: business)
+        case .profitLoss:
+            ProfitLossView(business: business)
+        case .notifications:
+            NotificationsView(business: business)
+        case .paymentCollection:
+            PaymentCollectionView(business: business)
+        case .recordPayment:
+            RecordPaymentFullView(business: business)
+        case .upiPayment:
+            UpiPaymentView(business: business, amount: 0, description: "")
+        case .paymentHistory:
+            PaymentHistoryView(business: business)
+        case .batchExpiry:
+            BatchExpiryView(business: business)
+        case .barcodeScanner:
+            BarcodeScannerView { code in
+                // Handle barcode scanned
+            }
+        case .customerGroups:
+            CustomerGroupsView(business: business)
+        case .paymentReminders:
+            PaymentRemindersView(business: business)
+        case .inventoryDashboard:
+            InventoryDashboardView(business: business)
+        case .stockMovements:
+            StockMovementsView(business: business)
+        case .razorpayCheckout(let amount, let invoiceNo, let customerName, let razorpayKeyId):
+            RazorpayCheckoutView(
+                amount: amount,
+                invoiceNo: invoiceNo,
+                customerName: customerName,
+                razorpayKeyId: razorpayKeyId,
+                onPaymentSuccess: { paymentId in
+                    // Handle success
+                },
+                onPaymentError: { error in
+                    // Handle error
+                }
+            )
         }
     }
 }

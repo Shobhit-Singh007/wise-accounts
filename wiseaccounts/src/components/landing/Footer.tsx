@@ -38,9 +38,12 @@ function Footer() {
           }}
         >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#fff', mb: 2, letterSpacing: '-0.5px' }}>
-              Wise Accounts
-            </Typography>
+            <Box
+              component="img"
+              src="/logo-light.svg"
+              alt="Wise Accounts"
+              sx={{ height: 28, mb: 2 }}
+            />
             <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.7, maxWidth: 300 }}>
               Lifetime free GST billing & accounting software trusted by 10,000+ businesses across India.
             </Typography>

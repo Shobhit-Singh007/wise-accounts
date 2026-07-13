@@ -13,11 +13,14 @@ import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SyncModule } from './sync/sync.module';
 import { StaffModule } from './staff/staff.module';
+import { RecurringInvoicesModule } from './recurring-invoices/recurring-invoices.module';
+import { AwsModule } from './aws/aws.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    AwsModule,
     PrismaModule,
     CommonModule,
     AuthModule,
@@ -30,6 +33,7 @@ import { StaffModule } from './staff/staff.module';
     NotificationsModule,
     SyncModule,
     StaffModule,
+    RecurringInvoicesModule,
   ],
 })
 export class AppModule {}

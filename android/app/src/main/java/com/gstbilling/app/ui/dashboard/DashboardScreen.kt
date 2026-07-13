@@ -75,6 +75,16 @@ fun DashboardScreen(
     onNavigateToInvoices: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToStaff: () -> Unit = {},
+    onNavigateToAddCustomer: () -> Unit = {},
+    onNavigateToAddProduct: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToBarcodeScanner: () -> Unit = {},
+    onNavigateToStockTransfer: () -> Unit = {},
+    onNavigateToBatchExpiry: () -> Unit = {},
+    onNavigateToCustomerGroups: () -> Unit = {},
+    onNavigateToInventoryDashboard: () -> Unit = {},
+    onInvoiceClick: (Long) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -82,6 +92,9 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 actions = {
+                    IconButton(onClick = onNavigateToNotifications) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -174,13 +187,65 @@ fun DashboardScreen(
                         ActionButton(
                             title = "Add Customer",
                             icon = Icons.Default.PersonAdd,
-                            onClick = onNavigateToCustomers,
+                            onClick = onNavigateToAddCustomer,
                             modifier = Modifier.weight(1f)
                         )
                         ActionButton(
                             title = "Add Product",
                             icon = Icons.Default.AddBox,
-                            onClick = onNavigateToProducts,
+                            onClick = onNavigateToAddProduct,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionButton(
+                            title = "Staff",
+                            icon = Icons.Default.Groups,
+                            onClick = onNavigateToStaff,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Scan",
+                            icon = Icons.Default.QrCodeScanner,
+                            onClick = onNavigateToBarcodeScanner,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Transfer",
+                            icon = Icons.Default.SwapHoriz,
+                            onClick = onNavigateToStockTransfer,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionButton(
+                            title = "Groups",
+                            icon = Icons.Default.GroupWork,
+                            onClick = onNavigateToCustomerGroups,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Expiry",
+                            icon = Icons.Default.Timer,
+                            onClick = onNavigateToBatchExpiry,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            title = "Inventory",
+                            icon = Icons.Default.Inventory2,
+                            onClick = onNavigateToInventoryDashboard,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -211,7 +276,7 @@ fun DashboardScreen(
                         val invoice = recentInvoices[index]
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = onNavigateToInvoices
+                            onClick = { onInvoiceClick(invoice.id) }
                         ) {
                             Row(
                                 modifier = Modifier

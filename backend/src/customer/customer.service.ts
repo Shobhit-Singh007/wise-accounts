@@ -1,10 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { CreateLedgerEntryDto, LedgerEntryType, PaymentMode } from './dto/create-ledger-entry.dto';
 import { SendLedgerSmsDto } from './dto/send-ledger-sms.dto';
+import { CreateCustomerGroupDto, UpdateCustomerGroupDto } from './dto/create-customer-group.dto';
 import PDFDocument from 'pdfkit';
 
 export interface LedgerEntry {
@@ -21,10 +24,18 @@ export interface LedgerEntry {
 
 @Injectable()
 export class CustomerService {
+  private readonly snsClient: SNSClient | null = null;
+
   constructor(
     private prisma: PrismaService,
     private paymentsService: PaymentsService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    const region = this.configService.get<string>('AWS_REGION', 'ap-south-1');
+    if (this.configService.get<string>('AWS_ACCESS_KEY_ID')) {
+      this.snsClient = new SNSClient({ region });
+    }
+  }
 
   async create(businessId: string, dto: CreateCustomerDto) {
     const { openingBalance = 0, ...data } = dto;
@@ -89,6 +100,45 @@ export class CustomerService {
       where: { id: customerId },
       data: { isActive: false },
     });
+  }
+
+  async createGroup(businessId: string, dto: CreateCustomerGroupDto) {
+    return this.prisma.customerGroup.create({
+      data: { businessId, ...dto },
+    });
+  }
+
+  async findAllGroups(businessId: string) {
+    return this.prisma.customerGroup.findMany({
+      where: { businessId },
+      include: { _count: { select: { customers: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async updateGroup(businessId: string, groupId: string, dto: UpdateCustomerGroupDto) {
+    const group = await this.prisma.customerGroup.findFirst({
+      where: { id: groupId, businessId },
+    });
+    if (!group) throw new NotFoundException('Customer group not found');
+    return this.prisma.customerGroup.update({
+      where: { id: groupId },
+      data: dto,
+    });
+  }
+
+  async removeGroup(businessId: string, groupId: string) {
+    const group = await this.prisma.customerGroup.findFirst({
+      where: { id: groupId, businessId },
+    });
+    if (!group) throw new NotFoundException('Customer group not found');
+
+    await this.prisma.customer.updateMany({
+      where: { groupId },
+      data: { groupId: null },
+    });
+
+    return this.prisma.customerGroup.delete({ where: { id: groupId } });
   }
 
   async getLedger(businessId: string, customerId: string) {
@@ -548,8 +598,25 @@ export class CustomerService {
     const ledgerUrl = `https://ledger.wiseaccounts.com/l/${businessId}/${customerId}`;
     const message = dto.message || `Hi ${customer.name}, your account balance with Wise Accounts is ₹${Math.abs(customer.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. View full ledger: ${ledgerUrl}`;
 
+    let sent = false;
+    if (this.snsClient) {
+      try {
+        await this.snsClient.send(new PublishCommand({
+          PhoneNumber: phone,
+          Message: message,
+          MessageAttributes: {
+            'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_TRANSACTIONAL_TYPE') || 'Transactional' },
+            'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
+          },
+        }));
+        sent = true;
+      } catch (err) {
+        throw new BadRequestException(`SMS failed: ${(err as Error).message}`);
+      }
+    }
+
     return {
-      success: true,
+      success: sent,
       phone,
       message,
       ledgerUrl,

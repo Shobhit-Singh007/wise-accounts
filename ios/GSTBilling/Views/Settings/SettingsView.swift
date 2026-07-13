@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var pincode: String
     @State private var isLoading = false
     @State private var toastMessage: String?
+    @AppStorage("colorScheme") private var colorSchemeOption = "system"
 
     init(business: Business) {
         self.business = business
@@ -70,6 +71,39 @@ struct SettingsView: View {
             Section("Invoice") {
                 NavigationLink(value: AppRoute.invoiceSettings) {
                     Label("Invoice Settings", systemImage: "doc.text")
+                }
+            }
+
+            Section("Preferences") {
+                NavigationLink(destination: LanguageSettingsView()) {
+                    Label("Language", systemImage: "globe")
+                }
+            }
+
+            Section("Appearance") {
+                Picker("Dark Mode", selection: $colorSchemeOption) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Section("Team") {
+                NavigationLink(value: AppRoute.staff) {
+                    Label("Staff Management", systemImage: "person.3.sequence.fill")
+                }
+            }
+
+            Section("Data") {
+                NavigationLink(value: AppRoute.inventoryDashboard) {
+                    Label("Inventory Dashboard", systemImage: "cube")
+                }
+                NavigationLink(value: AppRoute.customerGroups) {
+                    Label("Customer Groups", systemImage: "person.3")
+                }
+                NavigationLink(destination: ConflictResolutionView(business: business)) {
+                    Label("Conflict Resolution", systemImage: "arrow.triangle.2.circlepath")
                 }
             }
 

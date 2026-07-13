@@ -1,7 +1,9 @@
-import { Controller, Post, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { BusinessOwnershipGuard } from '../common/guards/business-ownership.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -36,5 +38,53 @@ export class NotificationsController {
       body.currentStock,
       body.threshold,
     );
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get in-app notifications for current user' })
+  @ApiQuery({ name: 'isRead', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async getNotifications(
+    @Param('businessId') businessId: string,
+    @CurrentUser() user: JwtPayload,
+    @Query('isRead') isRead?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.notificationsService.getNotifications(businessId, user.sub, {
+      isRead: isRead !== undefined ? isRead === 'true' : undefined,
+      page,
+      limit,
+    });
+  }
+
+  @Post(':notificationId/read')
+  @ApiOperation({ summary: 'Mark a notification as read' })
+  async markAsRead(
+    @Param('businessId') businessId: string,
+    @Param('notificationId') notificationId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.notificationsService.markAsRead(businessId, user.sub, notificationId);
+  }
+
+  @Post('read-all')
+  @ApiOperation({ summary: 'Mark all notifications as read' })
+  async markAllAsRead(
+    @Param('businessId') businessId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.notificationsService.markAllAsRead(businessId, user.sub);
+  }
+
+  @Delete(':notificationId')
+  @ApiOperation({ summary: 'Delete a notification' })
+  async deleteNotification(
+    @Param('businessId') businessId: string,
+    @Param('notificationId') notificationId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.notificationsService.deleteNotification(businessId, user.sub, notificationId);
   }
 }

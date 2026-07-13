@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct DashboardView: View {
     let business: Business
@@ -11,8 +12,15 @@ struct DashboardView: View {
                 businessHeader
                 summaryCards
                 if let sales = viewModel.dashboard?.weeklySales, !sales.isEmpty {
-                    salesChart
+                    SalesBarChartView(data: sales.map { ChartDailySales(day: formatDay($0.date), amount: $0.amount) })
                 }
+                InvoiceStatusChartView(
+                    draft: viewModel.dashboard?.totalInvoices ?? 0,
+                    confirmed: 0,
+                    cancelled: 0,
+                    credited: 0
+                )
+                TopProductsChartView(products: [])
                 if let invoices = viewModel.dashboard?.recentInvoices, !invoices.isEmpty {
                     recentInvoicesSection(invoices)
                 }
@@ -25,8 +33,13 @@ struct DashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(value: AppRoute.settings) {
-                    Image(systemName: "gearshape")
+                HStack(spacing: 16) {
+                    NavigationLink(value: AppRoute.inventoryDashboard) {
+                        Image(systemName: "cube")
+                    }
+                    NavigationLink(value: AppRoute.settings) {
+                        Image(systemName: "gearshape")
+                    }
                 }
             }
         }
@@ -55,36 +68,12 @@ struct DashboardView: View {
             SummaryCard(title: "Total Sales", value: Helpers.formatCurrency(viewModel.dashboard?.totalSales ?? 0), icon: "rupeesign.square.fill", color: .green)
             SummaryCard(title: "Invoices", value: "\(viewModel.dashboard?.totalInvoices ?? 0)", icon: "doc.text.fill", color: .blue)
             SummaryCard(title: "Customers", value: "\(viewModel.dashboard?.totalCustomers ?? 0)", icon: "person.2.fill", color: .orange)
-            SummaryCard(title: "Products", value: "\(viewModel.dashboard?.totalProducts ?? 0)", icon: "cube.fill", color: .purple)
+            NavigationLink(value: AppRoute.inventoryDashboard) {
+                SummaryCard(title: "Products", value: "\(viewModel.dashboard?.totalProducts ?? 0)", icon: "cube.fill", color: .purple)
+            }
             SummaryCard(title: "Pending", value: Helpers.formatCurrency(viewModel.dashboard?.pendingAmount ?? 0), icon: "clock.fill", color: .red)
             SummaryCard(title: "Today", value: Helpers.formatCurrency(viewModel.dashboard?.todaySales ?? 0), icon: "chart.bar.fill", color: .teal)
         }
-    }
-
-    private var salesChart: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Weekly Sales").font(.headline)
-            HStack(alignment: .bottom, spacing: 4) {
-                if let sales = viewModel.dashboard?.weeklySales {
-                    ForEach(sales, id: \.date) { day in
-                        VStack(spacing: 4) {
-                            Text(Helpers.formatCurrency(day.amount)).font(.system(size: 8))
-                            Rectangle()
-                                .fill(Color.blue.opacity(0.6))
-                                .frame(height: max(4, CGFloat(day.amount / (sales.map(\.amount).max() ?? 1)) * 80))
-                                .cornerRadius(4)
-                            Text(formatDay(day.date)).font(.system(size: 8))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .frame(height: 120)
-            .padding(.top, 4)
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
 
     private func recentInvoicesSection(_ invoices: [Invoice]) -> some View {

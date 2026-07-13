@@ -89,6 +89,7 @@ class InvoiceListViewModel @Inject constructor(
 fun InvoiceListScreen(
     onBack: () -> Unit,
     onInvoiceClick: (Long) -> Unit,
+    onBulkInvoices: () -> Unit = {},
     viewModel: InvoiceListViewModel = hiltViewModel()
 ) {
     val statuses = listOf("all", "draft", "unpaid", "paid", "cancelled")
@@ -103,6 +104,9 @@ fun InvoiceListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onBulkInvoices) {
+                        Icon(Icons.Default.NoteAdd, contentDescription = "Bulk Invoices")
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }

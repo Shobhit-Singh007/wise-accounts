@@ -297,3 +297,22 @@ struct UpdatePermissionsRequest: Codable {
     let permissions: [String]
     let role: String?
 }
+
+// MARK: - Customer Group
+
+struct CustomerGroup: Codable, Identifiable {
+    let id: String
+    let name: String
+    let discount: Double?
+    let customerCount: Int?
+}
+
+struct CreateCustomerGroupRequest: Codable {
+    let name: String
+    let discount: Double?
+}
+
+struct UpdateCustomerGroupRequest: Codable {
+    let name: String?
+    let discount: Double?
+}

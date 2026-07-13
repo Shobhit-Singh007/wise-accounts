@@ -131,6 +131,28 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
+    suspend fun searchCustomers(businessId: Long, query: String): AppResult<List<Customer>> {
+        return safeApiCall {
+            val response = apiService.getCustomers(businessId, search = query, perPage = 20)
+            if (response.isSuccessful) {
+                response.body()?.data ?: emptyList()
+            } else {
+                throw Exception(response.errorBody()?.string() ?: "Failed to search customers")
+            }
+        }
+    }
+
+    suspend fun searchProducts(businessId: Long, query: String): AppResult<List<Product>> {
+        return safeApiCall {
+            val response = apiService.getProducts(businessId, search = query, perPage = 20)
+            if (response.isSuccessful) {
+                response.body()?.data ?: emptyList()
+            } else {
+                throw Exception(response.errorBody()?.string() ?: "Failed to search products")
+            }
+        }
+    }
+
     suspend fun syncPending() {
         val gson = Gson()
         val pending = invoiceDao.getPendingSync()

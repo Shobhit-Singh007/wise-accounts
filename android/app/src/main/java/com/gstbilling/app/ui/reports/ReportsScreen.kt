@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -41,6 +44,9 @@ class ReportsViewModel @Inject constructor(
     var selectedMonth by mutableStateOf(7)
     var selectedYear by mutableStateOf(2026)
 
+    var gstr1StartDate by mutableStateOf("2026-07-01")
+    var gstr1EndDate by mutableStateOf("2026-07-31")
+
     fun loadSalesReport() {
         viewModelScope.launch {
             isLoading = true
@@ -63,17 +69,30 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    fun loadGstr1(month: Int = selectedMonth, year: Int = selectedYear) {
+    fun loadGstr1(
+        month: Int = selectedMonth,
+        year: Int = selectedYear,
+        fromDate: String = gstr1StartDate,
+        toDate: String = gstr1EndDate
+    ) {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
             selectedReport = "gstr1"
             selectedMonth = month
             selectedYear = year
+            gstr1StartDate = fromDate
+            gstr1EndDate = toDate
             val businessId = sessionManager.getBusinessId()
             if (businessId != null) {
                 try {
-                    val response = apiService.getGstr1Report(businessId, month = month, year = year)
+                    val response = apiService.getGstr1Report(
+                        businessId,
+                        month = month,
+                        year = year,
+                        fromDate = fromDate,
+                        toDate = toDate
+                    )
                     if (response.isSuccessful) {
                         gstr1Report = response.body()?.data
                     } else {
@@ -138,6 +157,9 @@ class ReportsViewModel @Inject constructor(
 @Composable
 fun ReportsScreen(
     onBack: () -> Unit,
+    onCustomerReport: () -> Unit = {},
+    onProductReport: () -> Unit = {},
+    onProfitLoss: () -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -211,7 +233,7 @@ fun ReportsScreen(
                         description = "Customer-wise sales and outstanding",
                         icon = Icons.Default.People,
                         color = Color(0xFF6A1B9A),
-                        onClick = { /* implement */ }
+                        onClick = onCustomerReport
                     )
                 }
                 item {
@@ -220,7 +242,7 @@ fun ReportsScreen(
                         description = "Revenue, expenses and net profit",
                         icon = Icons.Default.AccountBalance,
                         color = Color(0xFFC62828),
-                        onClick = { viewModel.loadProfitLoss() }
+                        onClick = onProfitLoss
                     )
                 }
             }
@@ -359,6 +381,38 @@ fun MonthYearSelector(
 }
 
 @Composable
+fun DateRangeSelector(
+    startDate: String,
+    endDate: String,
+    onStartChanged: (String) -> Unit,
+    onEndChanged: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedTextField(
+            value = startDate,
+            onValueChange = onStartChanged,
+            label = { Text("From Date") },
+            placeholder = { Text("YYYY-MM-DD") },
+            modifier = Modifier.weight(1f),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = endDate,
+            onValueChange = onEndChanged,
+            label = { Text("To Date") },
+            placeholder = { Text("YYYY-MM-DD") },
+            modifier = Modifier.weight(1f),
+            singleLine = true
+        )
+    }
+}
+
+@Composable
 fun ReportDetailView(
     reportType: String,
     viewModel: ReportsViewModel,
@@ -386,11 +440,35 @@ fun ReportDetailView(
         when (reportType) {
             "sales" -> SalesReportDetail(viewModel.salesReport)
             "gstr1" -> {
+                DateRangeSelector(
+                    startDate = viewModel.gstr1StartDate,
+                    endDate = viewModel.gstr1EndDate,
+                    onStartChanged = { viewModel.gstr1StartDate = it },
+                    onEndChanged = { viewModel.gstr1EndDate = it }
+                )
                 MonthYearSelector(
                     selectedMonth = viewModel.selectedMonth,
                     selectedYear = viewModel.selectedYear,
-                    onMonthYearChanged = { month, year -> viewModel.loadGstr1(month, year) }
+                    onMonthYearChanged = { month, year ->
+                        viewModel.loadGstr1(month, year, viewModel.gstr1StartDate, viewModel.gstr1EndDate)
+                    }
                 )
+                OutlinedButton(
+                    onClick = {
+                        viewModel.loadGstr1(
+                            viewModel.selectedMonth,
+                            viewModel.selectedYear,
+                            viewModel.gstr1StartDate,
+                            viewModel.gstr1EndDate
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Refresh Data")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Gstr1ReportDetail(viewModel.gstr1Report)
             }
             "gstr3b" -> {
@@ -473,9 +551,11 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
                 )
             )
         }
+
+        // Table 4: B2B Invoices
         if (report.b2b.isNotEmpty()) {
             item {
-                Text("B2B Invoices", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                SectionHeader("Table 4: B2B Invoices")
             }
             items(report.b2b) { entry ->
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -484,24 +564,97 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(entry.invoiceNo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                             Text(
-                                "₹${String.format("%.2f", entry.grandTotal)}",
+                                entry.invoiceNo,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "₹${String.format("%.2f", entry.invoiceValue.ifEmpty { entry.grandTotal })}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        if (entry.customerName != null) {
-                            Text(entry.customerName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                         if (entry.customerGstin != null) {
-                            Text("GSTIN: ${entry.customerGstin}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                            Text(
+                                "GSTIN: ${entry.customerGstin}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        if (entry.customerName != null) {
+                            Text(
+                                entry.customerName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                "Date: ${entry.date}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (entry.placeOfSupply != null) {
+                                Text(
+                                    "POS: ${entry.placeOfSupply}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (entry.reverseCharge) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text("RC", style = MaterialTheme.typography.labelSmall) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    ),
+                                    border = null
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            TaxChip("Taxable", entry.taxableValue)
+                            TaxChip("CGST", entry.cgst)
+                            TaxChip("SGST", entry.sgst)
+                            TaxChip("IGST", entry.igst)
                         }
                     }
                 }
             }
         }
+
+        // Table 5: B2C Large
+        if (report.b2cLarge.isNotEmpty()) {
+            item {
+                SectionHeader("Table 5: B2C Large")
+            }
+            items(report.b2cLarge) { entry ->
+                B2cRowCard(entry.placeOfSupply, entry.rate, entry.taxableValue, entry.cgst, entry.sgst, entry.igst)
+            }
+        }
+
+        // Table 6: B2C Small
+        if (report.b2cSmall.isNotEmpty()) {
+            item {
+                SectionHeader("Table 6: B2C Small")
+            }
+            items(report.b2cSmall) { entry ->
+                B2cRowCard(entry.placeOfSupply, entry.rate, entry.taxableValue, entry.cgst, entry.sgst, entry.igst)
+            }
+        }
+
+        // B2C Summary (fallback if detailed data not available)
         item {
             ReportSummaryCard(
                 title = "B2C Summary",
@@ -511,6 +664,114 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
                     "Total Tax" to "₹${String.format("%.2f", report.b2c.totalTax)}"
                 )
             )
+        }
+
+        // Table 7: HSN Summary
+        if (report.hsnSummary.isNotEmpty()) {
+            item {
+                SectionHeader("Table 7: HSN Summary")
+            }
+            items(report.hsnSummary) { entry ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                entry.hsnCode,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                entry.uqc,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            entry.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Qty: ${entry.quantity}", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                "Total: ₹${String.format("%.2f", entry.totalValue)}",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            TaxChip("Taxable", entry.taxableValue)
+                            TaxChip("CGST", entry.cgst)
+                            TaxChip("SGST", entry.sgst)
+                            TaxChip("IGST", entry.igst)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Table 8: Documents
+        report.documents?.let { docs ->
+            item {
+                SectionHeader("Table 8: Documents")
+            }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    "Invoices Issued",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Count: ${docs.invoicesIssued.count}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Value: ₹${String.format("%.2f", docs.invoicesIssued.totalValue)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "Credit Notes",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Count: ${docs.creditNotes.count}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Value: ₹${String.format("%.2f", docs.creditNotes.totalValue)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -546,6 +807,386 @@ fun Gstr3bReportDetail(report: Gstr3bReport?) {
                 )
             )
         }
+
+        // Table 3.1: Outward Supplies
+        if (report.outwardSupplies.isNotEmpty()) {
+            item {
+                SectionHeader("Table 3.1: Outward Supplies")
+            }
+            item {
+                Gstr3bLabeledTable(
+                    headers = listOf("Label", "Taxable", "IGST", "CGST", "SGST"),
+                    rows = report.outwardSupplies.filter { it.taxableValue > 0 || it.igst > 0 || it.cgst > 0 }
+                )
+            }
+        }
+
+        // Table 3.2: Inter-state Supplies
+        if (report.interStateSupplies.isNotEmpty()) {
+            item {
+                SectionHeader("Table 3.2: Inter-state Supplies")
+            }
+            items(report.interStateSupplies) { entry ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                entry.placeOfSupply,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Taxable: ₹${String.format("%.2f", entry.taxableValue)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            "IGST: ₹${String.format("%.2f", entry.igst)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        // Table 4: Eligible ITC
+        if (report.eligibleItc.isNotEmpty()) {
+            item {
+                SectionHeader("Table 4: Eligible ITC")
+            }
+            item {
+                Gstr3bItcTable(
+                    headers = listOf("Label", "IGST", "CGST", "SGST", "Cess"),
+                    rows = report.eligibleItc
+                )
+            }
+        }
+
+        // Table 5: Exempt, Nil & Non-GST
+        if (report.exemptNilNonGst.isNotEmpty()) {
+            item {
+                SectionHeader("Table 5: Exempt, Nil & Non-GST")
+            }
+            item {
+                Gstr3bLabeledTable(
+                    headers = listOf("Label", "Taxable", "IGST", "CGST", "SGST"),
+                    rows = report.exemptNilNonGst
+                )
+            }
+        }
+
+        // Table 6: Payment of Tax
+        if (report.paymentOfTax.isNotEmpty()) {
+            item {
+                SectionHeader("Table 6: Payment of Tax")
+            }
+            item {
+                Gstr3bPaymentTable(rows = report.paymentOfTax)
+            }
+        }
+    }
+}
+
+@Composable
+fun Gstr3bLabeledTable(
+    headers: List<String>,
+    rows: List<Gstr3bLabeledSupply>
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                headers.forEach { header ->
+                    Text(
+                        header,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            rows.forEach { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        row.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.taxableValue)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.igst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.cgst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.sgst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            if (rows.isEmpty()) {
+                Text(
+                    "No data available",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Gstr3bItcTable(
+    headers: List<String>,
+    rows: List<Gstr3bLabeledItc>
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                headers.forEach { header ->
+                    Text(
+                        header,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            rows.forEach { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        row.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.igst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.cgst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.sgst)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "₹${String.format("%.2f", row.cess)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            if (rows.isEmpty()) {
+                Text(
+                    "No data available",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Gstr3bPaymentTable(rows: List<Gstr3bPaymentRow>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                listOf("Label", "CGST", "SGST", "IGST", "Cess", "Interest", "Late Fee", "Total").forEach { header ->
+                    Text(
+                        header,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            rows.forEach { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(row.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.cgst)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.sgst)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.igst)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.cess)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.interest)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("₹${String.format("%.2f", row.lateFee)}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text(
+                        "₹${String.format("%.2f", row.total)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            if (rows.isEmpty()) {
+                Text(
+                    "No data available",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PaymentRow(label: String, payable: Double, paid: Double, isTotal: Boolean = false) {
+    val balance = payable - paid
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = if (isTotal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            "₹${String.format("%.2f", payable)}",
+            style = if (isTotal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            "₹${String.format("%.2f", paid)}",
+            style = if (isTotal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            "₹${String.format("%.2f", balance)}",
+            style = if (isTotal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+            fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
+            color = if (balance > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun B2cRowCard(
+    placeOfSupply: String,
+    rate: Double,
+    taxableValue: Double,
+    cgst: Double,
+    sgst: Double,
+    igst: Double
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    placeOfSupply,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Rate: ${rate}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TaxChip("Taxable", taxableValue)
+                TaxChip("CGST", cgst)
+                TaxChip("SGST", sgst)
+                TaxChip("IGST", igst)
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(vertical = 4.dp)
+    )
+}
+
+@Composable
+fun TaxChip(label: String, value: Double) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp
+        )
+        Text(
+            "₹${String.format("%.2f", value)}",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp
+        )
     }
 }
 

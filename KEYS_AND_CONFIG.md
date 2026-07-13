@@ -45,7 +45,7 @@ UPI_ID="yourbusiness@upi"
 |----------|-------|-------|
 | AWS Account ID | `_____________` | Found in AWS Console |
 | AWS Region | `ap-south-1` | Mumbai — closest to India |
-| Domain Name | `_____________` | e.g., api.yourbusiness.com |
+| Domain Name | `wiseaccs.com` | Domain registered |
 | Hosted Zone ID (Route53) | `_____________` | From Route53 console |
 | SSL Certificate ARN | `_____________` | From ACM console |
 

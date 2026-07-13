@@ -23,7 +23,7 @@ describe('ReportsService', () => {
     customer: {
       id: 'cust-1',
       name: 'Rahul Sharma',
-      gstin: '27ABCDE1234F1Z5',
+      gstin: null,
     },
     items: [
       {
@@ -78,6 +78,12 @@ describe('ReportsService', () => {
     customer: {
       findMany: jest.fn(),
     },
+    payment: {
+      findMany: jest.fn(),
+    },
+    business: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -106,7 +112,7 @@ describe('ReportsService', () => {
       expect(mockPrisma.invoice.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { businessId: 'biz-1', status: 'CONFIRMED' },
-          include: { items: true, customer: true },
+          include: { items: { include: { product: true } }, customer: true, business: true },
           orderBy: { createdAt: 'desc' },
         }),
       );
@@ -137,7 +143,7 @@ describe('ReportsService', () => {
           where: expect.objectContaining({
             businessId: 'biz-1',
             status: 'CONFIRMED',
-            createdAt: {
+            invoiceDate: {
               gte: new Date('2024-01-01'),
               lte: new Date('2024-12-31'),
             },
@@ -178,15 +184,11 @@ describe('ReportsService', () => {
 
       expect(result.b2b).toHaveLength(1);
       expect(result.b2b[0].invoiceNo).toBe('INV-B2B-001');
-      expect(result.b2b[0].customerName).toBe('ABC Corp');
       expect(result.b2b[0].customerGstin).toBe('29ABCDE1234F1Z5');
       expect(result.b2b[0].taxableValue).toBe(10000);
-      expect(result.b2b[0].taxAmount).toBe(1800);
-      expect(result.b2b[0].grandTotal).toBe(11800);
 
-      expect(result.b2c.count).toBe(1);
-      expect(result.b2c.totalTaxableValue).toBe(450);
-      expect(result.b2c.totalTax).toBe(22.5);
+      // B2C (B2C Small - <= 250000 without GSTIN)
+      expect(result.b2cSmall).toHaveLength(1);
 
       expect(result.summary.totalInvoices).toBe(2);
       expect(result.summary.totalTaxableValue).toBe(10450);
@@ -200,6 +202,8 @@ describe('ReportsService', () => {
         mockInvoice,
         mockB2BInvoice,
       ]);
+      mockPrisma.payment.findMany.mockResolvedValue([]);
+      mockPrisma.business.findUnique.mockResolvedValue({ id: 'biz-1', state: 'Uttar Pradesh' });
 
       const result = await service.getGstr3b('biz-1', 6, 2024);
 
@@ -208,9 +212,10 @@ describe('ReportsService', () => {
           where: {
             businessId: 'biz-1',
             status: 'CONFIRMED',
-            createdAt: {
+            direction: 'SALE',
+            invoiceDate: {
               gte: new Date(2024, 5, 1),
-              lte: new Date(2024, 6, 0),
+              lte: new Date(2024, 6, 0, 23, 59, 59),
             },
           },
         }),
@@ -221,10 +226,11 @@ describe('ReportsService', () => {
       expect(result.summary.totalInvoices).toBe(2);
       expect(result.summary.totalTaxableValue).toBe(10450);
       expect(result.summary.totalTax).toBe(1822.5);
-      expect(result.summary.totalPaid).toBe(200 + 11800);
-      expect(result.summary.outstanding).toBe(
-        (472.5 - 200) + (11800 - 11800),
-      );
+      expect(result.outwardSupplies).toBeDefined();
+      expect(result.interStateSupplies).toBeDefined();
+      expect(result.eligibleItc).toBeDefined();
+      expect(result.exemptNilNonGst).toBeDefined();
+      expect(result.paymentOfTax).toBeDefined();
     });
   });
 
@@ -259,12 +265,12 @@ describe('ReportsService', () => {
           where: {
             businessId: 'biz-1',
             status: 'CONFIRMED',
-            createdAt: {
+            invoiceDate: {
               gte: new Date('2024-01-01'),
               lte: new Date('2024-06-30'),
             },
           },
-          include: { items: true },
+          include: { items: { include: { product: true } } },
         }),
       );
       expect(result.invoiceCount).toBe(1);

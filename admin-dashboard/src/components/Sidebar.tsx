@@ -21,6 +21,8 @@ import {
   Assessment as AssessmentIcon,
   Settings as SettingsIcon,
   Group as GroupIcon,
+  Inventory2 as BatchIcon,
+  Warehouse as WarehouseIcon,
   ChevronLeft,
   ChevronRight,
 } from '@mui/icons-material';
@@ -36,6 +38,8 @@ const navItems = [
   { label: 'Products', icon: <InventoryIcon />, path: '/products' },
   { label: 'Invoices', icon: <ReceiptIcon />, path: '/invoices' },
   { label: 'Payments', icon: <PaymentIcon />, path: '/payments' },
+  { label: 'Batch / Expiry', icon: <BatchIcon />, path: '/batch-expiry' },
+  { label: 'Inventory', icon: <WarehouseIcon />, path: '/inventory' },
   { label: 'Staff', icon: <GroupIcon />, path: '/staff' },
   { label: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
   { label: 'Settings', icon: <SettingsIcon />, path: '/settings' },
@@ -69,20 +73,17 @@ export default function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
-          px: collapsed ? 0 : 2,
+          px: collapsed ? 0 : 0,
           minHeight: '64px !important',
         }}
       >
         {!collapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ReceiptIcon sx={{ color: '#ff8f00' }} />
-            <Typography variant="h6" noWrap sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
-              Wise Accounts
-            </Typography>
+          <Box sx={{ bgcolor: '#f5f5f5', py: 1, borderRadius: 2, overflow: 'hidden' }}>
+            <Box component="img" src="/logo.svg" alt="Wise Accounts" sx={{ width: '100%', display: 'block' }} />
           </Box>
         )}
         {collapsed && (
-          <ReceiptIcon sx={{ color: '#ff8f00' }} />
+          <Box component="img" src="/icon.svg" alt="WA" sx={{ height: 28 }} />
         )}
         <IconButton
           onClick={toggle}

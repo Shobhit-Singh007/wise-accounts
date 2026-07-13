@@ -64,6 +64,8 @@ fun ProductListScreen(
     onAddProduct: () -> Unit,
     onEditProduct: (Long) -> Unit,
     onBack: () -> Unit,
+    onBarcodeScanner: () -> Unit = {},
+    onStockTransfer: () -> Unit = {},
     viewModel: ProductListViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -76,6 +78,12 @@ fun ProductListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onBarcodeScanner) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode")
+                    }
+                    IconButton(onClick = onStockTransfer) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Stock Transfer")
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }

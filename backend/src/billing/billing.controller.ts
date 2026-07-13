@@ -9,6 +9,7 @@ import { GenerateEwayBillDto } from './dto/generate-ewaybill.dto';
 import { GenerateEinvoiceDto } from './dto/generate-einvoice.dto';
 import { GenerateBothDto } from './dto/generate-both.dto';
 import { InvoiceSettingsDto } from './dto/invoice-settings.dto';
+import { BulkCreateInvoiceDto } from './dto/bulk-create-invoice.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/decorators/current-user.decorator';
 import { BusinessOwnershipGuard } from '../common/guards/business-ownership.guard';
@@ -166,5 +167,25 @@ export class BillingController {
     @Body() dto: CreateCreditNoteDto,
   ) {
     return this.billingService.createCreditNote(businessId, user.sub, dto);
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create multiple invoices in bulk' })
+  async bulkCreate(
+    @Param('businessId') businessId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: BulkCreateInvoiceDto,
+  ) {
+    return this.billingService.bulkCreateInvoices(businessId, user.sub, dto.invoices);
+  }
+
+  @Post(':invoiceId/share')
+  @ApiOperation({ summary: 'Share invoice via SMS, Email, or WhatsApp' })
+  async shareInvoice(
+    @Param('businessId') businessId: string,
+    @Param('invoiceId') invoiceId: string,
+    @Body() dto: { method: 'email' | 'sms' | 'whatsapp'; recipientPhone?: string; recipientEmail?: string; message?: string },
+  ) {
+    return this.billingService.shareInvoice(businessId, invoiceId, dto);
   }
 }

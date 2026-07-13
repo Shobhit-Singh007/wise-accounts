@@ -14,6 +14,16 @@ export interface Payment {
   createdAt: string;
 }
 
+export interface CreatePaymentRequest {
+  customerId: string;
+  invoiceId?: string;
+  amount: number;
+  method: 'CASH' | 'UPI' | 'BANK_TRANSFER' | 'CARD' | 'CHEQUE';
+  reference?: string;
+  notes?: string;
+  paidAt?: string;
+}
+
 import client from './client';
 
 function prefix(businessId: string) {
@@ -28,6 +38,8 @@ export const paymentsApi = {
     startDate?: string;
     endDate?: string;
     method?: string;
+    status?: string;
+    reconcile?: boolean;
   }) =>
     client.get<{ data: Payment[]; meta: { total: number; page: number; limit: number } }>(
       `${prefix(businessId)}/payments`,
@@ -37,9 +49,24 @@ export const paymentsApi = {
   getById: (businessId: string, id: string) =>
     client.get<Payment>(`${prefix(businessId)}/payments/${id}`),
 
-  create: (businessId: string, data: Partial<Payment>) =>
+  create: (businessId: string, data: CreatePaymentRequest | Partial<Payment>) =>
     client.post<Payment>(`${prefix(businessId)}/payments`, data),
 
   delete: (businessId: string, id: string) =>
     client.delete(`${prefix(businessId)}/payments/${id}`),
+
+  void: (businessId: string, id: string) =>
+    client.post(`${prefix(businessId)}/payments/${id}/void`),
+
+  refund: (businessId: string, id: string, data?: { amount?: number; reason?: string }) =>
+    client.post(`${prefix(businessId)}/payments/${id}/refund`, data),
+
+  reconcile: (businessId: string) =>
+    client.post<{ reconciled: number }>(`${prefix(businessId)}/payments/reconcile`),
+
+  createRazorpayOrder: (businessId: string, data: { amount: number; customerId: string; invoiceId?: string }) =>
+    client.post<{ orderId: string; amount: number; currency: string; key: string }>(
+      `${prefix(businessId)}/payments/razorpay-order`,
+      data,
+    ),
 };

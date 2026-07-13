@@ -12,11 +12,32 @@ import {
   CircularProgress,
   Chip,
   MenuItem,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Divider,
+  Tabs,
+  Tab,
+  Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { productsApi, type Product, type ProductCreate } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
+import client from '../api/client';
+import { generateBarcodeSvg } from '../utils/barcodeUtils';
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string | null;
+  productCount?: number;
+}
 
 const initialState: ProductCreate = {
   name: '',
@@ -28,6 +49,161 @@ const initialState: ProductCreate = {
   taxRate: 18,
   lowStockThreshold: 10,
 };
+
+function CategoriesDialog({ open, onClose, businessId }: { open: boolean; onClose: () => void; businessId: string }) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await client.get<{ data: Category[] }>(`/businesses/${businessId}/categories`);
+      setCategories(data.data || []);
+    } catch { /* silent */ }
+    setLoading(false);
+  }, [businessId]);
+
+  useEffect(() => {
+    if (open) fetchCategories();
+  }, [open, fetchCategories]);
+
+  const handleSave = async () => {
+    if (!name.trim()) { setError('Name is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      if (editing) {
+        await client.put(`/businesses/${businessId}/categories/${editing.id}`, { name, description });
+      } else {
+        await client.post(`/businesses/${businessId}/categories`, { name, description });
+      }
+      setFormOpen(false);
+      setEditing(null);
+      setName('');
+      setDescription('');
+      fetchCategories();
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save');
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (cat: Category) => {
+    if (!confirm(`Delete category "${cat.name}"?`)) return;
+    try {
+      await client.delete(`/businesses/${businessId}/categories/${cat.id}`);
+      fetchCategories();
+    } catch { /* silent */ }
+  };
+
+  const openEdit = (cat: Category) => {
+    setEditing(cat);
+    setName(cat.name);
+    setDescription(cat.description || '');
+    setFormOpen(true);
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setName('');
+    setDescription('');
+    setFormOpen(true);
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        Manage Categories
+        <Button startIcon={<AddIcon />} size="small" onClick={openCreate}>Add</Button>
+      </DialogTitle>
+      <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+        ) : categories.length === 0 ? (
+          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No categories yet</Typography>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {categories.map((cat) => (
+                  <TableRow key={cat.id}>
+                    <TableCell>{cat.name}</TableCell>
+                    <TableCell>{cat.description || '-'}</TableCell>
+                    <TableCell align="right">
+                      <IconButton size="small" onClick={() => openEdit(cat)}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(cat)}><DeleteIcon fontSize="small" /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+
+      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{editing ? 'Edit Category' : 'New Category'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} size="small" autoFocus />
+            <TextField label="Description" value={description} onChange={(e) => setDescription(e.target.value)} size="small" multiline rows={2} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFormOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving}>
+            {saving ? <CircularProgress size={20} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Dialog>
+  );
+}
+
+function BarcodePopover({ value }: { value: string }) {
+  const [open, setOpen] = useState(false);
+  const svg = generateBarcodeSvg(value, { width: 2, height: 50 });
+
+  return (
+    <>
+      <Tooltip title="View barcode">
+        <Chip
+          label={value || '-'}
+          size="small"
+          variant="outlined"
+          onClick={() => value && setOpen(true)}
+          sx={{ cursor: value ? 'pointer' : 'default', fontFamily: 'monospace', fontSize: 11 }}
+        />
+      </Tooltip>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs">
+        <DialogTitle>Barcode: {value}</DialogTitle>
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
 
 export default function ProductsPage() {
   const { currentBusinessId } = useBusiness();
@@ -42,6 +218,7 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductCreate>(initialState);
   const [saving, setSaving] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -86,6 +263,7 @@ export default function ProductsPage() {
       purchasePrice: p.purchasePrice || 0,
       taxRate: p.taxRate,
       lowStockThreshold: p.lowStockThreshold || 10,
+      categoryId: p.categoryId || undefined,
     });
     setDialogOpen(true);
   };
@@ -113,7 +291,11 @@ export default function ProductsPage() {
 
   const columns = [
     { id: 'name', label: 'Product', sortable: true, render: (r: Product) => r.name },
-    { id: 'sku', label: 'SKU', render: (r: Product) => r.sku || '-' },
+    {
+      id: 'barcode',
+      label: 'Barcode',
+      render: (r: Product) => <BarcodePopover value={r.sku || r.id.slice(0, 12)} />,
+    },
     { id: 'hsnCode', label: 'HSN', render: (r: Product) => r.hsnCode },
     { id: 'sellingPrice', label: 'Price', sortable: true, render: (r: Product) => `₹${(r.sellingPrice || 0).toLocaleString('en-IN')}` },
     { id: 'taxRate', label: 'GST %', render: (r: Product) => `${r.taxRate}%` },
@@ -155,9 +337,14 @@ export default function ProductsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Products</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
-          Add Product
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<CategoryIcon />} onClick={() => setCategoriesOpen(true)}>
+            Manage Categories
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
+            Add Product
+          </Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -182,7 +369,7 @@ export default function ProductsPage() {
         <DialogContent>
           <Box sx={{ pt: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField label="Product Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <TextField label="SKU" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+            <TextField label="SKU / Barcode" value={form.sku || ''} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
             <TextField label="HSN Code" value={form.hsnCode} onChange={(e) => setForm({ ...form, hsnCode: e.target.value })} required />
             <TextField label="Selling Price" type="number" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: Number(e.target.value) })} required />
             <TextField label="Purchase Price" type="number" value={form.purchasePrice || 0} onChange={(e) => setForm({ ...form, purchasePrice: Number(e.target.value) })} />
@@ -216,6 +403,14 @@ export default function ProductsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {currentBusinessId && (
+        <CategoriesDialog
+          open={categoriesOpen}
+          onClose={() => setCategoriesOpen(false)}
+          businessId={currentBusinessId}
+        />
+      )}
     </Box>
   );
 }

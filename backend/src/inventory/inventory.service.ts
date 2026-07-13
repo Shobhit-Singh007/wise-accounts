@@ -189,6 +189,29 @@ export class InventoryService {
     return this.prisma.category.create({ data: { ...dto, businessId } });
   }
 
+  async updateCategory(businessId: string, categoryId: string, dto: { name?: string; parentId?: string }) {
+    const category = await this.prisma.category.findFirst({
+      where: { id: categoryId, businessId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+    return this.prisma.category.update({
+      where: { id: categoryId },
+      data: dto,
+    });
+  }
+
+  async removeCategory(businessId: string, categoryId: string) {
+    const category = await this.prisma.category.findFirst({
+      where: { id: categoryId, businessId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+    await this.prisma.product.updateMany({
+      where: { categoryId },
+      data: { categoryId: null },
+    });
+    return this.prisma.category.delete({ where: { id: categoryId } });
+  }
+
   async findAllCategories(businessId: string, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -207,6 +230,28 @@ export class InventoryService {
     return this.prisma.supplier.create({ data: { ...dto, businessId } });
   }
 
+  async updateSupplier(businessId: string, supplierId: string, dto: any) {
+    const supplier = await this.prisma.supplier.findFirst({
+      where: { id: supplierId, businessId },
+    });
+    if (!supplier) throw new NotFoundException('Supplier not found');
+    return this.prisma.supplier.update({
+      where: { id: supplierId },
+      data: dto,
+    });
+  }
+
+  async removeSupplier(businessId: string, supplierId: string) {
+    const supplier = await this.prisma.supplier.findFirst({
+      where: { id: supplierId, businessId },
+    });
+    if (!supplier) throw new NotFoundException('Supplier not found');
+    return this.prisma.supplier.update({
+      where: { id: supplierId },
+      data: { isActive: false },
+    });
+  }
+
   async findAllSuppliers(businessId: string, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -217,6 +262,50 @@ export class InventoryService {
         take: limit,
       }),
       this.prisma.supplier.count({ where: { businessId, isActive: true } }),
+    ]);
+    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async updatePurchaseOrder(businessId: string, orderId: string, dto: any) {
+    const order = await this.prisma.purchaseOrder.findFirst({
+      where: { id: orderId, businessId },
+    });
+    if (!order) throw new NotFoundException('Purchase order not found');
+    if (order.status === 'RECEIVED') throw new BadRequestException('Cannot update a received order');
+    return this.prisma.purchaseOrder.update({
+      where: { id: orderId },
+      data: dto,
+    });
+  }
+
+  async removePurchaseOrder(businessId: string, orderId: string) {
+    const order = await this.prisma.purchaseOrder.findFirst({
+      where: { id: orderId, businessId },
+    });
+    if (!order) throw new NotFoundException('Purchase order not found');
+    if (order.status === 'RECEIVED') throw new BadRequestException('Cannot cancel a received order');
+    return this.prisma.purchaseOrder.update({
+      where: { id: orderId },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  async getStockMovements(businessId: string, productId: string, page: number = 1, limit: number = 20) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, businessId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.stockMovement.findMany({
+        where: { productId },
+        include: { warehouse: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.stockMovement.count({ where: { productId } }),
     ]);
     return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }

@@ -67,4 +67,29 @@ export class BusinessController {
   async findWarehouses(@Param('businessId') businessId: string) {
     return this.businessService.findWarehouses(businessId);
   }
+
+  @Get(':businessId/warehouses/:warehouseId')
+  @UseGuards(BusinessOwnershipGuard)
+  @ApiOperation({ summary: 'Get warehouse by ID' })
+  async findWarehouse(@Param('businessId') businessId: string, @Param('warehouseId') warehouseId: string) {
+    return this.businessService.findWarehouse(businessId, warehouseId);
+  }
+
+  @Put(':businessId/warehouses/:warehouseId')
+  @UseGuards(BusinessOwnershipGuard)
+  @ApiOperation({ summary: 'Update warehouse' })
+  async updateWarehouse(
+    @Param('businessId') businessId: string,
+    @Param('warehouseId') warehouseId: string,
+    @Body() dto: CreateWarehouseDto,
+  ) {
+    return this.businessService.updateWarehouse(businessId, warehouseId, dto);
+  }
+
+  @Delete(':businessId/warehouses/:warehouseId')
+  @UseGuards(BusinessOwnershipGuard)
+  @ApiOperation({ summary: 'Deactivate warehouse' })
+  async removeWarehouse(@Param('businessId') businessId: string, @Param('warehouseId') warehouseId: string) {
+    return this.businessService.removeWarehouse(businessId, warehouseId);
+  }
 }

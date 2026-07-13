@@ -8,6 +8,8 @@ class ReportsViewModel: ObservableObject {
     @Published var gstr3bReport: Gstr3bReport?
     @Published var customerReport: CustomerReport?
     @Published var profitLoss: ProfitLossReport?
+    @Published var inventoryDashboard: InventoryDashboard?
+    @Published var stockMovements: StockMovementsReport?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var selectedTab = 0
@@ -16,6 +18,9 @@ class ReportsViewModel: ObservableObject {
     @Published var endDate = Date()
     @Published var selectedMonth = Calendar.current.component(.month, from: Date())
     @Published var selectedYear = Calendar.current.component(.year, from: Date())
+    @Published var gstr1FromDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @Published var gstr1ToDate = Date()
+    @Published var selectedMovementProductId: String?
 
     private let apiService = APIService.shared
 
@@ -39,13 +44,10 @@ class ReportsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            let comps = DateComponents(year: selectedYear, month: selectedMonth, day: 1)
-            let from = Calendar.current.date(from: comps) ?? Date()
-            let to = Calendar.current.date(byAdding: .month, value: 1, to: from) ?? Date()
             let data: Gstr1Report = try await apiService.getGstr1(
                 businessId: businessId,
-                fromDate: Helpers.isoString(from: from),
-                toDate: Helpers.isoString(from: to)
+                fromDate: Helpers.isoString(from: gstr1FromDate),
+                toDate: Helpers.isoString(from: gstr1ToDate)
             )
             gstr1Report = data
         } catch {
@@ -108,8 +110,8 @@ class ReportsViewModel: ObservableObject {
         )
         async let gstr1: Gstr1Report? = try? await apiService.getGstr1(
             businessId: businessId,
-            fromDate: Helpers.isoString(from: startDate),
-            toDate: Helpers.isoString(from: endDate)
+            fromDate: Helpers.isoString(from: gstr1FromDate),
+            toDate: Helpers.isoString(from: gstr1ToDate)
         )
         async let gstr3b: Gstr3bReport? = try? await apiService.getGstr3b(
             businessId: businessId,
@@ -128,6 +130,34 @@ class ReportsViewModel: ObservableObject {
         gstr3bReport = results.2
         customerReport = results.3
         profitLoss = results.4
+        isLoading = false
+    }
+
+    func loadInventoryDashboard(businessId: String) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            inventoryDashboard = try await apiService.getInventoryDashboard(businessId: businessId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    func loadStockMovements(businessId: String) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let data: StockMovementsReport = try await apiService.getStockMovements(
+                businessId: businessId,
+                startDate: Helpers.isoString(from: startDate),
+                endDate: Helpers.isoString(from: endDate),
+                productId: selectedMovementProductId
+            )
+            stockMovements = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
         isLoading = false
     }
 

@@ -1,7 +1,9 @@
 package com.gstbilling.app.ui.billing
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +25,8 @@ import com.gstbilling.app.data.repository.InvoiceRepository
 import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,6 +55,11 @@ class CreateInvoiceViewModel @Inject constructor(
 
     var customerId by mutableStateOf(0L)
     var customerName by mutableStateOf("")
+    var customerGstin by mutableStateOf<String?>(null)
+    var customerState by mutableStateOf<String?>(null)
+    var customerAddress by mutableStateOf<String?>(null)
+    var customerPhone by mutableStateOf<String?>(null)
+    var invoiceType by mutableStateOf("B2C")
     var invoiceDate by mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
     var dueDate by mutableStateOf("")
     var discount by mutableStateOf("0")
@@ -60,6 +69,14 @@ class CreateInvoiceViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
     var isSuccess by mutableStateOf(false)
 
+    var customerSearchResults by mutableStateOf<List<Customer>>(emptyList())
+    var isSearchingCustomers by mutableStateOf(false)
+    private var customerSearchJob: Job? = null
+
+    var productSearchResults by mutableStateOf<List<Product>>(emptyList())
+    var isSearchingProducts by mutableStateOf(false)
+    private var productSearchJobs = mutableMapOf<Int, Job>()
+
     val subtotal by derivedStateOf { lineItems.sumOf { it.unitPrice.toDoubleOrNull()?.times(it.quantity.toDoubleOrNull() ?: 1.0) ?: 0.0 } }
     val discountAmount by derivedStateOf { discount.toDoubleOrNull() ?: 0.0 }
     val taxableAmount by derivedStateOf { subtotal - discountAmount }
@@ -67,6 +84,84 @@ class CreateInvoiceViewModel @Inject constructor(
     val totalSgst by derivedStateOf { lineItems.sumOf { it.sgst } }
     val totalIgst by derivedStateOf { lineItems.sumOf { it.igst } }
     val totalAmount by derivedStateOf { taxableAmount + totalCgst + totalSgst + totalIgst }
+
+    fun searchCustomers(query: String) {
+        customerSearchJob?.cancel()
+        if (query.length < 2) {
+            customerSearchResults = emptyList()
+            return
+        }
+        customerSearchJob = viewModelScope.launch {
+            isSearchingCustomers = true
+            try {
+                val businessId = sessionManager.getBusinessId()?.toLongOrNull() ?: return@launch
+                when (val result = invoiceRepository.searchCustomers(businessId, query)) {
+                    is AppResult.Success -> customerSearchResults = result.data ?: emptyList()
+                    is AppResult.Error -> customerSearchResults = emptyList()
+                    else -> {}
+                }
+            } catch (_: Exception) {
+                customerSearchResults = emptyList()
+            }
+            isSearchingCustomers = false
+        }
+    }
+
+    fun selectCustomer(customer: Customer) {
+        customerId = customer.id
+        customerName = customer.name
+        customerGstin = customer.gstin
+        customerState = customer.state
+        customerAddress = customer.address
+        customerPhone = customer.phone
+        invoiceType = if (!customer.gstin.isNullOrBlank()) "B2B" else "B2C"
+        customerSearchResults = emptyList()
+    }
+
+    fun clearCustomer() {
+        customerId = 0
+        customerName = ""
+        customerGstin = null
+        customerState = null
+        customerAddress = null
+        customerPhone = null
+        invoiceType = "B2C"
+    }
+
+    fun searchProducts(query: String, lineIndex: Int) {
+        productSearchJobs[lineIndex]?.cancel()
+        if (query.length < 2) {
+            productSearchResults = emptyList()
+            return
+        }
+        productSearchJobs[lineIndex] = viewModelScope.launch {
+            isSearchingProducts = true
+            try {
+                val businessId = sessionManager.getBusinessId()?.toLongOrNull() ?: return@launch
+                when (val result = invoiceRepository.searchProducts(businessId, query)) {
+                    is AppResult.Success -> productSearchResults = result.data ?: emptyList()
+                    is AppResult.Error -> productSearchResults = emptyList()
+                    else -> {}
+                }
+            } catch (_: Exception) {
+                productSearchResults = emptyList()
+            }
+            isSearchingProducts = false
+        }
+    }
+
+    fun selectProduct(product: Product, lineIndex: Int) {
+        val item = lineItems[lineIndex]
+        lineItems[lineIndex] = item.copy(
+            productId = product.id,
+            productName = product.name,
+            hsnCode = product.hsn_code ?: "",
+            unitPrice = product.selling_price.toString(),
+            gstRate = product.gst_rate.toString()
+        )
+        recalculateItem(lineIndex)
+        productSearchResults = emptyList()
+    }
 
     fun addLineItem() {
         lineItems.add(LineItemState())
@@ -116,17 +211,17 @@ class CreateInvoiceViewModel @Inject constructor(
         viewModelScope.launch {
             val items = lineItems.map { item ->
                 InvoiceItemRequest(
-                    productId = item.productId,
+                    product_id = item.productId,
                     quantity = item.quantity.toDoubleOrNull() ?: 1.0,
-                    unitPrice = item.unitPrice.toDoubleOrNull() ?: 0.0,
+                    unit_price = item.unitPrice.toDoubleOrNull() ?: 0.0,
                     discount = item.discount.toDoubleOrNull() ?: 0.0,
-                    gstRate = item.gstRate.toDoubleOrNull() ?: 0.0
+                    gst_rate = item.gstRate.toDoubleOrNull() ?: 0.0
                 )
             }
             val request = CreateInvoiceRequest(
-                customerId = customerId,
-                invoiceDate = invoiceDate,
-                dueDate = dueDate.ifBlank { null },
+                customer_id = customerId,
+                invoice_date = invoiceDate,
+                due_date = dueDate.ifBlank { null },
                 items = items,
                 discount = discountAmount,
                 notes = notes.ifBlank { null }
@@ -155,8 +250,11 @@ fun CreateInvoiceScreen(
     onInvoiceCreated: () -> Unit,
     viewModel: CreateInvoiceViewModel = hiltViewModel()
 ) {
+    var showCustomerSearch by remember { mutableStateOf(false) }
+    var customerSearchQuery by remember { mutableStateOf("") }
+
     LaunchedEffect(customerId) {
-        if (customerId != null) {
+        if (customerId != null && viewModel.customerId == 0L) {
             viewModel.customerId = customerId
         }
     }
@@ -196,20 +294,99 @@ fun CreateInvoiceScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Invoice Type
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("B2B", "B2C").forEach { type ->
+                    FilterChip(
+                        selected = viewModel.invoiceType == type,
+                        onClick = { viewModel.invoiceType = type },
+                        label = { Text(type) }
+                    )
+                }
+            }
+
             // Customer Selection
             OutlinedTextField(
                 value = viewModel.customerName,
-                onValueChange = { viewModel.customerName = it },
+                onValueChange = {
+                    viewModel.customerName = it
+                    showCustomerSearch = true
+                    customerSearchQuery = it
+                    viewModel.searchCustomers(it)
+                },
                 label = { Text("Customer Name") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search customer")
+                    if (viewModel.customerName.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.clearCustomer() }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                        }
+                    } else {
+                        IconButton(onClick = { showCustomerSearch = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Search customer")
+                        }
                     }
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // Customer Detail Card
+            if (viewModel.customerId > 0L) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            viewModel.customerName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        viewModel.customerGstin?.let {
+                            Text("GSTIN: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        viewModel.customerState?.let {
+                            Text("State: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        viewModel.customerAddress?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("Type: ${viewModel.invoiceType}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+            }
+
+            // Customer Search Dropdown
+            if (showCustomerSearch && viewModel.customerSearchResults.isNotEmpty()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(viewModel.customerSearchResults) { customer ->
+                            ListItem(
+                                headlineContent = { Text(customer.name) },
+                                supportingContent = {
+                                    Text(buildString {
+                                        append(customer.phone ?: "")
+                                        customer.gstin?.let { append(" | GSTIN: $it") }
+                                    })
+                                },
+                                leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
+                                modifier = Modifier.clickable {
+                                    viewModel.selectCustomer(customer)
+                                    showCustomerSearch = false
+                                    customerSearchQuery = ""
+                                }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
 
             // Dates
             Row(
@@ -257,7 +434,10 @@ fun CreateInvoiceScreen(
                     item = item,
                     onUpdate = { viewModel.updateLineItem(index, it) },
                     onRemove = { viewModel.removeLineItem(index) },
-                    isLast = index == viewModel.lineItems.lastIndex
+                    isLast = index == viewModel.lineItems.lastIndex,
+                    productSearchResults = viewModel.productSearchResults,
+                    onSearchProduct = { query -> viewModel.searchProducts(query, index) },
+                    onSelectProduct = { product -> viewModel.selectProduct(product, index) }
                 )
             }
 
@@ -335,8 +515,14 @@ fun LineItemCard(
     item: LineItemState,
     onUpdate: (LineItemState) -> Unit,
     onRemove: () -> Unit,
-    isLast: Boolean
+    isLast: Boolean,
+    productSearchResults: List<Product>,
+    onSearchProduct: (String) -> Unit,
+    onSelectProduct: (Product) -> Unit
 ) {
+    var showProductSearch by remember { mutableStateOf(false) }
+    var productQuery by remember { mutableStateOf(item.productName) }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -366,11 +552,47 @@ fun LineItemCard(
             ) {
                 OutlinedTextField(
                     value = item.productName,
-                    onValueChange = { onUpdate(item.copy(productName = it)) },
+                    onValueChange = {
+                        onUpdate(item.copy(productName = it))
+                        productQuery = it
+                        onSearchProduct(it)
+                        showProductSearch = it.length >= 2
+                    },
                     label = { Text("Product") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
+            }
+
+            // Product Search Dropdown
+            if (showProductSearch && productSearchResults.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 150.dp)
+                ) {
+                    LazyColumn {
+                        items(productSearchResults) { product ->
+                            ListItem(
+                                headlineContent = { Text(product.name) },
+                                supportingContent = {
+                                    Text(buildString {
+                                        append("₹${product.selling_price}")
+                                        product.sku?.let { append(" | SKU: $it") }
+                                        append(" | Stock: ${product.stock}")
+                                    })
+                                },
+                                modifier = Modifier.clickable {
+                                    onSelectProduct(product)
+                                    showProductSearch = false
+                                    productQuery = product.name
+                                }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+                }
             }
 
             Row(

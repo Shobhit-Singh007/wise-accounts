@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme';
+import { useMemo } from 'react';
+import { getTheme } from './theme';
+import { ColorModeProvider, useColorMode } from './context/ColorModeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BusinessProvider } from './context/BusinessContext';
 import { SidebarProvider } from './context/SidebarContext';
@@ -16,6 +18,8 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffPage from './pages/StaffPage';
 import CustomerLedgerPage from './pages/CustomerLedgerPage';
+import BatchExpiryPage from './pages/BatchExpiryPage';
+import InventoryManagementPage from './pages/InventoryManagementPage';
 import { CircularProgress, Box } from '@mui/material';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -83,6 +87,8 @@ function AppRoutes() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
+        <Route path="/batch-expiry" element={<BatchExpiryPage />} />
+        <Route path="/inventory" element={<InventoryManagementPage />} />
         <Route path="/staff" element={<StaffPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
@@ -92,7 +98,10 @@ function AppRoutes() {
   );
 }
 
-export default function App() {
+function ThemedApp() {
+  const { mode } = useColorMode();
+  const theme = useMemo(() => getTheme(mode), [mode]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -102,5 +111,13 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ColorModeProvider>
+      <ThemedApp />
+    </ColorModeProvider>
   );
 }

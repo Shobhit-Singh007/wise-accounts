@@ -60,6 +60,13 @@ describe('BusinessService', () => {
     invoice: {
       count: jest.fn(),
       aggregate: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    payment: {
+      groupBy: jest.fn().mockResolvedValue([]),
+    },
+    invoiceItem: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
   };
 
@@ -146,6 +153,9 @@ describe('BusinessService', () => {
       mockPrisma.invoice.aggregate.mockResolvedValue({
         _sum: { grandTotal: 500000, paidAmount: 300000 },
       });
+      mockPrisma.invoice.findMany.mockResolvedValue([]);
+      mockPrisma.payment.groupBy.mockResolvedValue([]);
+      mockPrisma.invoiceItem.findMany.mockResolvedValue([]);
 
       const result = await service.getDashboard('biz-1');
 
@@ -162,14 +172,12 @@ describe('BusinessService', () => {
         where: { businessId: 'biz-1', status: 'CONFIRMED' },
         _sum: { grandTotal: true, paidAmount: true },
       });
-      expect(result).toEqual({
-        totalCustomers: 50,
-        totalProducts: 100,
-        totalInvoices: 200,
-        totalBilled: 500000,
-        totalPaid: 300000,
-        outstanding: 200000,
-      });
+      expect(result.totalCustomers).toBe(50);
+      expect(result.totalProducts).toBe(100);
+      expect(result.totalInvoices).toBe(200);
+      expect(result.totalBilled).toBe(500000);
+      expect(result.totalRevenue).toBe(300000);
+      expect(result.outstanding).toBe(200000);
     });
 
     it('should handle zero values gracefully', async () => {
@@ -179,17 +187,18 @@ describe('BusinessService', () => {
       mockPrisma.invoice.aggregate.mockResolvedValue({
         _sum: { grandTotal: null, paidAmount: null },
       });
+      mockPrisma.invoice.findMany.mockResolvedValue([]);
+      mockPrisma.payment.groupBy.mockResolvedValue([]);
+      mockPrisma.invoiceItem.findMany.mockResolvedValue([]);
 
       const result = await service.getDashboard('biz-1');
 
-      expect(result).toEqual({
-        totalCustomers: 0,
-        totalProducts: 0,
-        totalInvoices: 0,
-        totalBilled: 0,
-        totalPaid: 0,
-        outstanding: 0,
-      });
+      expect(result.totalCustomers).toBe(0);
+      expect(result.totalProducts).toBe(0);
+      expect(result.totalInvoices).toBe(0);
+      expect(result.totalBilled).toBe(0);
+      expect(result.totalRevenue).toBe(0);
+      expect(result.outstanding).toBe(0);
     });
   });
 });

@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BillingService } from './billing.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EwayBillApiService } from './services/ewaybill-api.service';
+import { EinvoiceApiService } from './services/einvoice-api.service';
+import { InvoiceTemplatesService } from './services/invoice-templates.service';
 
 describe('BillingService', () => {
   let service: BillingService;
@@ -104,6 +108,52 @@ describe('BillingService', () => {
     },
   };
 
+  const mockConfigService = {
+    get: jest.fn().mockImplementation((key: string, defaultValue?: string) => {
+      return defaultValue;
+    }),
+  };
+
+  const mockEwayBillApi = {
+    generateEwayBill: jest.fn().mockResolvedValue({
+      ewayBillNo: 'EWB123456789',
+      ewayBillDate: '2024-06-15',
+      validUpto: '2024-06-16',
+      message: 'E-Way Bill generated successfully',
+    }),
+  };
+
+  const mockEinvoiceApi = {
+    generateEinvoice: jest.fn().mockResolvedValue({
+      irn: 'IRN123456789',
+      irnDate: '2024-06-15',
+      ackNo: 'ACK123456',
+      ackDate: '2024-06-15',
+      qrCode: 'qr-code-base64',
+      message: 'e-Invoice generated successfully',
+    }),
+  };
+
+  const mockTemplatesService = {
+    getTemplates: jest.fn().mockReturnValue([]),
+    getTemplate: jest.fn().mockReturnValue({
+      id: 'classic',
+      name: 'Classic',
+      accentColor: '#1a237e',
+      headerStyle: 'filled',
+      tableStyle: 'bordered',
+      font: 'arial',
+    }),
+    getActiveTemplate: jest.fn().mockReturnValue({
+      id: 'classic',
+      name: 'Classic',
+      accentColor: '#1a237e',
+      headerStyle: 'filled',
+      tableStyle: 'bordered',
+      font: 'arial',
+    }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -111,6 +161,10 @@ describe('BillingService', () => {
       providers: [
         BillingService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: EwayBillApiService, useValue: mockEwayBillApi },
+        { provide: EinvoiceApiService, useValue: mockEinvoiceApi },
+        { provide: InvoiceTemplatesService, useValue: mockTemplatesService },
       ],
     }).compile();
 

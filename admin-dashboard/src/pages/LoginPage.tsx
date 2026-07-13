@@ -71,10 +71,7 @@ export default function LoginPage() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-              <Receipt sx={{ color: 'primary.main', fontSize: 32 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                Wise Accounts
-              </Typography>
+              <Box component="img" src="/logo.svg" alt="Wise Accounts" sx={{ height: 36 }} />
             </Box>
             <Typography variant="body2" color="text.secondary">
               Sign in to your account to continue

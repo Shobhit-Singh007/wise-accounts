@@ -53,7 +53,9 @@ import {
   type InvoiceTemplate,
 } from '../api/invoices';
 import { customersApi, type Customer } from '../api/customers';
+import { productsApi, type Product } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
+import { generateQrCodeSvg } from '../utils/barcodeUtils';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
   CONFIRMED: 'success',
@@ -134,6 +136,8 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [terms, setTerms] = useState(editInvoice?.terms || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [productList, setProductList] = useState<Product[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -164,6 +168,8 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     }
     setPartySearch('');
     setSelectedParty(null);
+    setProductSearch('');
+    setProductList([]);
     setError('');
   }, [open, editInvoice]);
 
@@ -177,6 +183,17 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     }, 300);
     return () => clearTimeout(timer);
   }, [partySearch, open, businessId]);
+
+  useEffect(() => {
+    if (!open || productSearch.length < 2) { setProductList([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await productsApi.list(businessId, { search: productSearch, limit: 20 });
+        setProductList(data.data || []);
+      } catch { setProductList([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productSearch, open, businessId]);
 
   useEffect(() => {
     if (editInvoice && open) {
@@ -196,6 +213,21 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
 
   const addItem = () => setItems((prev) => [...prev, { ...emptyItem }]);
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const selectProduct = (idx: number, product: Product | null) => {
+    setItems((prev) => prev.map((it, i) => {
+      if (i !== idx) return it;
+      if (!product) return { ...it, productId: undefined, itemName: '' };
+      return {
+        ...it,
+        productId: product.id,
+        itemName: product.name,
+        rate: product.sellingPrice,
+        unit: product.unit,
+        taxRate: product.taxRate,
+      };
+    }));
+  };
 
   const handleSave = async () => {
     if (items.length === 0 || items.every((it) => !it.itemName.trim())) {
@@ -268,7 +300,12 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
               options={partyList}
               getOptionLabel={(opt) => `${opt.name} (${opt.phone})`}
               value={selectedParty}
-              onChange={(_, val) => setSelectedParty(val)}
+              onChange={(_, val) => {
+                setSelectedParty(val);
+                if (direction === 'SALE' && val?.gstin) {
+                  setType('B2B');
+                }
+              }}
               inputValue={partySearch}
               onInputChange={(_, val) => setPartySearch(val)}
               isOptionEqualToValue={(opt, val) => opt.id === val.id}
@@ -302,6 +339,17 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
           </Grid>
         </Grid>
 
+        {selectedParty && direction === 'SALE' && (
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: 'grey.50', display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <Typography variant="caption" color="text.secondary">
+              <strong>{selectedParty.name}</strong>
+              {selectedParty.gstin && <> &middot; GSTIN: {selectedParty.gstin}</>}
+              {selectedParty.state && <> &middot; {selectedParty.state}</>}
+              {selectedParty.address && <> &middot; {selectedParty.address}</>}
+            </Typography>
+          </Paper>
+        )}
+
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Line Items</Typography>
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
           <Table size="small">
@@ -323,12 +371,31 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                 return (
                   <TableRow key={idx}>
                     <TableCell>
-                      <TextField
-                        value={item.itemName}
-                        onChange={(e) => updateItem(idx, 'itemName', e.target.value)}
+                      <Autocomplete
+                        freeSolo
+                        options={productList}
+                        getOptionLabel={(opt) => typeof opt === 'string' ? opt : `${opt.name}${opt.sku ? ` (${opt.sku})` : ''}`}
+                        value={productList.find((p) => p.id === item.productId) || null}
+                        onChange={(_, val) => {
+                          if (typeof val === 'string') {
+                            setItems((prev) => prev.map((it, i) => i === idx ? { ...it, itemName: val, productId: undefined } : it));
+                          } else {
+                            selectProduct(idx, val);
+                          }
+                        }}
+                        inputValue={item.productId ? (productList.find((p) => p.id === item.productId)?.name || item.itemName) : item.itemName}
+                        onInputChange={(_, val, reason) => {
+                          if (reason === 'input' || reason === 'clear') {
+                            setItems((prev) => prev.map((it, i) => i === idx ? { ...it, itemName: val } : it));
+                            setProductSearch(val);
+                          }
+                        }}
+                        isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                        renderInput={(params) => (
+                          <TextField {...params} size="small" placeholder="Type to search product..." />
+                        )}
                         size="small"
                         fullWidth
-                        placeholder="Item name"
                       />
                     </TableCell>
                     <TableCell>
@@ -466,15 +533,17 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
   const [einvoiceOpen, setEinvoiceOpen] = useState(false);
   const [bothOpen, setBothOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState('classic');
+  const [showQrCode, setShowQrCode] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  // Load active template from settings
+  // Load active template and QR setting from settings
   useEffect(() => {
     if (!open || !businessId) return;
     invoicesApi.getSettings(businessId)
       .then(({ data }) => {
         const d = data as unknown as Record<string, unknown>;
         setActiveTemplate((d.activeTemplate as string) || 'classic');
+        setShowQrCode(d.showQrCode === true);
       })
       .catch(() => {});
   }, [open, businessId]);
@@ -733,6 +802,24 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
             <Box sx={{ mt: 1 }}>
               <Typography variant="caption" color="text.secondary">Terms</Typography>
               <Typography variant="body2">{invoice.terms}</Typography>
+            </Box>
+          )}
+
+          {showQrCode && (
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: generateQrCodeSvg(
+                      `INV:${invoice.invoiceNo}|AMT:${invoice.grandTotal}|DATE:${invoice.invoiceDate}|FROM:${invoice.customer?.name || 'N/A'}`,
+                      100,
+                    ),
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                  Scan to verify invoice
+                </Typography>
+              </Box>
             </Box>
           )}
         </DialogContent>

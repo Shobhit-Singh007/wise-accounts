@@ -60,6 +60,42 @@ export class ReportsController {
     return this.reportsService.getCustomerReport(businessId);
   }
 
+  @Get('products')
+  @ApiOperation({ summary: 'Get product-wise report' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  async getProductReport(
+    @Param('businessId') businessId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.reportsService.getProductReport(businessId, startDate, endDate);
+  }
+
+  @Get('inventory-valuation')
+  @ApiOperation({ summary: 'Get inventory valuation report' })
+  async getInventoryValuation(@Param('businessId') businessId: string) {
+    return this.reportsService.getInventoryValuation(businessId);
+  }
+
+  @Get('outstanding')
+  @ApiOperation({ summary: 'Get outstanding/overdue report' })
+  async getOutstandingReport(@Param('businessId') businessId: string) {
+    return this.reportsService.getOutstandingReport(businessId);
+  }
+
+  @Get('payment-collection')
+  @ApiOperation({ summary: 'Get payment collection report' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  async getPaymentCollection(
+    @Param('businessId') businessId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.reportsService.getPaymentCollection(businessId, startDate, endDate);
+  }
+
   @Get('profit-loss')
   @ApiOperation({ summary: 'Get profit & loss statement' })
   @ApiQuery({ name: 'startDate', required: false })
@@ -70,5 +106,25 @@ export class ReportsController {
     @Query('endDate') endDate?: string,
   ) {
     return this.reportsService.getProfitLoss(businessId, startDate, endDate);
+  }
+
+  @Get('stock-movements')
+  @ApiOperation({ summary: 'Get stock movement report' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'productId', required: false })
+  async getStockMovementReport(
+    @Param('businessId') businessId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('productId') productId?: string,
+  ) {
+    return this.reportsService.getStockMovementReport(businessId, startDate, endDate, productId);
+  }
+
+  @Get('inventory-dashboard')
+  @ApiOperation({ summary: 'Get inventory dashboard summary' })
+  async getInventoryDashboard(@Param('businessId') businessId: string) {
+    return this.reportsService.getInventoryDashboard(businessId);
   }
 }

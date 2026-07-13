@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="wise-accounts icon">
+  <defs>
+    <linearGradient id="goldI" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7D982"/>
+      <stop offset="55%" stop-color="#D4A017"/>
+      <stop offset="100%" stop-color="#8E6608"/>
+    </linearGradient>
+    <linearGradient id="goldSoftI" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EBC15A"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <linearGradient id="navyI" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#123166"/>
+      <stop offset="100%" stop-color="#061733"/>
+    </linearGradient>
+    <linearGradient id="navyLightI" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E5AAA"/>
+      <stop offset="100%" stop-color="#1B3D7A"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="180" height="180" rx="38" ry="38" fill="url(#navyI)"/>
+    <rect x="7" y="7" width="166" height="166" rx="32" ry="32" fill="none" stroke="url(#goldI)" stroke-opacity="0.28" stroke-width="1.4"/>
+
+    <g stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1">
+      <line x1="20" y1="60"  x2="160" y2="60"/>
+      <line x1="20" y1="90"  x2="160" y2="90"/>
+      <line x1="20" y1="120" x2="160" y2="120"/>
+      <line x1="20" y1="150" x2="160" y2="150"/>
+    </g>
+
+    <path d="M 30 46 L 60 132 L 74 132 L 44 46 Z" fill="url(#navyLightI)" opacity="0.85"/>
+    <path d="M 54 46 L 84 132 L 98 132 L 68 46 Z" fill="url(#goldI)"/>
+    <path d="M 82 132 L 112 46 L 126 46 L 96 132 Z" fill="url(#navyLightI)" opacity="0.85"/>
+    <path d="M 106 132 L 136 46 L 150 46 L 120 132 Z" fill="url(#goldI)"/>
+
+    <rect x="30" y="138" width="120" height="4" rx="2" fill="url(#goldI)" opacity="0.9"/>
+    <circle cx="40" cy="152" r="2.2" fill="url(#goldI)" opacity="0.7"/>
+    <circle cx="52" cy="152" r="2.2" fill="url(#goldI)" opacity="0.5"/>
+    <circle cx="64" cy="152" r="2.2" fill="url(#goldI)" opacity="0.35"/>
+
+    <g transform="translate(138,44)">
+      <circle r="16" fill="url(#goldSoftI)" stroke="#FFF4CF" stroke-width="1.2"/>
+      <circle r="12" fill="none" stroke="#7A5407" stroke-opacity="0.35" stroke-width="1"/>
+      <path d="M -6 0 L -1 6 L 7 -5" fill="none" stroke="#0B2447" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

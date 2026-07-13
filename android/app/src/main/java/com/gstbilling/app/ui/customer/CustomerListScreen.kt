@@ -77,6 +77,7 @@ fun CustomerListScreen(
     onCustomerClick: (Long) -> Unit,
     onOpenLedger: (Long) -> Unit,
     onBack: () -> Unit,
+    onCustomerGroups: () -> Unit = {},
     viewModel: CustomerListViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -89,6 +90,9 @@ fun CustomerListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onCustomerGroups) {
+                        Icon(Icons.Default.Groups, contentDescription = "Groups")
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
