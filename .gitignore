@@ -18,7 +18,6 @@ xcuserdata/
 *.pem
 *.msi
 memory.md
-backend/.env.docker
 deploy-key
 deploy-key.pub
 wise-accounts-key.pem
