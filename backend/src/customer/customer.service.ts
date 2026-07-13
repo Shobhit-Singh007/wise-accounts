@@ -595,7 +595,7 @@ export class CustomerService {
     const phone = dto.phone || customer.phone;
     if (!phone) throw new BadRequestException('Customer has no phone number');
 
-    const ledgerUrl = `https://ledger.wiseaccounts.com/l/${businessId}/${customerId}`;
+    const ledgerUrl = `https://ledger.wiseaccs.com/l/${businessId}/${customerId}`;
     const message = dto.message || `Hi ${customer.name}, your account balance with Wise Accounts is ₹${Math.abs(customer.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}. View full ledger: ${ledgerUrl}`;
 
     let sent = false;

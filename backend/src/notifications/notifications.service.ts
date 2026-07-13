@@ -257,7 +257,7 @@ export class NotificationsService {
     }
     try {
       await this.sesClient.send(new SendEmailCommand({
-        Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@billing.app'),
+        Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@wiseaccs.com'),
         Destination: { ToAddresses: [to] },
         Message: {
           Subject: { Data: subject },

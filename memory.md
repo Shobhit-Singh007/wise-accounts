@@ -1,6 +1,6 @@
 ﻿# Memory - Progress Tracker
 
-> Last Updated: 2026-07-13 14:30 IST
+> Last Updated: 2026-07-13 12:18 IST
 
 ---
 
@@ -8,9 +8,9 @@
 
 | Aspect | Status |
 |--------|--------|
-| **Phase** | 5 - Deployment & Infrastructure (code complete, preparing for deployment) |
-| **Overall Progress** | ~95% (code complete, uncommitted changes need to be committed, deployment pending) |
-| **Current Focus** | Committing changes and preparing for deployment |
+| **Phase** | 5 - Deployment & Infrastructure (Docker setup complete) |
+| **Overall Progress** | ~96% (Docker stack working locally, deployment pending) |
+| **Current Focus** | Docker local testing verified, ready for deployment |
 | **Blockers** | External credentials needed for deployment (see "What's Still Needed") |
 | **Git Repo** | https://github.com/Shobhit-Singh007/wise-accounts |
 
@@ -20,11 +20,13 @@
 
 | Service | URL | Status |
 |---------|-----|--------|
-| NestJS Backend | http://localhost:3000 | ❌ Not running |
-| Admin Dashboard | http://localhost:5173 | ❌ Not running |
-| Landing Site | http://localhost:5174 | ❌ Not running |
-| Swagger Docs | http://localhost:3000/api/docs | ❌ Not available |
-| PostgreSQL | localhost:5432 (db: wise_accounts) | ✅ Running |
+| Landing Site | http://localhost | ✅ Running (Docker) |
+| Admin Dashboard | http://localhost/admin | ✅ Running (Docker) |
+| NestJS Backend API | http://localhost/api/v1 | ✅ Running (Docker) |
+| Health Check | http://localhost/api/v1/health | ✅ 200 OK |
+| PostgreSQL | postgres:5432 (Docker internal) | ✅ Running |
+| Redis | redis:6379 (Docker internal) | ✅ Running |
+| Swagger Docs | http://localhost/api/v1/api/docs | ✅ Running (Docker) |
 
 ---
 
@@ -48,8 +50,9 @@
 
 | Commit | Description |
 |--------|-------------|
-| `6fefba5` | feat: invoice templates, E-Way Bill/e-Invoice APIs, one-click generate, mobile apps |
+| `220b4ad` | feat: comprehensive feature additions across all platforms |
 | `43dfc71` | feat: staff management with granular permissions |
+| `6fefba5` | feat: invoice templates, E-Way Bill/e-Invoice APIs, one-click generate, mobile apps |
 
 ---
 
@@ -584,22 +587,67 @@ RAZORPAY_KEY_SECRET=YEH5myUcG9ly3EnR4vxGGP8P
 
 **Next Actions Needed:**
 1. Start backend services for testing
-2. Commit uncommitted changes
-3. Continue with deployment preparation
+2. ~~Commit uncommitted changes~~ ✅ DONE (Commit `220b4ad`)
+3. ~~Docker local testing setup~~ ✅ DONE
+4. Install Docker Desktop and run `docker-compose up --build`
+
+### 37. Docker Local Testing Setup
+
+**Architecture:**
+```
+http://localhost → nginx → Landing Site (wiseaccounts build)
+http://localhost/admin → nginx → Admin Dashboard (admin-dashboard build)
+http://localhost/api/* → nginx → backend:3000 (NestJS API)
+```
+
+**Files Created/Modified:**
+- `Dockerfile.nginx` — Multi-stage build: builds both landing site + admin dashboard, serves via nginx
+- `nginx.conf` — Routes `/` to landing, `/admin` to admin dashboard, `/api` to backend
+- `docker-compose.yml` — 4 services: postgres, redis, backend, nginx
+- `backend/.env.docker` — Docker-specific env with container hostnames
+- `backend/src/common/health.controller.ts` — Health endpoint for Docker health check
+- `backend/src/app.module.ts` — Registered HealthController
+- `.dockerignore` — Excludes node_modules, android, ios, etc.
+- `admin-dashboard/vite.config.ts` — Added `base: '/admin/'` for subpath routing
+- `admin-dashboard/src/App.tsx` — Added `basename="/admin"` to BrowserRouter
+- `wiseaccounts/src/components/landing/Navbar.tsx` — Login button links to `/admin/login`
+
+**Docker Services:**
+| Service | Container | Port | Purpose |
+|---------|-----------|------|---------|
+| postgres | wise-accounts-db | 5432 | PostgreSQL database |
+| redis | wise-accounts-redis | 6379 | Redis cache |
+| backend | wise-accounts-api | 3000 | NestJS API |
+| nginx | wise-accounts-nginx | **80** | Landing + Admin + API proxy |
+
+**To Run:**
+```powershell
+docker-compose up --build
+```
+Then visit: http://localhost (landing) → Login → http://localhost/admin/login
 
 ---
 
 ## How to Resume Next Time
 
-### Next Steps (Session 6):
-1. Commit uncommitted changes (significant feature additions)
+### Next Steps (Session 7):
+1. **Add profile photo** — Place `shobhit-singh.jpg` in `wiseaccounts/public/` folder
 2. Request AWS SES production access (remove sandbox)
 3. Request AWS SNS SMS spending limit increase
-4. Deploy with Docker when credentials available
-5. Build Android APK for testing
-6. Build iOS archive for testing
+4. Build Android APK for testing
+5. Build iOS archive for testing
 
-### Start backend:
+### Docker (all-in-one):
+```powershell
+cd C:\Users\LENOVO\vscodewithclaude
+docker-compose up --build
+```
+- Landing site: http://localhost
+- Admin dashboard: http://localhost/admin
+- API: http://localhost/api/v1
+- Swagger docs: http://localhost/api/docs
+
+### Local Development (without Docker):
 ```powershell
 cd backend
 npm run start:dev
@@ -628,6 +676,10 @@ Start-Service -Name "postgresql-x64-16"
 
 | Action | Command |
 |--------|---------|
+| Docker (all-in-one) | `docker-compose up --build -d` |
+| Docker status | `docker-compose ps` |
+| Docker logs (backend) | `docker logs wise-accounts-api` |
+| Docker down | `docker-compose down` |
 | Build backend | `cd backend && npm run build` |
 | Build admin dashboard | `cd admin-dashboard && npx vite build` |
 | Run backend tests | `cd backend && npx jest` |
@@ -636,3 +688,71 @@ Start-Service -Name "postgresql-x64-16"
 | TypeScript check (backend) | `cd backend && npx tsc --noEmit` |
 | TypeScript check (dashboard) | `cd admin-dashboard && npx tsc --noEmit` |
 | Git push | `git push origin master` |
+
+---
+
+## Session 6 - Docker Setup & Debugging (2026-07-13)
+
+### What Was Done
+1. **Docker setup complete**: 4-service stack with docker-compose (postgres, redis, backend, nginx)
+2. **Landing site** accessible at `http://localhost`
+3. **Admin dashboard** accessible at `http://localhost/admin`
+4. **Backend API** accessible at `http://localhost/api/v1`
+5. **Health endpoint** at `/api/v1/health` returns 200
+
+### Critical Bug Found & Fixed
+**CloudWatchLogger infinite recursion** — `src/common/cloudwatch.logger.ts` used `new Logger('CloudWatch')` internally. When NestJS set CloudWatchLogger as global logger, `Logger.log()` routed back to `CloudWatchLogger.log()`, creating infinite recursion → stack overflow → process.abort() (exit code 139/SIGSEGV). Fixed by using `console.log/error/warn` directly instead of `Logger`.
+
+### Files Changed
+- `backend/src/common/cloudwatch.logger.ts` — Fixed infinite recursion (use console directly, not Logger)
+- `backend/Dockerfile` — Multi-stage build (builder + runner, both node:22-alpine)
+- `backend/.env.docker` — Docker networking env vars
+- `backend/src/common/health.controller.ts` — Public health endpoint
+- `backend/src/app.module.ts` — Registered HealthController
+- `backend/src/main.ts` — Reverted debug change (removed abortOnError: false)
+- `docker-compose.yml` — 4 services, removed deprecated `version` attribute
+- `Dockerfile.nginx` — Multi-stage build for landing site + admin dashboard
+- `nginx.conf` — Routes: / → landing, /admin → dashboard, /api/ → backend
+- `.dockerignore` — Excludes node_modules, android, ios, etc.
+- `admin-dashboard/vite.config.ts` — Added `base: '/admin/'`
+- `admin-dashboard/src/App.tsx` — BrowserRouter with `basename="/admin"`
+- `wiseaccounts/src/components/landing/Navbar.tsx` — Login → /admin/login
+
+### Session 6 Continued — Branding, UX Fixes & Registration Flow
+
+**Bug Fixes:**
+- Fixed **blank page on invalid login** — axios 401 interceptor in `admin-dashboard/src/api/client.ts` was doing `window.location.href = '/login'` for failed login attempts; added skip for auth endpoints (`/auth/login`, `/auth/register`, etc.)
+- Fixed **"Create one here" button** on LoginPage — was external link to wiseaccounts.com, now navigates to `/register`
+- Fixed **"Back to Website" buttons** on LoginPage and RegisterPage — now go to `http://localhost/` (local landing site)
+- Fixed **DashboardPage blank state** — new users with no businesses now see onboarding screen ("Welcome to Wise Accounts" + "Create Your First Business" button)
+
+**Registration Flow:**
+- Created `admin-dashboard/src/pages/RegisterPage.tsx` — full registration form (Name, Phone, Password, Confirm Password) with API call to `POST /auth/register`
+- Added `/register` route in `admin-dashboard/src/App.tsx` (wrapped in `PublicRoute`)
+
+**Branding Updates (wiseaccs.com):**
+- Updated domain references from `wiseaccounts.com` → `wiseaccs.com` across 11 files (backend customer.service.ts, send-ledger-sms.dto.ts, billing.service.ts, notifications.service.ts, Layout.tsx, LoginPage.tsx, RegisterPage.tsx, ContactPage.tsx, Footer.tsx, ios Constants.swift)
+- Updated `backend/.env.docker`: `SES_FROM_EMAIL="noreply@wiseaccs.com"`
+
+**Contact & Team Updates:**
+- Updated phone number to `+91 9971587302` in ContactPage.tsx and Footer.tsx
+- Updated CEO/Founder to "Shobhit Singh" in AboutPage.tsx (was "Rahul Sharma")
+- Created `TeamMemberCard` component with photo fallback to initials
+- Prepared photo slot at `/shobhit-singh.jpg` (user needs to add image file)
+
+**Cleanup:**
+- Removed debug files (`backend_debug*.txt`, `build_log*.txt`, `debug-start.js`, `debug-entry.js`, `.env.debug`, etc.)
+- Removed deprecated `version: "3.8"` from `docker-compose.yml`
+
+**Files Changed (Session 6 continued):**
+- `admin-dashboard/src/api/client.ts` — Skip 401 interceptor for auth endpoints
+- `admin-dashboard/src/pages/LoginPage.tsx` — Fixed links, domain updated
+- `admin-dashboard/src/pages/RegisterPage.tsx` — NEW registration page
+- `admin-dashboard/src/pages/DashboardPage.tsx` — Onboarding screen for new users
+- `admin-dashboard/src/components/Layout.tsx` — Domain updated
+- `wiseaccounts/src/pages/AboutPage.tsx` — CEO updated to Shobhit Singh, TeamMemberCard component
+- `wiseaccounts/src/pages/ContactPage.tsx` — Phone updated to +919971587302
+- `wiseaccounts/src/components/landing/Footer.tsx` — Phone updated to +919971587302
+- `backend/src/customer/customer.service.ts` — Domain updated
+- `backend/src/billing/billing.service.ts` — Domain updated
+- `backend/src/notifications/notifications.service.ts` — Domain updated

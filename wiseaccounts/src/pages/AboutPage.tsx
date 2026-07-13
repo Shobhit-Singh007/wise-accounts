@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Navbar from '../components/landing/Navbar'
 import Footer from '../components/landing/Footer'
 import Box from '@mui/material/Box'
@@ -8,6 +9,47 @@ import Stack from '@mui/material/Stack'
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye'
 import GroupIcon from '@mui/icons-material/Group'
 import ShowChartIcon from '@mui/icons-material/ShowChart'
+
+function TeamMemberCard({ name, role, photo }: { name: string; role: string; photo: string }) {
+  const [imgLoaded, setImgLoaded] = useState(false)
+
+  return (
+    <Card sx={{ textAlign: 'center', py: 4, px: 2, border: '1px solid', borderColor: 'grey.200', maxWidth: 280, mx: 'auto' }} elevation={0}>
+      <Box
+        sx={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          backgroundColor: 'primary.main',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mx: 'auto',
+          mb: 2,
+          color: '#fff',
+          fontWeight: 700,
+          fontSize: '1.5rem',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          component="img"
+          src={photo}
+          alt={name}
+          onLoad={() => setImgLoaded(true)}
+          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: imgLoaded ? 'block' : 'none' }}
+        />
+        {!imgLoaded && name.split(' ').map(n => n[0]).join('')}
+      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+        {name}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {role}
+      </Typography>
+    </Card>
+  )
+}
 
 function AboutPage() {
   return (
@@ -89,42 +131,14 @@ function AboutPage() {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
+                gridTemplateColumns: { xs: '1fr' },
                 gap: 3,
               }}
             >
               {[
-                { name: 'Rahul Sharma', role: 'CEO & Co-Founder' },
-                { name: 'Priya Patel', role: 'CTO & Co-Founder' },
-                { name: 'Amit Verma', role: 'Head of Product' },
-                { name: 'Sneha Reddy', role: 'Head of Customer Success' },
+                { name: 'Shobhit Singh', role: 'CEO & Founder', photo: '/shobhit-singh.jpg' },
               ].map((member) => (
-                <Card key={member.name} sx={{ textAlign: 'center', py: 4, px: 2, border: '1px solid', borderColor: 'grey.200' }} elevation={0}>
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      backgroundColor: 'primary.main',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: 2,
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '1.5rem',
-                    }}
-                  >
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-                    {member.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {member.role}
-                  </Typography>
-                </Card>
+                <TeamMemberCard key={member.name} name={member.name} role={member.role} photo={member.photo} />
               ))}
             </Box>
           </Box>

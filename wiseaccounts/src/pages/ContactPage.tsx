@@ -98,7 +98,7 @@ function ContactPage() {
                   <PhoneIcon sx={{ color: 'primary.main', fontSize: 28 }} />
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Phone</Typography>
-                    <Typography variant="body2" color="text.secondary">+91 1800-123-4567</Typography>
+                    <Typography variant="body2" color="text.secondary">+91 9971587302</Typography>
                     <Typography variant="body2" color="text.secondary">Mon-Sat, 9AM-7PM</Typography>
                   </Box>
                 </CardContent>
@@ -108,8 +108,8 @@ function ContactPage() {
                   <EmailIcon sx={{ color: 'primary.main', fontSize: 28 }} />
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Email</Typography>
-                    <Typography variant="body2" color="text.secondary">support@wiseaccounts.in</Typography>
-                    <Typography variant="body2" color="text.secondary">sales@wiseaccounts.in</Typography>
+                    <Typography variant="body2" color="text.secondary">support@wiseaccs.com</Typography>
+                    <Typography variant="body2" color="text.secondary">sales@wiseaccs.com</Typography>
                   </Box>
                 </CardContent>
               </Card>
@@ -120,8 +120,8 @@ function ContactPage() {
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Office</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Wise Accounts Pvt. Ltd.<br />
-                      Indiranagar, Bangalore<br />
-                      Karnataka 560038, India
+                      Raipur, Lakhimpur<br />
+                      Uttar Pradesh, India
                     </Typography>
                   </Box>
                 </CardContent>

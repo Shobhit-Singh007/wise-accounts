@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -8,6 +9,7 @@ import {
   Typography,
   Card,
   CardContent,
+  Button,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -16,6 +18,8 @@ import {
   Payments as PaymentsIcon,
   Inventory as InventoryIcon,
   Warning as WarningIcon,
+  Add as AddIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -39,7 +43,8 @@ import { useBusiness } from '../context/BusinessContext';
 const PIE_COLORS = ['#1a237e', '#ff8f00', '#2e7d32', '#e53935', '#7b1fa2', '#00838f'];
 
 export default function DashboardPage() {
-  const { currentBusinessId, loading: bizLoading } = useBusiness();
+  const navigate = useNavigate();
+  const { currentBusinessId, businesses, loading: bizLoading } = useBusiness();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78,7 +83,31 @@ export default function DashboardPage() {
   }
 
   if (!currentBusinessId) {
-    return <Alert severity="info">Select a business from the top bar to view dashboard</Alert>;
+    return (
+      <Box sx={{ textAlign: 'center', py: 8, maxWidth: 500, mx: 'auto' }}>
+        <BusinessIcon sx={{ fontSize: 64, color: '#1a237e', mb: 2, opacity: 0.3 }} />
+        <Typography variant="h5" sx={{ mb: 1, fontWeight: 600 }}>
+          Welcome to Wise Accounts
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Get started by creating your first business to manage invoices, customers, and inventory.
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          onClick={() => navigate('/businesses')}
+          sx={{ borderRadius: 2, px: 4, py: 1.5, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}
+        >
+          Create Your First Business
+        </Button>
+        {businesses.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+            You can also ask your business owner to invite you as a staff member.
+          </Typography>
+        )}
+      </Box>
+    );
   }
 
   if (!stats) {

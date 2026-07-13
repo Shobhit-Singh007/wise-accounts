@@ -107,16 +107,16 @@ function Footer() {
             </Typography>
             <Stack spacing={1}>
               <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                +91 1800-123-4567
+                +91 9971587302
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                support@wiseaccounts.in
+                support@wiseaccs.com
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.9rem', mt: 2 }}>
                 Wise Accounts Pvt. Ltd.
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-                Bangalore, Karnataka, India
+                Lakhimpur, Uttar Pradesh, India
               </Typography>
             </Stack>
           </Box>

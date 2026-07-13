@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Button from '@mui/material/Button'
@@ -12,11 +12,8 @@ import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Divider from '@mui/material/Divider'
-import Typography from '@mui/material/Typography'
 import MenuIcon from '@mui/icons-material/Menu'
 import CloseIcon from '@mui/icons-material/Close'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import LightModeIcon from '@mui/icons-material/LightMode'
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -58,6 +55,10 @@ function Navbar() {
     navigate('/pricing')
   }
 
+  const handleLogin = () => {
+    window.location.href = '/admin/login'
+  }
+
   const drawer = (
     <Box sx={{ textAlign: 'center' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5 }}>
@@ -89,7 +90,7 @@ function Navbar() {
         ))}
       </List>
       <Box sx={{ px: 2, py: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Button variant="outlined" fullWidth onClick={() => handleNavClick('/contact')}>
+        <Button variant="outlined" fullWidth onClick={handleLogin}>
           Login
         </Button>
         <Button variant="contained" fullWidth onClick={handleGetStarted}>
@@ -148,6 +149,7 @@ function Navbar() {
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5, ml: 3 }}>
               <Button
                 variant="outlined"
+                onClick={handleLogin}
                 sx={{
                   borderColor: scrolled || !isHome ? 'primary.main' : '#fff',
                   color: scrolled || !isHome ? 'primary.main' : '#fff',

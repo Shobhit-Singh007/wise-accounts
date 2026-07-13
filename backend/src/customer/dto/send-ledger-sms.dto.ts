@@ -7,7 +7,7 @@ export class SendLedgerSmsDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: 'https://ledger.wiseaccounts.com/l/abc123', description: 'Custom message override', required: false })
+  @ApiProperty({ example: 'https://ledger.wiseaccs.com/l/abc123', description: 'Custom message override', required: false })
   @IsString()
   @IsOptional()
   message?: string;

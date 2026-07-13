@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -60,8 +60,7 @@ export default function LoginPage() {
     >
       <Box sx={{ position: 'absolute', top: 24, left: 24 }}>
         <Button
-          href="https://wiseaccounts.com"
-          target="_blank"
+          href="/"
           sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', '&:hover': { color: 'white' } }}
         >
           ← Back to Website
@@ -143,14 +142,12 @@ export default function LoginPage() {
 
           <Typography variant="body2" color="text.secondary" align="center">
             Don't have an account?{' '}
-            <Button
-              href="https://wiseaccounts.com"
-              target="_blank"
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600, color: '#1a237e' }}
+            <Link
+              to="/register"
+              style={{ fontWeight: 600, color: '#1a237e', textDecoration: 'none' }}
             >
               Create one here
-            </Button>
+            </Link>
           </Typography>
         </CardContent>
       </Card>

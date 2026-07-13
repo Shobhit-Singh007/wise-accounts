@@ -965,7 +965,7 @@ ${settings.showBankDetails && settings.bankName ? `<div class="bank-details"><st
     const invoice = await this.findOneInvoice(businessId, invoiceId);
     const business = await this.prisma.business.findUnique({ where: { id: businessId } });
     const balanceDue = invoice.grandTotal - (invoice.paidAmount || 0);
-    const baseUrl = this.configService.get<string>('BASE_URL', 'https://api.wiseaccounts.app');
+    const baseUrl = this.configService.get<string>('BASE_URL', 'https://api.wiseaccs.com');
     const pdfUrl = `${baseUrl}/api/v1/businesses/${businessId}/invoices/${invoiceId}/pdf`;
     const viewUrl = `${baseUrl}/api/v1/businesses/${businessId}/invoices/${invoiceId}/print`;
     const upiId = (business?.settings as any)?.upiId || '';
@@ -1013,7 +1013,7 @@ ${settings.showBankDetails && settings.bankName ? `<div class="bank-details"><st
       } else if (this.sesClient) {
         try {
           await this.sesClient.send(new SendEmailCommand({
-            Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@wiseaccounts.app'),
+            Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@wiseaccs.com'),
             Destination: { ToAddresses: [email] },
             Message: {
               Subject: { Data: `Invoice ${invoice.invoiceNo} from ${business?.name || 'Wise Accounts'}` },

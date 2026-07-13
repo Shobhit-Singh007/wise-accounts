@@ -1,36 +1,32 @@
-import { LoggerService, Logger } from '@nestjs/common';
+import { LoggerService } from '@nestjs/common';
 
 export class CloudWatchLogger implements LoggerService {
-  private readonly logger = new Logger('CloudWatch');
-
   log(message: string, context?: string) {
-    this.logger.log(message, context);
+    console.log(`[LOG] ${context ? `[${context}] ` : ''}${message}`);
     this.sendToCloudWatch('INFO', message, context);
   }
 
   error(message: string, trace?: string, context?: string) {
-    this.logger.error(message, trace, context);
+    console.error(`[ERROR] ${context ? `[${context}] ` : ''}${message}`, trace || '');
     this.sendToCloudWatch('ERROR', message, context);
   }
 
   warn(message: string, context?: string) {
-    this.logger.warn(message, context);
+    console.warn(`[WARN] ${context ? `[${context}] ` : ''}${message}`);
     this.sendToCloudWatch('WARN', message, context);
   }
 
   debug(message: string, context?: string) {
-    this.logger.debug(message, context);
+    console.debug(`[DEBUG] ${context ? `[${context}] ` : ''}${message}`);
     this.sendToCloudWatch('DEBUG', message, context);
   }
 
   verbose(message: string, context?: string) {
-    this.logger.verbose(message, context);
+    console.log(`[VERBOSE] ${context ? `[${context}] ` : ''}${message}`);
     this.sendToCloudWatch('VERBOSE', message, context);
   }
 
   private sendToCloudWatch(level: string, message: string, context?: string) {
-    // CloudWatch integration - add when AWS SDK CloudWatch Logs is configured
-    // This is a placeholder for future CloudWatch integration
     if (process.env.NODE_ENV === 'production') {
       // Would send to CloudWatch Logs here
     }

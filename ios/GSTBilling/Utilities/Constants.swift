@@ -4,7 +4,7 @@ enum Constants {
     #if DEBUG
     static let baseURL = "http://localhost:3000/api/v1"
     #else
-    static let baseURL = "https://api.wiseaccounts.app/api/v1"
+    static let baseURL = "https://api.wiseaccs.com/api/v1"
     #endif
 
     static let keychainService = "com.gstbilling"

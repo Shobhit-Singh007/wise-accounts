@@ -16,6 +16,7 @@ import {
 import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { businessesApi, type Business, type BusinessCreate } from '../api/businesses';
+import { useBusiness } from '../context/BusinessContext';
 
 const initialState: BusinessCreate = {
   name: '',
@@ -29,6 +30,7 @@ const initialState: BusinessCreate = {
 };
 
 export default function BusinessesPage() {
+  const { refreshBusinesses } = useBusiness();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -98,6 +100,7 @@ export default function BusinessesPage() {
       }
       setDialogOpen(false);
       fetchBusinesses();
+      refreshBusinesses();
     } catch (err: unknown) {
       setError(
         (err as { response?: { data?: { message?: string } } })?.response?.data

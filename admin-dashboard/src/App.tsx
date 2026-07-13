@@ -8,6 +8,7 @@ import { BusinessProvider } from './context/BusinessContext';
 import { SidebarProvider } from './context/SidebarContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import BusinessesPage from './pages/BusinessesPage';
 import CustomersPage from './pages/CustomersPage';
@@ -70,6 +71,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        }
+      />
+      <Route
         element={
           <ProtectedRoute>
             <BusinessProvider>
@@ -105,7 +114,7 @@ function ThemedApp() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
+      <BrowserRouter basename="/admin">
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>

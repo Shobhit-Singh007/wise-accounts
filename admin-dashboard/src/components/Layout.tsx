@@ -265,7 +265,7 @@ export default function Layout() {
             <Typography
               variant="caption"
               component="a"
-              href="https://wiseaccounts.com"
+              href="https://wiseaccs.com"
               target="_blank"
               sx={{ color: '#1a237e', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
             >

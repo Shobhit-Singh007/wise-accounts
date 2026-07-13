@@ -13,6 +13,7 @@ interface BusinessContextType {
   currentBusinessId: string | null;
   currentBusiness: Business | null;
   setCurrentBusinessId: (id: string | null) => void;
+  refreshBusinesses: () => Promise<void>;
   loading: boolean;
 }
 
@@ -25,28 +26,27 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBusinesses = async () => {
-      try {
-        const { data } = await businessesApi.list({ limit: 100 });
-        const list = Array.isArray(data) ? data : (data as unknown as { data: Business[] }).data || [];
-        setBusinesses(list);
+  const refreshBusinesses = useCallback(async () => {
+    try {
+      const { data } = await businessesApi.list({ limit: 100 });
+      const list = Array.isArray(data) ? data : (data as unknown as { data: Business[] }).data || [];
+      setBusinesses(list);
 
-        const stored = localStorage.getItem('currentBusinessId');
-        if (stored && list.some((b: Business) => b.id === stored)) {
-          setCurrentBusinessIdState(stored);
-        } else if (list.length > 0) {
-          setCurrentBusinessIdState(list[0].id);
-          localStorage.setItem('currentBusinessId', list[0].id);
-        }
-      } catch {
-        setBusinesses([]);
-      } finally {
-        setLoading(false);
+      const stored = localStorage.getItem('currentBusinessId');
+      if (stored && list.some((b: Business) => b.id === stored)) {
+        setCurrentBusinessIdState(stored);
+      } else if (list.length > 0) {
+        setCurrentBusinessIdState(list[0].id);
+        localStorage.setItem('currentBusinessId', list[0].id);
       }
-    };
-    fetchBusinesses();
+    } catch {
+      setBusinesses([]);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshBusinesses().finally(() => setLoading(false));
+  }, [refreshBusinesses]);
 
   const setCurrentBusinessId = useCallback((id: string | null) => {
     setCurrentBusinessIdState(id);
@@ -66,6 +66,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         currentBusinessId,
         currentBusiness,
         setCurrentBusinessId,
+        refreshBusinesses,
         loading,
       }}
     >
