@@ -30,7 +30,7 @@ services:
       - internal
 
   backend:
-    image: wise-accounts-backend:latest
+    image: ghcr.io/shobhit-singh007/wise-accounts-backend:latest
     container_name: wise-accounts-api
     restart: unless-stopped
     env_file:
@@ -54,7 +54,7 @@ services:
       - internal
 
   nginx:
-    image: wise-accounts-nginx:latest
+    image: ghcr.io/shobhit-singh007/wise-accounts-nginx:latest
     container_name: wise-accounts-nginx
     restart: unless-stopped
     ports:
