@@ -34,8 +34,8 @@ class InvoiceRepository @Inject constructor(
         return invoiceDao.getInvoicesByCustomer(customerId.hashCode().toLong())
     }
 
-    suspend fun getInvoiceById(id: Long): InvoiceEntity? {
-        return invoiceDao.getInvoiceById(id)
+    suspend fun getInvoiceById(id: String): InvoiceEntity? {
+        return invoiceDao.getInvoiceById(id.hashCode().toLong())
     }
 
     suspend fun refreshInvoices(businessId: String, direction: String? = null): AppResult<List<Invoice>> {

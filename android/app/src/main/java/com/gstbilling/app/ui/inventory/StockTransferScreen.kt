@@ -117,9 +117,9 @@ class StockTransferViewModel @Inject constructor(
         errorMessage = null
         viewModelScope.launch {
             val request = StockTransferRequest(
-                productId = prod.id,
-                fromWarehouseId = from.id,
-                toWarehouseId = to.id,
+                productId = prod.id.toString(),
+                fromWarehouseId = from.id.toString(),
+                toWarehouseId = to.id.toString(),
                 quantity = qty
             )
             val result = safeApiCall {

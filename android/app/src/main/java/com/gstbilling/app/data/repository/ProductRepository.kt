@@ -23,8 +23,8 @@ class ProductRepository @Inject constructor(
         return productDao.getProductsByBusiness(businessId.hashCode().toLong())
     }
 
-    suspend fun getProductById(id: Long): ProductEntity? {
-        return productDao.getProductById(id)
+    suspend fun getProductById(id: String): ProductEntity? {
+        return productDao.getProductById(id.hashCode().toLong())
     }
 
     suspend fun refreshProducts(businessId: String): AppResult<List<Product>> {

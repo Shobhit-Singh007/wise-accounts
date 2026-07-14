@@ -132,7 +132,7 @@ class PurchaseOrderViewModel @Inject constructor(
             val today = dateFormat.format(Date())
             val items = poItems.filter { it.product != null }.map { poItem ->
                 PurchaseOrderItem(
-                    productId = poItem.product!!.id,
+                    productId = poItem.product!!.id.toString(),
                     quantity = poItem.quantity.toIntOrNull() ?: 1,
                     unitPrice = poItem.unitPrice.toDoubleOrNull() ?: 0.0
                 )

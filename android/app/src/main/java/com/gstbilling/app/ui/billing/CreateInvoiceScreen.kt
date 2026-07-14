@@ -155,7 +155,7 @@ class CreateInvoiceViewModel @Inject constructor(
         lineItems[lineIndex] = item.copy(
             productId = product.id,
             productName = product.name,
-            hsnCode = product.hsn_code ?: "",
+            hsnCode = product.hsnCode ?: "",
             unitPrice = product.sellingPrice.toString(),
             gstRate = product.gstRate.toString()
         )

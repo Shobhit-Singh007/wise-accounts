@@ -48,7 +48,7 @@ class AddCustomerViewModel @Inject constructor(
         viewModelScope.launch {
             val entity = customerRepository.getCustomerById(id.hashCode().toLong())
             if (entity != null) {
-                customerId = entity.id
+                customerId = entity.id.toString()
                 name = entity.name
                 phone = entity.phone ?: ""
                 email = entity.email ?: ""
