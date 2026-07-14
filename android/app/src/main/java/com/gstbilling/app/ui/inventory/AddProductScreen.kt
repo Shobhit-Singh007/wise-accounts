@@ -47,7 +47,7 @@ class AddProductViewModel @Inject constructor(
     var isEditMode by mutableStateOf(false)
     var showUnitDropdown by mutableStateOf(false)
     var showGstDropdown by mutableStateOf(false)
-    private var productId: Long = 0
+    private var productId: String = ""
 
     fun save(onSuccess: () -> Unit) {
         if (name.isBlank()) {
@@ -61,20 +61,20 @@ class AddProductViewModel @Inject constructor(
         isLoading = true
         errorMessage = null
         viewModelScope.launch {
-            val businessId = sessionManager.getBusinessId() ?: 0L
+            val businessId = sessionManager.getBusinessId() ?: ""
             val product = Product(
-                id = if (isEditMode) productId else 0,
+                id = if (isEditMode) productId else "",
                 name = name,
                 sku = sku.ifBlank { null },
-                hsn_code = hsnCode.ifBlank { null },
+                hsnCode = hsnCode.ifBlank { null },
                 unit = unit,
-                selling_price = sellingPrice.toDoubleOrNull() ?: 0.0,
-                purchase_price = purchasePrice.toDoubleOrNull() ?: 0.0,
-                gst_rate = gstRate.toDoubleOrNull() ?: 18.0,
+                sellingPrice = sellingPrice.toDoubleOrNull() ?: 0.0,
+                purchasePrice = purchasePrice.toDoubleOrNull() ?: 0.0,
+                gstRate = gstRate.toDoubleOrNull() ?: 18.0,
                 stock = stock.toIntOrNull() ?: 0,
-                low_stock_alert = lowStockAlert.toIntOrNull(),
-                category_name = categoryName.ifBlank { null },
-                business_id = businessId
+                lowStockAlert = lowStockAlert.toIntOrNull(),
+                categoryName = categoryName.ifBlank { null },
+                businessId = businessId
             )
 
             val result = if (isEditMode) {
@@ -95,7 +95,7 @@ class AddProductViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(
-    productId: Long?,
+    productId: String?,
     onBack: () -> Unit,
     viewModel: AddProductViewModel = hiltViewModel()
 ) {

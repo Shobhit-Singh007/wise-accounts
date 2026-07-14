@@ -36,7 +36,7 @@ class PaymentCollectionViewModel @Inject constructor(
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
-    var filterCustomerId by mutableStateOf<Long?>(null)
+    var filterCustomerId by mutableStateOf<String?>(null)
     var filterFromDate by mutableStateOf("")
     var filterToDate by mutableStateOf("")
 
@@ -86,7 +86,7 @@ class PaymentCollectionViewModel @Inject constructor(
 fun PaymentCollectionScreen(
     onBack: () -> Unit,
     onRecordPayment: () -> Unit,
-    onPaymentClick: (Long) -> Unit,
+    onPaymentClick: (String) -> Unit,
     onPaymentHistory: () -> Unit = {},
     onPaymentReminders: () -> Unit = {},
     viewModel: PaymentCollectionViewModel = hiltViewModel()
@@ -278,9 +278,9 @@ fun PaymentCard(payment: Payment, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (payment.invoice_id > 0) {
+                if (payment.invoiceId.isNotBlank()) {
                     Text(
-                        "Invoice Ref: ${payment.invoice_id}",
+                        "Invoice Ref: ${payment.invoiceId}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

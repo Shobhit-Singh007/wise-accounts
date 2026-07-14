@@ -22,23 +22,23 @@ class InvoiceRepository @Inject constructor(
     private val networkMonitor: NetworkMonitor
 ) {
 
-    fun getInvoices(businessId: Long): Flow<List<InvoiceEntity>> {
-        return invoiceDao.getInvoicesByBusiness(businessId)
+    fun getInvoices(businessId: String): Flow<List<InvoiceEntity>> {
+        return invoiceDao.getInvoicesByBusiness(businessId.hashCode().toLong())
     }
 
-    fun getInvoicesByStatus(businessId: Long, status: String): Flow<List<InvoiceEntity>> {
-        return invoiceDao.getInvoicesByStatus(businessId, status)
+    fun getInvoicesByStatus(businessId: String, status: String): Flow<List<InvoiceEntity>> {
+        return invoiceDao.getInvoicesByStatus(businessId.hashCode().toLong(), status)
     }
 
-    fun getInvoicesByCustomer(customerId: Long): Flow<List<InvoiceEntity>> {
-        return invoiceDao.getInvoicesByCustomer(customerId)
+    fun getInvoicesByCustomer(customerId: String): Flow<List<InvoiceEntity>> {
+        return invoiceDao.getInvoicesByCustomer(customerId.hashCode().toLong())
     }
 
     suspend fun getInvoiceById(id: Long): InvoiceEntity? {
         return invoiceDao.getInvoiceById(id)
     }
 
-    suspend fun refreshInvoices(businessId: Long, direction: String? = null): AppResult<List<Invoice>> {
+    suspend fun refreshInvoices(businessId: String, direction: String? = null): AppResult<List<Invoice>> {
         if (!networkMonitor.isOnline()) {
             return AppResult.Error("No internet connection")
         }
@@ -61,9 +61,9 @@ class InvoiceRepository @Inject constructor(
             val itemsJson = gson.toJson(request.items)
             val tempEntity = InvoiceEntity(
                 id = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE,
-                customerId = request.customer_id,
-                invoiceDate = request.invoice_date,
-                dueDate = request.due_date,
+                customerId = request.customerId.hashCode().toLong(),
+                invoiceDate = request.invoiceDate,
+                dueDate = request.dueDate,
                 discount = request.discount,
                 notes = request.notes,
                 itemsJson = itemsJson,
@@ -72,13 +72,13 @@ class InvoiceRepository @Inject constructor(
             invoiceDao.insert(tempEntity)
             return AppResult.Success(
                 Invoice(
-                    id = tempEntity.id,
-                    customer_id = request.customer_id,
-                    invoice_date = request.invoice_date,
-                    due_date = request.due_date,
+                    id = tempEntity.id.toString(),
+                    customerId = request.customerId,
+                    invoiceDate = request.invoiceDate,
+                    dueDate = request.dueDate,
                     discount = request.discount,
                     notes = request.notes,
-                    business_id = 0
+                    businessId = ""
                 )
             )
         }
@@ -94,7 +94,7 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun cancelInvoice(invoiceId: Long): AppResult<Invoice> {
+    suspend fun cancelInvoice(invoiceId: String): AppResult<Invoice> {
         return safeApiCall {
             val response = apiService.cancelInvoice(invoiceId)
             if (response.isSuccessful) {
@@ -107,7 +107,7 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun createCreditNote(invoiceId: Long, reason: String, items: List<Long>?): AppResult<Invoice> {
+    suspend fun createCreditNote(invoiceId: String, reason: String, items: List<Long>?): AppResult<Invoice> {
         return safeApiCall {
             val response = apiService.createCreditNote(invoiceId, CreditNoteRequest(reason, items))
             if (response.isSuccessful) {
@@ -131,7 +131,7 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun searchCustomers(businessId: Long, query: String): AppResult<List<Customer>> {
+    suspend fun searchCustomers(businessId: String, query: String): AppResult<List<Customer>> {
         return safeApiCall {
             val response = apiService.getCustomers(businessId, search = query, perPage = 20)
             if (response.isSuccessful) {
@@ -142,7 +142,7 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun searchProducts(businessId: Long, query: String): AppResult<List<Product>> {
+    suspend fun searchProducts(businessId: String, query: String): AppResult<List<Product>> {
         return safeApiCall {
             val response = apiService.getProducts(businessId, search = query, perPage = 20)
             if (response.isSuccessful) {
@@ -161,9 +161,9 @@ class InvoiceRepository @Inject constructor(
                 val type = object : TypeToken<List<InvoiceItemRequest>>() {}.type
                 val items: List<InvoiceItemRequest> = gson.fromJson(invoice.itemsJson, type) ?: emptyList()
                 val request = CreateInvoiceRequest(
-                    customer_id = invoice.customerId,
-                    invoice_date = invoice.invoiceDate,
-                    due_date = invoice.dueDate,
+                    customerId = invoice.customerId.toString(),
+                    invoiceDate = invoice.invoiceDate,
+                    dueDate = invoice.dueDate,
                     items = items,
                     discount = invoice.discount,
                     notes = invoice.notes
@@ -178,50 +178,50 @@ class InvoiceRepository @Inject constructor(
     }
 
     private fun Invoice.toEntity() = InvoiceEntity(
-        id = id,
-        invoiceNumber = invoice_number,
-        customerId = customer_id,
-        customerName = customer_name,
-        customerGstin = customer_gstin,
-        businessId = business_id,
-        invoiceDate = invoice_date,
-        dueDate = due_date,
+        id = id.hashCode().toLong(),
+        invoiceNumber = invoiceNumber,
+        customerId = customerId.hashCode().toLong(),
+        customerName = customerName,
+        customerGstin = customerGstin,
+        businessId = businessId.hashCode().toLong(),
+        invoiceDate = invoiceDate,
+        dueDate = dueDate,
         subtotal = subtotal,
         discount = discount,
-        taxableAmount = taxable_amount,
+        taxableAmount = taxableAmount,
         cgst = cgst,
         sgst = sgst,
         igst = igst,
-        totalAmount = total_amount,
-        roundOff = round_off,
+        totalAmount = totalAmount,
+        roundOff = roundOff,
         status = status,
         notes = notes,
-        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.product_id, item.quantity, item.unit_price, item.discount, item.gst_rate) }) } ?: "[]",
-        createdAt = created_at,
-        updatedAt = updated_at,
+        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.productId, item.quantity, item.unitPrice, item.discount, item.gstRate) }) } ?: "[]",
+        createdAt = createdAt,
+        updatedAt = updatedAt,
         syncStatus = "synced"
     )
 
     private fun InvoiceEntity.toApiModel() = Invoice(
-        id = id,
-        invoice_number = invoiceNumber,
-        customer_id = customerId,
-        customer_name = customerName,
-        customer_gstin = customerGstin,
-        business_id = businessId,
-        invoice_date = invoiceDate,
-        due_date = dueDate,
+        id = id.toString(),
+        invoiceNumber = invoiceNumber,
+        customerId = customerId.toString(),
+        customerName = customerName,
+        customerGstin = customerGstin,
+        businessId = businessId.toString(),
+        invoiceDate = invoiceDate,
+        dueDate = dueDate,
         subtotal = subtotal,
         discount = discount,
-        taxable_amount = taxableAmount,
+        taxableAmount = taxableAmount,
         cgst = cgst,
         sgst = sgst,
         igst = igst,
-        total_amount = totalAmount,
-        round_off = roundOff,
+        totalAmount = totalAmount,
+        roundOff = roundOff,
         status = status,
         notes = notes,
-        created_at = createdAt,
-        updated_at = updatedAt
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

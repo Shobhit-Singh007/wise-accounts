@@ -42,12 +42,12 @@ class WarehouseViewModel @Inject constructor(
     var newState by mutableStateOf("")
     var isSaving by mutableStateOf(false)
 
-    private var businessId = 0L
+    private var businessId = ""
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 loadWarehouses()
             }
         }
@@ -91,7 +91,7 @@ class WarehouseViewModel @Inject constructor(
             val warehouse = Warehouse(
                 name = newName.trim(),
                 address = newAddress.trim().ifBlank { null },
-                business_id = businessId
+                businessId = businessId
             )
             val result = safeApiCall {
                 val response = apiService.createWarehouse(businessId, warehouse)

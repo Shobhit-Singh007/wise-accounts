@@ -66,7 +66,7 @@ class UpiPaymentViewModel @Inject constructor(
             when (val result = safeApiCall {
                 apiService.generateUpiLinkForBusiness(
                     businessId.toString(),
-                    UpiLinkRequest(invoice_id = 0, amount = amt)
+                    UpiLinkRequest(invoiceId = "", amount = amt)
                 )
             }) {
                 is AppResult.Success -> {

@@ -33,7 +33,7 @@ import java.util.*
 import javax.inject.Inject
 
 data class LineItemState(
-    val productId: Long = 0,
+    val productId: String = "",
     val productName: String = "",
     val hsnCode: String = "",
     val quantity: String = "1",
@@ -53,7 +53,7 @@ class CreateInvoiceViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    var customerId by mutableStateOf(0L)
+    var customerId by mutableStateOf("")
     var customerName by mutableStateOf("")
     var customerGstin by mutableStateOf<String?>(null)
     var customerState by mutableStateOf<String?>(null)
@@ -119,7 +119,7 @@ class CreateInvoiceViewModel @Inject constructor(
     }
 
     fun clearCustomer() {
-        customerId = 0
+        customerId = ""
         customerName = ""
         customerGstin = null
         customerState = null
@@ -156,8 +156,8 @@ class CreateInvoiceViewModel @Inject constructor(
             productId = product.id,
             productName = product.name,
             hsnCode = product.hsn_code ?: "",
-            unitPrice = product.selling_price.toString(),
-            gstRate = product.gst_rate.toString()
+            unitPrice = product.sellingPrice.toString(),
+            gstRate = product.gstRate.toString()
         )
         recalculateItem(lineIndex)
         productSearchResults = emptyList()
@@ -202,7 +202,7 @@ class CreateInvoiceViewModel @Inject constructor(
     }
 
     fun createInvoice(onSuccess: () -> Unit) {
-        if (customerId == 0L) {
+        if (customerId.isBlank()) {
             errorMessage = "Please select a customer"
             return
         }
@@ -211,17 +211,17 @@ class CreateInvoiceViewModel @Inject constructor(
         viewModelScope.launch {
             val items = lineItems.map { item ->
                 InvoiceItemRequest(
-                    product_id = item.productId,
+                    productId = item.productId,
                     quantity = item.quantity.toDoubleOrNull() ?: 1.0,
-                    unit_price = item.unitPrice.toDoubleOrNull() ?: 0.0,
+                    unitPrice = item.unitPrice.toDoubleOrNull() ?: 0.0,
                     discount = item.discount.toDoubleOrNull() ?: 0.0,
-                    gst_rate = item.gstRate.toDoubleOrNull() ?: 0.0
+                    gstRate = item.gstRate.toDoubleOrNull() ?: 0.0
                 )
             }
             val request = CreateInvoiceRequest(
-                customer_id = customerId,
-                invoice_date = invoiceDate,
-                due_date = dueDate.ifBlank { null },
+                customerId = customerId,
+                invoiceDate = invoiceDate,
+                dueDate = dueDate.ifBlank { null },
                 items = items,
                 discount = discountAmount,
                 notes = notes.ifBlank { null }
@@ -245,7 +245,7 @@ class CreateInvoiceViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateInvoiceScreen(
-    customerId: Long?,
+    customerId: String?,
     onBack: () -> Unit,
     onInvoiceCreated: () -> Unit,
     viewModel: CreateInvoiceViewModel = hiltViewModel()
@@ -254,7 +254,7 @@ fun CreateInvoiceScreen(
     var customerSearchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(customerId) {
-        if (customerId != null && viewModel.customerId == 0L) {
+        if (customerId != null && viewModel.customerId.isBlank()) {
             viewModel.customerId = customerId
         }
     }
@@ -335,7 +335,7 @@ fun CreateInvoiceScreen(
             )
 
             // Customer Detail Card
-            if (viewModel.customerId > 0L) {
+            if (viewModel.customerId.isNotBlank()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -578,7 +578,7 @@ fun LineItemCard(
                                 headlineContent = { Text(product.name) },
                                 supportingContent = {
                                     Text(buildString {
-                                        append("₹${product.selling_price}")
+                                        append("₹${product.sellingPrice}")
                                         product.sku?.let { append(" | SKU: $it") }
                                         append(" | Stock: ${product.stock}")
                                     })

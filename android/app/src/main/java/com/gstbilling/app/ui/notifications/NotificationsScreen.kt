@@ -58,7 +58,7 @@ class NotificationsViewModel @Inject constructor(
                 }) {
                     is AppResult.Success -> {
                         notifications = result.data ?: emptyList()
-                        unreadCount = notifications.count { !it.is_read }
+                        unreadCount = notifications.count { !it.isRead }
                     }
                     is AppResult.Error -> {
                         errorMessage = result.message
@@ -77,15 +77,15 @@ class NotificationsViewModel @Inject constructor(
     }
 
     fun markAsRead(notification: AppNotification) {
-        if (notification.is_read) return
+        if (notification.isRead) return
         viewModelScope.launch {
             val businessId = sessionManager.getBusinessId() ?: return@launch
             when (val result = safeApiCall { apiService.markNotificationRead(notification.id) }) {
                 is AppResult.Success -> {
                     notifications = notifications.map {
-                        if (it.id == notification.id) it.copy(is_read = true) else it
+                        if (it.id == notification.id) it.copy(isRead = true) else it
                     }
-                    unreadCount = notifications.count { !it.is_read }
+                    unreadCount = notifications.count { !it.isRead }
                 }
                 is AppResult.Error -> {}
                 is AppResult.Loading -> {}
@@ -98,7 +98,7 @@ class NotificationsViewModel @Inject constructor(
             val businessId = sessionManager.getBusinessId() ?: return@launch
             when (val result = safeApiCall { apiService.markAllNotificationsRead(businessId) }) {
                 is AppResult.Success -> {
-                    notifications = notifications.map { it.copy(is_read = true) }
+                    notifications = notifications.map { it.copy(isRead = true) }
                     unreadCount = 0
                 }
                 is AppResult.Error -> {}
@@ -112,7 +112,7 @@ class NotificationsViewModel @Inject constructor(
             when (val result = safeApiCall { apiService.deleteNotification(notification.id) }) {
                 is AppResult.Success -> {
                     notifications = notifications.filter { it.id != notification.id }
-                    unreadCount = notifications.count { !it.is_read }
+                    unreadCount = notifications.count { !it.isRead }
                 }
                 is AppResult.Error -> {}
                 is AppResult.Loading -> {}
@@ -303,7 +303,7 @@ private fun NotificationItem(
     notification: AppNotification,
     onClick: () -> Unit
 ) {
-    val containerColor = if (!notification.is_read)
+    val containerColor = if (!notification.isRead)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
     else
         MaterialTheme.colorScheme.surface
@@ -330,12 +330,12 @@ private fun NotificationItem(
                     Text(
                         text = notification.title,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (!notification.is_read) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    if (!notification.is_read) {
+                    if (!notification.isRead) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
@@ -357,7 +357,7 @@ private fun NotificationItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = formatRelativeTime(notification.created_at),
+                    text = formatRelativeTime(notification.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

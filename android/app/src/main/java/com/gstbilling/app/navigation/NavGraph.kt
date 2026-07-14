@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gstbilling.app.ui.auth.LoginScreen
+import com.gstbilling.app.ui.auth.RegisterScreen
 import com.gstbilling.app.ui.inventory.BatchExpiryScreen
 import com.gstbilling.app.ui.inventory.BarcodeScannerScreen
 import com.gstbilling.app.ui.inventory.InventoryDashboardScreen
@@ -96,6 +97,22 @@ fun NavGraph(
                     navController.navigate(Routes.DASHBOARD) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(Routes.REGISTER)
+                }
+            )
+        }
+
+        composable(Routes.REGISTER) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                },
+                onBackToLogin = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -126,7 +143,7 @@ fun NavGraph(
                 onAddCustomer = { navController.navigate(Routes.ADD_CUSTOMER) },
                 onEditCustomer = { id -> navController.navigate(Routes.editCustomer(id)) },
                 onCustomerClick = { id -> navController.navigate(Routes.createInvoice(id)) },
-                onOpenLedger = { id -> navController.navigate(Routes.customerLedger(id.toString())) },
+                onOpenLedger = { id -> navController.navigate(Routes.customerLedger(id)) },
                 onBack = { navController.popBackStack() },
                 onCustomerGroups = { navController.navigate(Routes.CUSTOMER_GROUPS) }
             )
@@ -141,9 +158,9 @@ fun NavGraph(
 
         composable(
             route = Routes.EDIT_CUSTOMER,
-            arguments = listOf(navArgument("customerId") { type = NavType.LongType })
+            arguments = listOf(navArgument("customerId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val customerId = backStackEntry.arguments?.getLong("customerId")
+            val customerId = backStackEntry.arguments?.getString("customerId") ?: ""
             AddCustomerScreen(
                 customerId = customerId,
                 onBack = { navController.popBackStack() }
@@ -180,9 +197,9 @@ fun NavGraph(
 
         composable(
             route = Routes.EDIT_PRODUCT,
-            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getLong("productId")
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
             AddProductScreen(
                 productId = productId,
                 onBack = { navController.popBackStack() }
@@ -191,23 +208,23 @@ fun NavGraph(
 
         composable(
             route = Routes.PRODUCT_DETAIL,
-            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
             ProductDetailScreen(
                 productId = productId,
                 onBack = { navController.popBackStack() },
                 onEdit = { navController.navigate(Routes.editProduct(productId)) },
                 onAdjustStock = { navController.navigate(Routes.stockAdjust(productId)) },
-                onViewStockBatches = { /* TODO: Navigate to stock batches */ }
+                onViewStockBatches = { /* TODO */ }
             )
         }
 
         composable(
             route = Routes.STOCK_ADJUST,
-            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
             StockAdjustScreen(
                 productId = productId,
                 onBack = { navController.popBackStack() }
@@ -255,9 +272,9 @@ fun NavGraph(
 
         composable(
             route = Routes.CREATE_INVOICE_WITH_CUSTOMER,
-            arguments = listOf(navArgument("customerId") { type = NavType.LongType })
+            arguments = listOf(navArgument("customerId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val customerId = backStackEntry.arguments?.getLong("customerId")
+            val customerId = backStackEntry.arguments?.getString("customerId") ?: ""
             CreateInvoiceScreen(
                 customerId = customerId,
                 onBack = { navController.popBackStack() },
@@ -275,9 +292,9 @@ fun NavGraph(
 
         composable(
             route = Routes.INVOICE_DETAIL,
-            arguments = listOf(navArgument("invoiceId") { type = NavType.LongType })
+            arguments = listOf(navArgument("invoiceId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val invoiceId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
+            val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
             InvoiceDetailScreen(
                 invoiceId = invoiceId,
                 onBack = { navController.popBackStack() }
@@ -286,9 +303,9 @@ fun NavGraph(
 
         composable(
             route = Routes.INVOICE_SHARE,
-            arguments = listOf(navArgument("invoiceId") { type = NavType.LongType })
+            arguments = listOf(navArgument("invoiceId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val invoiceId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
+            val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
             InvoiceShareScreen(
                 invoiceId = invoiceId,
                 onBack = { navController.popBackStack() }
@@ -297,9 +314,9 @@ fun NavGraph(
 
         composable(
             route = Routes.INVOICE_PREVIEW,
-            arguments = listOf(navArgument("invoiceId") { type = NavType.LongType })
+            arguments = listOf(navArgument("invoiceId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val invoiceId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
+            val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
             InvoicePreviewScreen(
                 invoiceId = invoiceId,
                 onBack = { navController.popBackStack() },
@@ -401,9 +418,9 @@ fun NavGraph(
 
         composable(
             route = Routes.RECORD_PAYMENT_FOR_INVOICE,
-            arguments = listOf(navArgument("invoiceId") { type = NavType.LongType })
+            arguments = listOf(navArgument("invoiceId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val invoiceId = backStackEntry.arguments?.getLong("invoiceId")
+            val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
             RecordPaymentScreen(
                 invoiceId = invoiceId,
                 customerId = null,

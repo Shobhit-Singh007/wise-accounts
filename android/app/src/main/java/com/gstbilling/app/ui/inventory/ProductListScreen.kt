@@ -30,14 +30,14 @@ class ProductListViewModel @Inject constructor(
 
     var searchQuery by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
-    private var businessId by mutableStateOf(0L)
+    private var businessId by mutableStateOf("")
     var products by mutableStateOf<List<ProductEntity>>(emptyList())
         private set
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 productRepository.getProducts(businessId).collect { products = it }
             }
         }
@@ -46,7 +46,7 @@ class ProductListViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             isRefreshing = true
-            if (businessId != 0L) {
+            if (businessId.isNotEmpty()) {
                 productRepository.refreshProducts(businessId)
             }
             isRefreshing = false
@@ -62,7 +62,7 @@ class ProductListViewModel @Inject constructor(
 @Composable
 fun ProductListScreen(
     onAddProduct: () -> Unit,
-    onEditProduct: (Long) -> Unit,
+    onEditProduct: (String) -> Unit,
     onBack: () -> Unit,
     onBarcodeScanner: () -> Unit = {},
     onStockTransfer: () -> Unit = {},
@@ -159,7 +159,7 @@ fun ProductListScreen(
                     items(products, key = { it.id }) { product ->
                         ProductListItem(
                             product = product,
-                            onClick = { onEditProduct(product.id) }
+                            onClick = { onEditProduct(product.id.toString()) }
                         )
                     }
                 }

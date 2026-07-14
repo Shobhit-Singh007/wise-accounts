@@ -37,7 +37,7 @@ class StockMovementsViewModel @Inject constructor(
 
     var startDate by mutableStateOf("")
     var endDate by mutableStateOf("")
-    var selectedProductId by mutableStateOf<Long?>(null)
+    var selectedProductId by mutableStateOf<String?>(null)
 
     init {
         loadProducts()
@@ -337,8 +337,8 @@ fun DateRangeFilter(
 @Composable
 fun ProductFilterDropdown(
     products: List<Product>,
-    selectedProductId: Long?,
-    onProductSelected: (Long?) -> Unit
+    selectedProductId: String?,
+    onProductSelected: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedProduct = products.find { it.id == selectedProductId }

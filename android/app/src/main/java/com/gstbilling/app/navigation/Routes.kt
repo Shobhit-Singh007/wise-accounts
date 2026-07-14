@@ -2,6 +2,7 @@ package com.gstbilling.app.navigation
 
 object Routes {
     const val LOGIN = "auth/login"
+    const val REGISTER = "auth/register"
     const val DASHBOARD = "dashboard"
     const val CUSTOMERS = "customers"
     const val ADD_CUSTOMER = "customers/add"
@@ -44,18 +45,18 @@ object Routes {
     const val INVENTORY_DASHBOARD = "inventory_dashboard"
     const val STOCK_MOVEMENTS = "stock_movements"
 
-    fun editCustomer(customerId: Long) = "customers/$customerId/edit"
+    fun editCustomer(customerId: String) = "customers/$customerId/edit"
     fun customerLedger(customerId: String) = "customers/$customerId/ledger"
-    fun editProduct(productId: Long) = "products/$productId/edit"
-    fun productDetail(productId: Long) = "products/$productId/detail"
-    fun stockAdjust(productId: Long) = "products/$productId/stock-adjust"
-    fun createInvoice(customerId: Long? = null) =
+    fun editProduct(productId: String) = "products/$productId/edit"
+    fun productDetail(productId: String) = "products/$productId/detail"
+    fun stockAdjust(productId: String) = "products/$productId/stock-adjust"
+    fun createInvoice(customerId: String? = null) =
         if (customerId != null) "billing/create/$customerId" else "billing/create"
-    fun invoiceDetail(invoiceId: Long) = "invoices/$invoiceId"
-    fun invoiceShare(invoiceId: Long) = "invoices/$invoiceId/share"
-    fun invoicePreview(invoiceId: Long) = "invoices/$invoiceId/preview"
+    fun invoiceDetail(invoiceId: String) = "invoices/$invoiceId"
+    fun invoiceShare(invoiceId: String) = "invoices/$invoiceId/share"
+    fun invoicePreview(invoiceId: String) = "invoices/$invoiceId/preview"
     fun editPermissions(userId: String, currentName: String) = "staff/$userId/payments/$currentName"
-    fun recordPaymentForInvoice(invoiceId: Long) = "payments/record/$invoiceId"
+    fun recordPaymentForInvoice(invoiceId: String) = "payments/record/$invoiceId"
 
     const val RAZORPAY_CHECKOUT = "razorpay_checkout/{amount}/{invoiceNo}/{customerName}/{razorpayKeyId}"
 

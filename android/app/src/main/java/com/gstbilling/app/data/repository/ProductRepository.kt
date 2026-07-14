@@ -19,15 +19,15 @@ class ProductRepository @Inject constructor(
     private val networkMonitor: NetworkMonitor
 ) {
 
-    fun getProducts(businessId: Long): Flow<List<ProductEntity>> {
-        return productDao.getProductsByBusiness(businessId)
+    fun getProducts(businessId: String): Flow<List<ProductEntity>> {
+        return productDao.getProductsByBusiness(businessId.hashCode().toLong())
     }
 
     suspend fun getProductById(id: Long): ProductEntity? {
         return productDao.getProductById(id)
     }
 
-    suspend fun refreshProducts(businessId: Long): AppResult<List<Product>> {
+    suspend fun refreshProducts(businessId: String): AppResult<List<Product>> {
         return safeApiCall {
             val response = apiService.getProducts(businessId)
             if (response.isSuccessful) {
@@ -54,7 +54,7 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    suspend fun updateProduct(id: Long, product: Product): AppResult<Product> {
+    suspend fun updateProduct(id: String, product: Product): AppResult<Product> {
         return safeApiCall {
             val response = apiService.updateProduct(id, product)
             if (response.isSuccessful) {
@@ -67,11 +67,11 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteProduct(id: Long): AppResult<Unit> {
+    suspend fun deleteProduct(id: String): AppResult<Unit> {
         return safeApiCall {
             val response = apiService.deleteProduct(id)
             if (response.isSuccessful) {
-                productDao.deleteById(id)
+                productDao.deleteById(id.hashCode().toLong())
             } else {
                 throw Exception(response.errorBody()?.string() ?: "Failed to delete product")
             }
@@ -92,39 +92,39 @@ class ProductRepository @Inject constructor(
     }
 
     private fun Product.toEntity() = ProductEntity(
-        id = id,
+        id = id.hashCode().toLong(),
         name = name,
         sku = sku,
-        hsnCode = hsn_code,
+        hsnCode = hsnCode,
         unit = unit,
-        sellingPrice = selling_price,
-        purchasePrice = purchase_price,
-        gstRate = gst_rate,
+        sellingPrice = sellingPrice,
+        purchasePrice = purchasePrice,
+        gstRate = gstRate,
         stock = stock,
-        lowStockAlert = low_stock_alert,
-        categoryId = category_id,
-        categoryName = category_name,
-        businessId = business_id,
-        createdAt = created_at,
-        updatedAt = updated_at,
+        lowStockAlert = lowStockAlert,
+        categoryId = categoryId?.hashCode()?.toLong(),
+        categoryName = categoryName,
+        businessId = businessId.hashCode().toLong(),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
         syncStatus = "synced"
     )
 
     private fun ProductEntity.toApiModel() = Product(
-        id = id,
+        id = id.toString(),
         name = name,
         sku = sku,
-        hsn_code = hsnCode,
+        hsnCode = hsnCode,
         unit = unit,
-        selling_price = sellingPrice,
-        purchase_price = purchasePrice,
-        gst_rate = gstRate,
+        sellingPrice = sellingPrice,
+        purchasePrice = purchasePrice,
+        gstRate = gstRate,
         stock = stock,
-        low_stock_alert = lowStockAlert,
-        category_id = categoryId,
-        category_name = categoryName,
-        business_id = businessId,
-        created_at = createdAt,
-        updated_at = updatedAt
+        lowStockAlert = lowStockAlert,
+        categoryId = categoryId?.toString(),
+        categoryName = categoryName,
+        businessId = businessId.toString(),
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

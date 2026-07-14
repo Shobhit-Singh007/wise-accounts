@@ -46,6 +46,7 @@ class AuthInterceptor @Inject constructor(
             val newToken: String? = runBlocking {
                 mutex.lock()
                 try {
+
                     if (cachedToken != token) {
                         cachedToken
                     } else {
@@ -57,16 +58,18 @@ class AuthInterceptor @Inject constructor(
                                 val refreshResponse = apiServiceProvider.get().refreshToken(RefreshTokenRequest(rt))
                                 val tokenResponse = refreshResponse.body()
                                 if (refreshResponse.isSuccessful && tokenResponse != null) {
+                                    val existingBusinessId = sessionManager.getBusinessId() ?: ""
+                                    val existingBusinessName = sessionManager.getBusinessName() ?: ""
                                     sessionManager.saveAuthData(
-                                        accessToken = tokenResponse.access_token,
-                                        refreshToken = tokenResponse.refresh_token,
+                                        accessToken = tokenResponse.accessToken,
+                                        refreshToken = tokenResponse.refreshToken,
                                         userId = tokenResponse.user.id,
-                                        businessId = tokenResponse.user.business_id,
-                                        businessName = tokenResponse.user.business_name,
+                                        businessId = existingBusinessId,
+                                        businessName = existingBusinessName,
                                         userName = tokenResponse.user.name,
                                         phone = tokenResponse.user.phone
                                     )
-                                    tokenResponse.access_token.also { cachedToken = it }
+                                    tokenResponse.accessToken.also { cachedToken = it }
                                 } else {
                                     cachedToken = null
                                     sessionManager.clearSession()

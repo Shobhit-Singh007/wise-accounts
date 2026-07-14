@@ -63,7 +63,7 @@ class CustomerReportViewModel @Inject constructor(
         get() {
             if (searchQuery.isBlank()) return customerReport
             return customerReport.filter {
-                it.customer_name.contains(searchQuery, ignoreCase = true)
+                it.customerName.contains(searchQuery, ignoreCase = true)
             }
         }
 }
@@ -180,7 +180,7 @@ fun CustomerReportScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Total: ₹${String.format("%.2f", customers.sumOf { it.total_amount })}",
+                                        text = "Total: ₹${String.format("%.2f", customers.sumOf { it.totalAmount })}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -273,7 +273,7 @@ private fun CustomerReportRow(customer: CustomerReport) {
         ) {
             Column(modifier = Modifier.weight(1.5f)) {
                 Text(
-                    text = customer.customer_name,
+                    text = customer.customerName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -286,7 +286,7 @@ private fun CustomerReportRow(customer: CustomerReport) {
                 }
             }
             Text(
-                text = "${customer.total_purchases}",
+                text = "${customer.totalPurchases}",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f)
             )

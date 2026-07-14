@@ -23,19 +23,19 @@ class CustomerRepository @Inject constructor(
     private val networkMonitor: NetworkMonitor
 ) {
 
-    fun getCustomers(businessId: Long): Flow<List<CustomerEntity>> {
-        return customerDao.getCustomersByBusiness(businessId)
+    fun getCustomers(businessId: String): Flow<List<CustomerEntity>> {
+        return customerDao.getCustomersByBusiness(businessId.hashCode().toLong())
     }
 
-    fun searchCustomers(businessId: Long, query: String): Flow<List<CustomerEntity>> {
-        return customerDao.searchCustomers(businessId, query)
+    fun searchCustomers(businessId: String, query: String): Flow<List<CustomerEntity>> {
+        return customerDao.searchCustomers(businessId.hashCode().toLong(), query)
     }
 
     suspend fun getCustomerById(id: Long): CustomerEntity? {
         return customerDao.getCustomerById(id)
     }
 
-    suspend fun refreshCustomers(businessId: Long): AppResult<List<Customer>> {
+    suspend fun refreshCustomers(businessId: String): AppResult<List<Customer>> {
         if (!networkMonitor.isOnline()) {
             return AppResult.Error("No internet connection")
         }
@@ -54,7 +54,7 @@ class CustomerRepository @Inject constructor(
 
     suspend fun createCustomer(customer: Customer): AppResult<Customer> {
         if (!networkMonitor.isOnline()) {
-            val offlineEntity = customer.copy(id = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE)
+            val offlineEntity = customer.copy(id = UUID.randomUUID().toString())
                 .toEntity().copy(syncStatus = "pending", syncOperation = "CREATE")
             customerDao.insert(offlineEntity)
             return AppResult.Success(customer)
@@ -66,7 +66,7 @@ class CustomerRepository @Inject constructor(
                 customerDao.insert(created.toEntity())
                 created
             } else {
-                val offlineEntity = customer.copy(id = UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE)
+                val offlineEntity = customer.copy(id = UUID.randomUUID().toString())
                     .toEntity().copy(syncStatus = "pending", syncOperation = "CREATE")
                 customerDao.insert(offlineEntity)
                 customer
@@ -74,7 +74,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun updateCustomer(id: Long, customer: Customer): AppResult<Customer> {
+    suspend fun updateCustomer(id: String, customer: Customer): AppResult<Customer> {
         if (!networkMonitor.isOnline()) {
             customerDao.insert(customer.copy(id = id).toEntity().copy(syncStatus = "pending", syncOperation = "UPDATE"))
             return AppResult.Success(customer)
@@ -92,18 +92,18 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteCustomer(id: Long): AppResult<Unit> {
+    suspend fun deleteCustomer(id: String): AppResult<Unit> {
         return safeApiCall {
             val response = apiService.deleteCustomer(id)
             if (response.isSuccessful) {
-                customerDao.deleteById(id)
+                customerDao.deleteById(id.hashCode().toLong())
             } else {
                 throw Exception(response.errorBody()?.string() ?: "Failed to delete customer")
             }
         }
     }
 
-    suspend fun getCustomerLedger(customerId: Long): AppResult<LedgerResponse> {
+    suspend fun getCustomerLedger(customerId: String): AppResult<LedgerResponse> {
         return safeApiCall {
             val response = apiService.getCustomerLedger(customerId)
             if (response.isSuccessful) response.body()?.data
@@ -111,7 +111,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun createLedgerEntry(customerId: Long, request: CreateLedgerEntryRequest): AppResult<LedgerEntryResponse> {
+    suspend fun createLedgerEntry(customerId: String, request: CreateLedgerEntryRequest): AppResult<LedgerEntryResponse> {
         return safeApiCall {
             val response = apiService.createLedgerEntry(customerId, request)
             if (response.isSuccessful) response.body()?.data
@@ -119,14 +119,14 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteLedgerEntry(customerId: Long, transactionId: String): AppResult<Unit> {
+    suspend fun deleteLedgerEntry(customerId: String, transactionId: String): AppResult<Unit> {
         return safeApiCall {
             val response = apiService.deleteLedgerEntry(customerId, transactionId)
             if (!response.isSuccessful) throw Exception(response.errorBody()?.string() ?: "Failed to delete entry")
         }
     }
 
-    suspend fun sendLedgerSms(customerId: Long, request: SendLedgerSmsRequest): AppResult<LedgerSmsResponse> {
+    suspend fun sendLedgerSms(customerId: String, request: SendLedgerSmsRequest): AppResult<LedgerSmsResponse> {
         return safeApiCall {
             val response = apiService.sendLedgerSms(customerId, request)
             if (response.isSuccessful) response.body()?.data
@@ -134,7 +134,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun uploadLedgerImage(customerId: Long, file: java.io.File): AppResult<LedgerImageUploadResponse> {
+    suspend fun uploadLedgerImage(customerId: String, file: java.io.File): AppResult<LedgerImageUploadResponse> {
         return safeApiCall {
             val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
@@ -144,7 +144,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun getLedgerPdf(customerId: Long): AppResult<okhttp3.ResponseBody> {
+    suspend fun getLedgerPdf(customerId: String): AppResult<okhttp3.ResponseBody> {
         return safeApiCall {
             val response = apiService.getLedgerPdf(customerId)
             if (response.isSuccessful) response.body()
@@ -157,7 +157,7 @@ class CustomerRepository @Inject constructor(
         for (customer in pending) {
             try {
                 val response = when (customer.syncOperation) {
-                    "UPDATE" -> apiService.updateCustomer(customer.id, customer.toApiModel())
+                    "UPDATE" -> apiService.updateCustomer(customer.id.toString(), customer.toApiModel())
                     else -> apiService.createCustomer(customer.toApiModel())
                 }
                 if (response.isSuccessful) {
@@ -169,7 +169,7 @@ class CustomerRepository @Inject constructor(
     }
 
     private fun Customer.toEntity() = CustomerEntity(
-        id = id,
+        id = id.hashCode().toLong(),
         name = name,
         phone = phone,
         email = email,
@@ -178,16 +178,16 @@ class CustomerRepository @Inject constructor(
         city = city,
         state = state,
         pincode = pincode,
-        openingBalance = opening_balance,
-        creditLimit = credit_limit,
-        businessId = business_id,
-        createdAt = created_at,
-        updatedAt = updated_at,
+        openingBalance = openingBalance,
+        creditLimit = creditLimit,
+        businessId = businessId.hashCode().toLong(),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
         syncStatus = "synced"
     )
 
     private fun CustomerEntity.toApiModel() = Customer(
-        id = id,
+        id = id.toString(),
         name = name,
         phone = phone,
         email = email,
@@ -196,10 +196,10 @@ class CustomerRepository @Inject constructor(
         city = city,
         state = state,
         pincode = pincode,
-        opening_balance = openingBalance,
-        credit_limit = creditLimit,
-        business_id = businessId,
-        created_at = createdAt,
-        updated_at = updatedAt
+        openingBalance = openingBalance,
+        creditLimit = creditLimit,
+        businessId = businessId.toString(),
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

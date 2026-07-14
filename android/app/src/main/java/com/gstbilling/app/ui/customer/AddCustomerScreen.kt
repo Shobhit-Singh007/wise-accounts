@@ -42,11 +42,11 @@ class AddCustomerViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var isEditMode by mutableStateOf(false)
-    private var customerId: Long = 0
+    private var customerId: String = ""
 
-    fun loadCustomer(id: Long) {
+    fun loadCustomer(id: String) {
         viewModelScope.launch {
-            val entity = customerRepository.getCustomerById(id)
+            val entity = customerRepository.getCustomerById(id.hashCode().toLong())
             if (entity != null) {
                 customerId = entity.id
                 name = entity.name
@@ -72,9 +72,9 @@ class AddCustomerViewModel @Inject constructor(
         isLoading = true
         errorMessage = null
         viewModelScope.launch {
-            val businessId = sessionManager.getBusinessId() ?: 0L
+            val businessId = sessionManager.getBusinessId() ?: ""
             val customer = Customer(
-                id = if (isEditMode) customerId else 0,
+                id = if (isEditMode) customerId else "",
                 name = name,
                 phone = phone.ifBlank { null },
                 email = email.ifBlank { null },
@@ -83,9 +83,9 @@ class AddCustomerViewModel @Inject constructor(
                 city = city.ifBlank { null },
                 state = state.ifBlank { null },
                 pincode = pincode.ifBlank { null },
-                opening_balance = openingBalance.toDoubleOrNull() ?: 0.0,
-                credit_limit = creditLimit.toDoubleOrNull() ?: 0.0,
-                business_id = businessId
+                openingBalance = openingBalance.toDoubleOrNull() ?: 0.0,
+                creditLimit = creditLimit.toDoubleOrNull() ?: 0.0,
+                businessId = businessId
             )
             val result = if (isEditMode) {
                 customerRepository.updateCustomer(customerId, customer)
@@ -105,7 +105,7 @@ class AddCustomerViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddCustomerScreen(
-    customerId: Long?,
+    customerId: String?,
     onBack: () -> Unit,
     viewModel: AddCustomerViewModel = hiltViewModel()
 ) {

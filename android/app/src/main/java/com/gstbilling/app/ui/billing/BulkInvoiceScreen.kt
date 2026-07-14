@@ -29,10 +29,10 @@ import java.util.*
 import javax.inject.Inject
 
 data class BulkInvoiceEntry(
-    val customerId: Long = 0,
+    val customerId: String = "",
     val customerName: String = "",
     val invoiceDate: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
-    val items: List<InvoiceItemRequest> = listOf(InvoiceItemRequest(product_id = 0)),
+    val items: List<InvoiceItemRequest> = listOf(InvoiceItemRequest(productId = "")),
     val discount: Double = 0.0,
     val notes: String = ""
 )
@@ -67,7 +67,7 @@ class BulkInvoiceViewModel @Inject constructor(
     }
 
     fun createAll() {
-        val validEntries = entries.filter { it.customerId > 0 && it.items.isNotEmpty() }
+        val validEntries = entries.filter { it.customerId.isNotBlank() && it.items.isNotEmpty() }
         if (validEntries.isEmpty()) {
             errorMessage = "Add at least one invoice with a valid customer"
             return
@@ -78,8 +78,8 @@ class BulkInvoiceViewModel @Inject constructor(
             val businessId = sessionManager.getBusinessId() ?: return@launch
             val requests = validEntries.map { entry ->
                 CreateInvoiceRequest(
-                    customer_id = entry.customerId,
-                    invoice_date = entry.invoiceDate,
+                    customerId = entry.customerId,
+                    invoiceDate = entry.invoiceDate,
                     items = entry.items,
                     discount = entry.discount,
                     notes = entry.notes.ifBlank { null }

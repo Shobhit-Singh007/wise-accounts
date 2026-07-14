@@ -84,7 +84,7 @@ fun DashboardScreen(
     onNavigateToBatchExpiry: () -> Unit = {},
     onNavigateToCustomerGroups: () -> Unit = {},
     onNavigateToInventoryDashboard: () -> Unit = {},
-    onInvoiceClick: (Long) -> Unit = {},
+    onInvoiceClick: (String) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -126,14 +126,14 @@ fun DashboardScreen(
                     ) {
                         DashboardCard(
                             title = "Sales",
-                            value = "₹${String.format("%.0f", viewModel.dashboardData?.total_sales ?: 0)}",
+                            value = "₹${String.format("%.0f", viewModel.dashboardData?.totalSales ?: 0)}",
                             icon = Icons.Default.TrendingUp,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                         DashboardCard(
                             title = "Customers",
-                            value = "${viewModel.dashboardData?.total_customers ?: 0}",
+                            value = "${viewModel.dashboardData?.totalCustomers ?: 0}",
                             icon = Icons.Default.People,
                             color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.weight(1f)
@@ -148,14 +148,14 @@ fun DashboardScreen(
                     ) {
                         DashboardCard(
                             title = "Products",
-                            value = "${viewModel.dashboardData?.total_products ?: 0}",
+                            value = "${viewModel.dashboardData?.totalProducts ?: 0}",
                             icon = Icons.Default.Inventory2,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f)
                         )
                         DashboardCard(
                             title = "Pending",
-                            value = "₹${String.format("%.0f", viewModel.dashboardData?.pending_amount ?: 0)}",
+                            value = "₹${String.format("%.0f", viewModel.dashboardData?.pendingAmount ?: 0)}",
                             icon = Icons.Default.PendingActions,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
@@ -261,7 +261,7 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                val recentInvoices = viewModel.dashboardData?.recent_invoices ?: emptyList()
+                val recentInvoices = viewModel.dashboardData?.recentInvoices ?: emptyList()
                 if (recentInvoices.isEmpty()) {
                     item {
                         Text(
@@ -287,19 +287,19 @@ fun DashboardScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = invoice.invoice_number,
+                                        text = invoice.invoiceNumber,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = invoice.customer_name ?: "Walk-in Customer",
+                                        text = invoice.customerName ?: "Walk-in Customer",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "₹${String.format("%.0f", invoice.total_amount)}",
+                                        text = "₹${String.format("%.0f", invoice.totalAmount)}",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )

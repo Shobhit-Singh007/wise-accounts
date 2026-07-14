@@ -42,7 +42,7 @@ class PaymentHistoryViewModel @Inject constructor(
     var filterFromDate by mutableStateOf("")
     var filterToDate by mutableStateOf("")
     var filterMethod by mutableStateOf("")
-    var filterCustomerId by mutableStateOf<Long?>(null)
+    var filterCustomerId by mutableStateOf<String?>(null)
 
     val methods = listOf("", "CASH", "UPI", "BANK_TRANSFER", "CARD", "RAZORPAY", "CHEQUE")
 
@@ -92,7 +92,7 @@ class PaymentHistoryViewModel @Inject constructor(
         loadPayments()
     }
 
-    fun downloadReceipt(context: android.content.Context, paymentId: Long) {
+    fun downloadReceipt(context: android.content.Context, paymentId: String) {
         viewModelScope.launch {
             val businessId = sessionManager.getBusinessId() ?: return@launch
             try {
@@ -321,9 +321,9 @@ fun PaymentHistoryCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (payment.invoice_id > 0) {
+                if (payment.invoiceId.isNotBlank()) {
                     Text(
-                        "Invoice #${payment.invoice_id}",
+                        "Invoice #${payment.invoiceId}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

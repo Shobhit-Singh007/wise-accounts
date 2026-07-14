@@ -64,6 +64,7 @@ class LoginViewModel @Inject constructor(
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit = {},
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
@@ -154,6 +155,17 @@ fun LoginScreen(
                 } else {
                     Text("Sign In", style = MaterialTheme.typography.titleMedium)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onNavigateToRegister,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Create Account", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

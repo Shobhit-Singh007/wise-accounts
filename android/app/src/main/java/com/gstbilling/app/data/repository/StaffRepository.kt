@@ -13,17 +13,13 @@ class StaffRepository @Inject constructor(
     private val sessionManager: SessionManager
 ) {
 
-    private suspend fun requireBusinessId(): Long {
+    private suspend fun requireBusinessId(): String {
         return sessionManager.getBusinessId() ?: throw Exception("Business not found")
-    }
-
-    private suspend fun requireBusinessIdString(): String {
-        return requireBusinessId().toString()
     }
 
     suspend fun getStaff(): AppResult<List<StaffMember>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.getStaff(bid)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to load staff")
@@ -32,7 +28,7 @@ class StaffRepository @Inject constructor(
 
     suspend fun inviteStaff(request: InviteStaffRequest): AppResult<Map<String, Any>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.inviteStaff(bid, request)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to send invite")
@@ -41,7 +37,7 @@ class StaffRepository @Inject constructor(
 
     suspend fun updatePermissions(userId: String, request: UpdatePermissionsRequest): AppResult<Map<String, Any>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.updateStaffPermissions(bid, userId, request)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to update permissions")
@@ -50,7 +46,7 @@ class StaffRepository @Inject constructor(
 
     suspend fun removeStaff(userId: String): AppResult<Map<String, Any>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.removeStaff(bid, userId)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to remove staff")
@@ -59,7 +55,7 @@ class StaffRepository @Inject constructor(
 
     suspend fun getStaffInvites(): AppResult<List<StaffInvite>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.getStaffInvites(bid)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to load invites")
@@ -68,7 +64,7 @@ class StaffRepository @Inject constructor(
 
     suspend fun cancelInvite(inviteId: String): AppResult<Map<String, Any>> {
         return safeApiCall {
-            val bid = requireBusinessIdString()
+            val bid = requireBusinessId()
             val response = apiService.cancelStaffInvite(bid, inviteId)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to cancel invite")

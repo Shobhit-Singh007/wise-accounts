@@ -49,7 +49,7 @@ class InvoiceShareViewModel @Inject constructor(
     var recipient by mutableStateOf("")
     var customMessage by mutableStateOf("")
 
-    fun loadInvoice(invoiceId: Long) {
+    fun loadInvoice(invoiceId: String) {
         viewModelScope.launch {
             isLoading = true
             val businessId = sessionManager.getBusinessId() ?: return@launch
@@ -66,7 +66,7 @@ class InvoiceShareViewModel @Inject constructor(
         }
     }
 
-    fun shareInvoice(invoiceId: Long) {
+    fun shareInvoice(invoiceId: String) {
         if (recipient.isBlank()) {
             errorMessage = "Please enter a recipient"
             return
@@ -95,11 +95,11 @@ class InvoiceShareViewModel @Inject constructor(
         }
     }
 
-    fun getShareIntent(invoiceId: Long): Intent {
+    fun getShareIntent(invoiceId: String): Intent {
         val inv = invoice
         val shareText = buildString {
-            append("Invoice ${inv?.invoice_number ?: ""}")
-            append("\nAmount: ₹${String.format("%.2f", inv?.total_amount ?: 0.0)}")
+            append("Invoice ${inv?.invoiceNumber ?: ""}")
+            append("\nAmount: ₹${String.format("%.2f", inv?.totalAmount ?: 0.0)}")
             if (customMessage.isNotBlank()) {
                 append("\n\n$customMessage")
             }
@@ -107,7 +107,7 @@ class InvoiceShareViewModel @Inject constructor(
         return Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, shareText)
-            putExtra(Intent.EXTRA_SUBJECT, "Invoice ${inv?.invoice_number ?: ""}")
+            putExtra(Intent.EXTRA_SUBJECT, "Invoice ${inv?.invoiceNumber ?: ""}")
         }
     }
 }
@@ -115,7 +115,7 @@ class InvoiceShareViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvoiceShareScreen(
-    invoiceId: Long,
+    invoiceId: String,
     onBack: () -> Unit,
     viewModel: InvoiceShareViewModel = hiltViewModel()
 ) {
@@ -179,14 +179,14 @@ fun InvoiceShareScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        LabeledRow("Invoice Number", invoice.invoice_number)
-                        LabeledRow("Customer", invoice.customer_name ?: "Walk-in")
+                        LabeledRow("Invoice Number", invoice.invoiceNumber)
+                        LabeledRow("Customer", invoice.customerName ?: "Walk-in")
                         LabeledRow(
                             "Total Amount",
-                            "₹${String.format("%.2f", invoice.total_amount)}"
+                            "₹${String.format("%.2f", invoice.totalAmount)}"
                         )
                         LabeledRow("Status", invoice.status.replaceFirstChar { it.uppercase() })
-                        LabeledRow("Date", invoice.invoice_date)
+                        LabeledRow("Date", invoice.invoiceDate)
                     }
                 }
 

@@ -43,12 +43,12 @@ class SupplierViewModel @Inject constructor(
     var newAddress by mutableStateOf("")
     var isSaving by mutableStateOf(false)
 
-    private var businessId = 0L
+    private var businessId = ""
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 loadSuppliers()
             }
         }
@@ -89,7 +89,7 @@ class SupplierViewModel @Inject constructor(
                 email = newEmail.trim().ifBlank { null },
                 gstin = newGstin.trim().ifBlank { null },
                 address = newAddress.trim().ifBlank { null },
-                business_id = businessId
+                businessId = businessId
             )
             val result = safeApiCall {
                 val response = apiService.createSupplier(supplier)

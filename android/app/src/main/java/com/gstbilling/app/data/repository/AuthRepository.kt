@@ -19,12 +19,25 @@ class AuthRepository @Inject constructor(
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+                    var businessId = ""
+                    var businessName = ""
+                    try {
+                        val bizResponse = apiService.getBusinesses()
+                        if (bizResponse.isSuccessful) {
+                            val businesses = bizResponse.body()?.data
+                            if (!businesses.isNullOrEmpty()) {
+                                businessId = businesses.first().id
+                                businessName = businesses.first().name
+                            }
+                        }
+                    } catch (_: Exception) {}
+
                     sessionManager.saveAuthData(
-                        accessToken = body.access_token,
-                        refreshToken = body.refresh_token,
+                        accessToken = body.accessToken,
+                        refreshToken = body.refreshToken,
                         userId = body.user.id,
-                        businessId = body.user.business_id,
-                        businessName = body.user.business_name,
+                        businessId = businessId,
+                        businessName = businessName,
                         userName = body.user.name,
                         phone = body.user.phone
                     )
@@ -38,33 +51,37 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun register(
-        businessName: String,
-        ownerName: String,
         phone: String,
-        email: String,
-        password: String,
-        gstin: String?
+        name: String,
+        email: String?,
+        password: String
     ): AppResult<TokenResponse> {
         return safeApiCall {
             val response = apiService.register(
-                RegisterRequest(
-                    business_name = businessName,
-                    owner_name = ownerName,
-                    phone = phone,
-                    email = email,
-                    password = password,
-                    gstin = gstin
-                )
+                RegisterRequest(phone = phone, name = name, email = email, password = password)
             )
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+                    var businessId = ""
+                    var businessName = ""
+                    try {
+                        val bizResponse = apiService.getBusinesses()
+                        if (bizResponse.isSuccessful) {
+                            val businesses = bizResponse.body()?.data
+                            if (!businesses.isNullOrEmpty()) {
+                                businessId = businesses.first().id
+                                businessName = businesses.first().name
+                            }
+                        }
+                    } catch (_: Exception) {}
+
                     sessionManager.saveAuthData(
-                        accessToken = body.access_token,
-                        refreshToken = body.refresh_token,
+                        accessToken = body.accessToken,
+                        refreshToken = body.refreshToken,
                         userId = body.user.id,
-                        businessId = body.user.business_id,
-                        businessName = body.user.business_name,
+                        businessId = businessId,
+                        businessName = businessName,
                         userName = body.user.name,
                         phone = body.user.phone
                     )
@@ -77,19 +94,77 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun refreshToken(): AppResult<TokenResponse> {
+    suspend fun sendOtp(phone: String): AppResult<Boolean> {
+        return when (val result = safeApiCall { apiService.sendOtp(SendOtpRequest(phone = phone)) }) {
+            is AppResult.Success -> AppResult.Success(true)
+            is AppResult.Error -> AppResult.Error(result.message ?: "Failed to send OTP")
+            is AppResult.Loading -> AppResult.Loading
+        }
+    }
+
+    suspend fun verifyOtp(phone: String, otp: String): AppResult<TokenResponse> {
         return safeApiCall {
-            val currentRefreshToken = sessionManager.getRefreshToken() ?: throw Exception("No refresh token")
-            val response = apiService.refreshToken(RefreshTokenRequest(currentRefreshToken))
+            val response = apiService.verifyOtp(VerifyOtpRequest(phone = phone, otp = otp))
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null) {
+                    var businessId = ""
+                    var businessName = ""
+                    try {
+                        val bizResponse = apiService.getBusinesses()
+                        if (bizResponse.isSuccessful) {
+                            val businesses = bizResponse.body()?.data
+                            if (!businesses.isNullOrEmpty()) {
+                                businessId = businesses.first().id
+                                businessName = businesses.first().name
+                            }
+                        }
+                    } catch (_: Exception) {}
+
                     sessionManager.saveAuthData(
-                        accessToken = body.access_token,
-                        refreshToken = body.refresh_token,
+                        accessToken = body.accessToken,
+                        refreshToken = body.refreshToken,
                         userId = body.user.id,
-                        businessId = body.user.business_id,
-                        businessName = body.user.business_name,
+                        businessId = businessId,
+                        businessName = businessName,
+                        userName = body.user.name,
+                        phone = body.user.phone
+                    )
+                    body
+                } else null
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "OTP verification failed"
+                throw Exception(errorBody)
+            }
+        }
+    }
+
+    suspend fun refreshToken(): AppResult<TokenResponse> {
+        return safeApiCall {
+            val currentRefreshToken = sessionManager.getRefreshToken() ?: throw Exception("No refresh token")
+            val response = apiService.refreshToken(RefreshTokenRequest(refreshToken = currentRefreshToken))
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    var businessId = ""
+                    var businessName = ""
+                    try {
+                        val bizResponse = apiService.getBusinesses()
+                        if (bizResponse.isSuccessful) {
+                            val businesses = bizResponse.body()?.data
+                            if (!businesses.isNullOrEmpty()) {
+                                businessId = businesses.first().id
+                                businessName = businesses.first().name
+                            }
+                        }
+                    } catch (_: Exception) {}
+
+                    sessionManager.saveAuthData(
+                        accessToken = body.accessToken,
+                        refreshToken = body.refreshToken,
+                        userId = body.user.id,
+                        businessId = businessId,
+                        businessName = businessName,
                         userName = body.user.name,
                         phone = body.user.phone
                     )

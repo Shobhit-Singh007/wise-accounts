@@ -33,9 +33,9 @@ class ProductDetailViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
-    private var productId: Long = 0L
+    private var productId: String = ""
 
-    fun loadProduct(id: Long) {
+    fun loadProduct(id: String) {
         if (id == productId && product != null) return
         productId = id
         isLoading = true
@@ -53,11 +53,11 @@ class ProductDetailViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
-    productId: Long,
+    productId: String,
     onBack: () -> Unit,
-    onEdit: (Long) -> Unit,
-    onAdjustStock: (Long) -> Unit,
-    onViewStockBatches: (Long) -> Unit,
+    onEdit: (String) -> Unit,
+    onAdjustStock: (String) -> Unit,
+    onViewStockBatches: (String) -> Unit,
     viewModel: ProductDetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(productId) {

@@ -37,8 +37,8 @@ class RecordPaymentViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    var invoiceId by mutableStateOf(0L)
-    var customerId by mutableStateOf(0L)
+    var invoiceId by mutableStateOf("")
+    var customerId by mutableStateOf("")
     var amount by mutableStateOf("")
     var selectedMethod by mutableStateOf("CASH")
     var referenceNumber by mutableStateOf("")
@@ -56,7 +56,7 @@ class RecordPaymentViewModel @Inject constructor(
 
     val methods = listOf("CASH", "UPI", "BANK_TRANSFER", "CARD", "RAZORPAY", "CHEQUE")
 
-    fun setArgs(invId: Long?, custId: Long?) {
+    fun setArgs(invId: String?, custId: String?) {
         invId?.let { invoiceId = it }
         custId?.let { customerId = it }
     }
@@ -67,7 +67,7 @@ class RecordPaymentViewModel @Inject constructor(
             errorMessage = "Please enter a valid amount"
             return
         }
-        if (invoiceId == 0L) {
+        if (invoiceId.isBlank()) {
             errorMessage = "Invoice ID is required"
             return
         }
@@ -80,7 +80,7 @@ class RecordPaymentViewModel @Inject constructor(
                 when (val result = safeApiCall {
                     apiService.generateUpiLinkForBusiness(
                         businessId.toString(),
-                        UpiLinkRequest(invoice_id = invoiceId, amount = amt)
+                        UpiLinkRequest(invoiceId = invoiceId, amount = amt)
                     )
                 }) {
                     is AppResult.Success -> {
@@ -96,7 +96,7 @@ class RecordPaymentViewModel @Inject constructor(
             }
 
             val request = RecordPaymentRequest(
-                invoice_id = invoiceId,
+                invoiceId = invoiceId,
                 amount = amt,
                 date = paymentDate,
                 mode = selectedMethod,
@@ -130,7 +130,7 @@ class RecordPaymentViewModel @Inject constructor(
             when (val result = safeApiCall {
                 apiService.generateUpiLinkForBusiness(
                     businessId.toString(),
-                    UpiLinkRequest(invoice_id = invoiceId, amount = amt)
+                    UpiLinkRequest(invoiceId = invoiceId, amount = amt)
                 )
             }) {
                 is AppResult.Success -> {
@@ -149,8 +149,8 @@ class RecordPaymentViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordPaymentScreen(
-    invoiceId: Long?,
-    customerId: Long?,
+    invoiceId: String?,
+    customerId: String?,
     onBack: () -> Unit,
     viewModel: RecordPaymentViewModel = hiltViewModel()
 ) {

@@ -40,12 +40,12 @@ class LowStockAlertsViewModel @Inject constructor(
     var isRefreshing by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
-    private var businessId = 0L
+    private var businessId = ""
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 loadLowStockProducts()
             }
         }
@@ -76,7 +76,7 @@ class LowStockAlertsViewModel @Inject constructor(
 @Composable
 fun LowStockAlertsScreen(
     onBack: () -> Unit,
-    onProductClick: (Long) -> Unit,
+    onProductClick: (String) -> Unit,
     viewModel: LowStockAlertsViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -167,7 +167,7 @@ fun LowStockAlertsScreen(
                     items(lowStockProducts, key = { it.id }) { product ->
                         LowStockItem(
                             product = product,
-                            onClick = { onProductClick(product.id) }
+                            onClick = { onProductClick(product.id.toString()) }
                         )
                     }
                 }

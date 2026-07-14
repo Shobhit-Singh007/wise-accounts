@@ -48,28 +48,28 @@ class InvoiceDetailViewModel @Inject constructor(
     var showEinvoiceSheet by mutableStateOf(false)
     var showGenerateBothSheet by mutableStateOf(false)
 
-    fun loadInvoice(invoiceId: Long) {
+    fun loadInvoice(invoiceId: String) {
         viewModelScope.launch {
             isLoading = true
             val entity = invoiceRepository.getInvoiceById(invoiceId)
             if (entity != null) {
                 invoice = Invoice(
-                    id = entity.id,
-                    invoice_number = entity.invoiceNumber,
-                    customer_id = entity.customerId,
-                    customer_name = entity.customerName,
-                    customer_gstin = entity.customerGstin,
-                    business_id = entity.businessId,
-                    invoice_date = entity.invoiceDate,
-                    due_date = entity.dueDate,
+                    id = entity.id.toString(),
+                    invoiceNumber = entity.invoiceNumber,
+                    customerId = entity.customerId.toString(),
+                    customerName = entity.customerName,
+                    customerGstin = entity.customerGstin,
+                    businessId = entity.businessId.toString(),
+                    invoiceDate = entity.invoiceDate,
+                    dueDate = entity.dueDate,
                     subtotal = entity.subtotal,
                     discount = entity.discount,
-                    taxable_amount = entity.taxableAmount,
+                    taxableAmount = entity.taxableAmount,
                     cgst = entity.cgst,
                     sgst = entity.sgst,
                     igst = entity.igst,
-                    total_amount = entity.totalAmount,
-                    round_off = entity.roundOff,
+                    totalAmount = entity.totalAmount,
+                    roundOff = entity.roundOff,
                     status = entity.status,
                     notes = entity.notes
                 )
@@ -78,7 +78,7 @@ class InvoiceDetailViewModel @Inject constructor(
         }
     }
 
-    fun cancelInvoice(invoiceId: Long) {
+    fun cancelInvoice(invoiceId: String) {
         viewModelScope.launch {
             isLoading = true
             val result = invoiceRepository.cancelInvoice(invoiceId)
@@ -91,7 +91,7 @@ class InvoiceDetailViewModel @Inject constructor(
         }
     }
 
-    fun generateEwayBill(businessId: Long, invoiceId: Long, request: EwayBillRequest) {
+    fun generateEwayBill(businessId: String, invoiceId: String, request: EwayBillRequest) {
         viewModelScope.launch {
             isLoading = true
             try {
@@ -119,7 +119,7 @@ class InvoiceDetailViewModel @Inject constructor(
         }
     }
 
-    fun generateEinvoice(businessId: Long, invoiceId: Long, request: EinvoiceRequest) {
+    fun generateEinvoice(businessId: String, invoiceId: String, request: EinvoiceRequest) {
         viewModelScope.launch {
             isLoading = true
             try {
@@ -147,7 +147,7 @@ class InvoiceDetailViewModel @Inject constructor(
         }
     }
 
-    fun generateBoth(businessId: Long, invoiceId: Long, request: GenerateBothRequest) {
+    fun generateBoth(businessId: String, invoiceId: String, request: GenerateBothRequest) {
         viewModelScope.launch {
             isLoading = true
             try {
@@ -184,7 +184,7 @@ class InvoiceDetailViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvoiceDetailScreen(
-    invoiceId: Long,
+    invoiceId: String,
     onBack: () -> Unit,
     viewModel: InvoiceDetailViewModel = hiltViewModel()
 ) {
@@ -239,7 +239,7 @@ fun InvoiceDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                invoice.invoice_number,
+                                invoice.invoiceNumber,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -262,13 +262,13 @@ fun InvoiceDetailScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        LabeledRow("Customer", invoice.customer_name ?: "Walk-in")
-                        if (invoice.customer_gstin != null) {
-                            LabeledRow("GSTIN", invoice.customer_gstin!!)
+                        LabeledRow("Customer", invoice.customerName ?: "Walk-in")
+                        if (invoice.customerGstin != null) {
+                            LabeledRow("GSTIN", invoice.customerGstin!!)
                         }
-                        LabeledRow("Date", invoice.invoice_date)
-                        if (invoice.due_date != null) {
-                            LabeledRow("Due Date", invoice.due_date!!)
+                        LabeledRow("Date", invoice.invoiceDate)
+                        if (invoice.dueDate != null) {
+                            LabeledRow("Due Date", invoice.dueDate!!)
                         }
                     }
                 }
@@ -289,7 +289,7 @@ fun InvoiceDetailScreen(
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         LabeledRow(
                             "Grand Total",
-                            "₹${String.format("%.2f", invoice.total_amount)}",
+                            "₹${String.format("%.2f", invoice.totalAmount)}",
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -374,7 +374,7 @@ fun InvoiceDetailScreen(
                     OutlinedButton(
                         onClick = {
                             val baseUrl = "http://10.0.2.2:3000/api/v1"
-                            val url = "$baseUrl/businesses/${invoice.business_id}/invoices/${invoice.id}/print"
+                            val url = "$baseUrl/businesses/${invoice.businessId}/invoices/${invoice.id}/print"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)
                         },
@@ -438,7 +438,7 @@ fun InvoiceDetailScreen(
                 invoice = invoice!!,
                 onDismiss = { viewModel.showGenerateBothSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateBoth(invoice!!.business_id, invoice!!.id, request)
+                    viewModel.generateBoth(invoice!!.businessId, invoice!!.id, request)
                 }
             )
         }
@@ -448,7 +448,7 @@ fun InvoiceDetailScreen(
                 invoice = invoice!!,
                 onDismiss = { viewModel.showEwayBillSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateEwayBill(invoice!!.business_id, invoice!!.id, request)
+                    viewModel.generateEwayBill(invoice!!.businessId, invoice!!.id, request)
                 }
             )
         }
@@ -458,7 +458,7 @@ fun InvoiceDetailScreen(
                 invoice = invoice!!,
                 onDismiss = { viewModel.showEinvoiceSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateEinvoice(invoice!!.business_id, invoice!!.id, request)
+                    viewModel.generateEinvoice(invoice!!.businessId, invoice!!.id, request)
                 }
             )
         }

@@ -54,12 +54,12 @@ class StockTransferViewModel @Inject constructor(
     var showToWarehouseDropdown by mutableStateOf(false)
     var productSearchQuery by mutableStateOf("")
 
-    private var businessId = 0L
+    private var businessId = ""
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 loadData()
             }
         }
@@ -117,9 +117,9 @@ class StockTransferViewModel @Inject constructor(
         errorMessage = null
         viewModelScope.launch {
             val request = StockTransferRequest(
-                product_id = prod.id,
-                from_warehouse_id = from.id,
-                to_warehouse_id = to.id,
+                productId = prod.id,
+                fromWarehouseId = from.id,
+                toWarehouseId = to.id,
                 quantity = qty
             )
             val result = safeApiCall {

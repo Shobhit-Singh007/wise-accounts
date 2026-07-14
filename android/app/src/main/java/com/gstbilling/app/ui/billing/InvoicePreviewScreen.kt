@@ -41,7 +41,7 @@ class InvoicePreviewViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    fun loadPrintHtml(invoiceId: Long) {
+    fun loadPrintHtml(invoiceId: String) {
         viewModelScope.launch {
             isLoading = true
             val businessId = sessionManager.getBusinessId() ?: return@launch
@@ -64,7 +64,7 @@ class InvoicePreviewViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvoicePreviewScreen(
-    invoiceId: Long,
+    invoiceId: String,
     onBack: () -> Unit,
     onShare: () -> Unit,
     viewModel: InvoicePreviewViewModel = hiltViewModel()

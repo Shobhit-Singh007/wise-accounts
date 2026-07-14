@@ -387,12 +387,12 @@ private fun TopProductCard(product: ProductReportEntry) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = product.product_name,
+                    text = product.productName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${product.quantity_sold} units · ${product.invoice_count} invoices",
+                    text = "${product.quantitySold} units · ${product.invoiceCount} invoices",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -418,7 +418,7 @@ private fun ProductReportRow(product: ProductReportEntry) {
         ) {
             Column(modifier = Modifier.weight(1.5f)) {
                 Text(
-                    text = product.product_name,
+                    text = product.productName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -431,7 +431,7 @@ private fun ProductReportRow(product: ProductReportEntry) {
                 }
             }
             Text(
-                text = "${product.quantity_sold}",
+                text = "${product.quantitySold}",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(0.8f)
             )
@@ -448,7 +448,7 @@ private fun ProductReportRow(product: ProductReportEntry) {
                 modifier = Modifier.weight(0.8f)
             )
             Text(
-                text = "${product.invoice_count}",
+                text = "${product.invoiceCount}",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(0.8f)
             )

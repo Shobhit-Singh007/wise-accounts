@@ -37,8 +37,8 @@ class SessionManager @Inject constructor(
     )
 
     private data class Key(
-        val USER_ID: Preferences.Key<Long> = longPreferencesKey("user_id"),
-        val BUSINESS_ID: Preferences.Key<Long> = longPreferencesKey("business_id"),
+        val USER_ID: Preferences.Key<String> = stringPreferencesKey("user_id"),
+        val BUSINESS_ID: Preferences.Key<String> = stringPreferencesKey("business_id"),
         val BUSINESS_NAME: Preferences.Key<String> = stringPreferencesKey("business_name"),
         val USER_NAME: Preferences.Key<String> = stringPreferencesKey("user_name"),
         val USER_PHONE: Preferences.Key<String> = stringPreferencesKey("user_phone"),
@@ -51,7 +51,7 @@ class SessionManager @Inject constructor(
         prefs[Key.IS_LOGGED_IN] ?: false
     }
 
-    val businessId: Flow<Long?> = context.dataStore.data.map { prefs ->
+    val businessId: Flow<String?> = context.dataStore.data.map { prefs ->
         prefs[Key.BUSINESS_ID]
     }
 
@@ -62,8 +62,8 @@ class SessionManager @Inject constructor(
     suspend fun saveAuthData(
         accessToken: String,
         refreshToken: String,
-        userId: Long,
-        businessId: Long,
+        userId: String,
+        businessId: String,
         businessName: String,
         userName: String,
         phone: String
@@ -90,7 +90,7 @@ class SessionManager @Inject constructor(
         return securePrefs.getString("refresh_token", null)
     }
 
-    suspend fun getBusinessId(): Long? {
+    suspend fun getBusinessId(): String? {
         return context.dataStore.data.first()[Key.BUSINESS_ID]
     }
 

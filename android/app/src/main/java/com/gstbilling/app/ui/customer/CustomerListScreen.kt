@@ -33,14 +33,14 @@ class CustomerListViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
     private var searchJob: Job? = null
-    private var businessId by mutableStateOf(0L)
+    private var businessId by mutableStateOf("")
     var customers by mutableStateOf<List<CustomerEntity>>(emptyList())
         private set
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 customerRepository.getCustomers(businessId).collect { customers = it }
                 customerRepository.refreshCustomers(businessId)
             }
@@ -59,9 +59,9 @@ class CustomerListViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             isRefreshing = true
-            val id = if (businessId == 0L) sessionManager.getBusinessId() ?: 0L else businessId
+            val id = if (businessId.isEmpty()) sessionManager.getBusinessId() ?: "" else businessId
             businessId = id
-            if (id != 0L) {
+            if (id.isNotEmpty()) {
                 customerRepository.refreshCustomers(id)
             }
             isRefreshing = false
@@ -73,9 +73,9 @@ class CustomerListViewModel @Inject constructor(
 @Composable
 fun CustomerListScreen(
     onAddCustomer: () -> Unit,
-    onEditCustomer: (Long) -> Unit,
-    onCustomerClick: (Long) -> Unit,
-    onOpenLedger: (Long) -> Unit,
+    onEditCustomer: (String) -> Unit,
+    onCustomerClick: (String) -> Unit,
+    onOpenLedger: (String) -> Unit,
     onBack: () -> Unit,
     onCustomerGroups: () -> Unit = {},
     viewModel: CustomerListViewModel = hiltViewModel()
@@ -162,9 +162,9 @@ fun CustomerListScreen(
                     items(customerList, key = { it.id }) { customer ->
                         CustomerListItem(
                             customer = customer,
-                            onClick = { onCustomerClick(customer.id) },
-                            onEdit = { onEditCustomer(customer.id) },
-                            onLedger = { onOpenLedger(customer.id) }
+                            onClick = { onCustomerClick(customer.id.toString()) },
+                            onEdit = { onEditCustomer(customer.id.toString()) },
+                            onLedger = { onOpenLedger(customer.id.toString()) }
                         )
                     }
                 }

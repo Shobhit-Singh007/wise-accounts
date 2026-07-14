@@ -48,7 +48,7 @@ class StockAdjustViewModel @Inject constructor(
 
     private val adjustmentTypes = listOf("PURCHASE", "SALE", "ADJUSTMENT", "RETURN")
 
-    fun loadProduct(productId: Long) {
+    fun loadProduct(productId: String) {
         isLoading = true
         viewModelScope.launch {
             product = productRepository.getProductById(productId)
@@ -56,7 +56,7 @@ class StockAdjustViewModel @Inject constructor(
         }
     }
 
-    fun submitAdjustment(productId: Long, onSuccess: () -> Unit) {
+    fun submitAdjustment(productId: String, onSuccess: () -> Unit) {
         val qty = quantity.toIntOrNull()
         if (qty == null || qty <= 0) {
             errorMessage = "Enter a valid quantity"
@@ -66,7 +66,7 @@ class StockAdjustViewModel @Inject constructor(
         errorMessage = null
         successMessage = null
         viewModelScope.launch {
-            val businessId = sessionManager.getBusinessId() ?: 0L
+            val businessId = sessionManager.getBusinessId() ?: ""
             val request = StockAdjustRequest(
                 quantity = qty,
                 reason = notes.ifBlank { adjustmentType },
@@ -95,7 +95,7 @@ class StockAdjustViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockAdjustScreen(
-    productId: Long,
+    productId: String,
     onBack: () -> Unit,
     viewModel: StockAdjustViewModel = hiltViewModel()
 ) {

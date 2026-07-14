@@ -53,7 +53,7 @@ class PurchaseOrderViewModel @Inject constructor(
     var poItems by mutableStateOf<List<PoItemData>>(emptyList())
     var showProductDropdownForItem by mutableStateOf<Int?>(null)
 
-    private var businessId = 0L
+    private var businessId = ""
 
     data class PoItemData(
         val product: ProductEntity? = null,
@@ -63,8 +63,8 @@ class PurchaseOrderViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
-            if (businessId != 0L) {
+            businessId = sessionManager.getBusinessId() ?: ""
+            if (businessId.isNotEmpty()) {
                 loadData()
             }
         }
@@ -132,19 +132,19 @@ class PurchaseOrderViewModel @Inject constructor(
             val today = dateFormat.format(Date())
             val items = poItems.filter { it.product != null }.map { poItem ->
                 PurchaseOrderItem(
-                    product_id = poItem.product!!.id,
+                    productId = poItem.product!!.id,
                     quantity = poItem.quantity.toIntOrNull() ?: 1,
-                    unit_price = poItem.unitPrice.toDoubleOrNull() ?: 0.0
+                    unitPrice = poItem.unitPrice.toDoubleOrNull() ?: 0.0
                 )
             }
-            val total = items.sumOf { it.quantity * it.unit_price }
+            val total = items.sumOf { it.quantity * it.unitPrice }
             val order = PurchaseOrder(
-                supplier_id = supplier.id,
-                order_date = today,
+                supplierId = supplier.id,
+                orderDate = today,
                 status = "pending",
-                total_amount = total,
+                totalAmount = total,
                 items = items,
-                business_id = businessId
+                businessId = businessId
             )
             val result = safeApiCall {
                 val response = apiService.createPurchaseOrder(order)
@@ -167,7 +167,7 @@ class PurchaseOrderViewModel @Inject constructor(
         }
     }
 
-    fun markAsReceived(poId: Long) {
+    fun markAsReceived(poId: String) {
         viewModelScope.launch {
             val existing = purchaseOrders.find { it.id == poId } ?: return@launch
             val updated = existing.copy(status = "received")
@@ -305,7 +305,7 @@ private fun PurchaseOrderItem(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        po.supplier_name ?: "Supplier #${po.supplier_id}",
+                        po.supplierName ?: "Supplier #${po.supplierId}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -325,9 +325,9 @@ private fun PurchaseOrderItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Date: ${po.order_date}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Date: ${po.orderDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    "\u20B9${String.format("%.2f", po.total_amount)}",
+                    "\u20B9${String.format("%.2f", po.totalAmount)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

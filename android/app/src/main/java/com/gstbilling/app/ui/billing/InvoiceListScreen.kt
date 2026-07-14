@@ -32,15 +32,15 @@ class InvoiceListViewModel @Inject constructor(
     var selectedStatus by mutableStateOf("all")
     var selectedDirection by mutableStateOf("SALE")
     var isRefreshing by mutableStateOf(false)
-    private var businessId by mutableStateOf(0L)
+    private var businessId by mutableStateOf("")
     var invoices by mutableStateOf<List<InvoiceEntity>>(emptyList())
         private set
 
     init {
         viewModelScope.launch {
-            businessId = sessionManager.getBusinessId() ?: 0L
+            businessId = sessionManager.getBusinessId() ?: ""
             loadInvoices()
-            if (businessId != 0L) {
+            if (businessId.isNotEmpty()) {
                 invoiceRepository.refreshInvoices(businessId, selectedDirection)
             }
         }
@@ -48,7 +48,7 @@ class InvoiceListViewModel @Inject constructor(
 
     private fun loadInvoices() {
         val id = businessId
-        if (id != 0L) {
+        if (id.isNotEmpty()) {
             viewModelScope.launch {
                 val flow = if (selectedStatus == "all") {
                     invoiceRepository.getInvoices(id)
@@ -63,9 +63,9 @@ class InvoiceListViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             isRefreshing = true
-            val id = if (businessId == 0L) sessionManager.getBusinessId() ?: 0L else businessId
+            val id = if (businessId.isEmpty()) sessionManager.getBusinessId() ?: "" else businessId
             businessId = id
-            if (id != 0L) {
+            if (id.isNotEmpty()) {
                 invoiceRepository.refreshInvoices(id, selectedDirection)
             }
             isRefreshing = false
@@ -88,7 +88,7 @@ class InvoiceListViewModel @Inject constructor(
 @Composable
 fun InvoiceListScreen(
     onBack: () -> Unit,
-    onInvoiceClick: (Long) -> Unit,
+    onInvoiceClick: (String) -> Unit,
     onBulkInvoices: () -> Unit = {},
     viewModel: InvoiceListViewModel = hiltViewModel()
 ) {
@@ -198,10 +198,10 @@ fun InvoiceListScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(invoiceList, key = { it.id }) { invoice ->
+                    items(invoiceList, key = { it.id.toString() }) { invoice ->
                         InvoiceListItem(
                             invoice = invoice,
-                            onClick = { onInvoiceClick(invoice.id) }
+                            onClick = { onInvoiceClick(invoice.id.toString()) }
                         )
                     }
                 }
