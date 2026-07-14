@@ -21,7 +21,7 @@ struct PaymentRemindersView: View {
     @State private var sendingId: String?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if isLoading {
                     ProgressView("Loading reminders...")

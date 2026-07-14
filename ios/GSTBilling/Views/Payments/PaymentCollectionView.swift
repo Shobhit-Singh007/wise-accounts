@@ -15,7 +15,7 @@ struct PaymentCollectionView: View {
                         Text(cust.name).tag(Optional(cust.id))
                     }
                 }
-                .onChange(of: viewModel.selectedCustomerId) { _ in
+                .onChange(of: viewModel.selectedCustomerId) { _, _ in
                     Task { await viewModel.loadPayments(businessId: authManager.businessId) }
                 }
             }

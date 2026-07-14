@@ -14,7 +14,7 @@ struct InvoiceListView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .onChange(of: viewModel.selectedDirection) { _ in
+            .onChange(of: viewModel.selectedDirection) { _, _ in
                 Task { await viewModel.loadInvoices(businessId: business.id) }
             }
 
@@ -478,7 +478,7 @@ struct EwayBillSheet: View {
     @State var alertMessage = ""
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Transporter Details")) {
                     TextField("Transporter ID (GSTIN/PAN)", text: $transporterId)
@@ -546,7 +546,7 @@ struct EinvoiceSheet: View {
     @State var alertMessage = ""
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Generation Method")) {
                     Toggle("Auto-generate via GSTN API", isOn: $autoGenerate)
@@ -605,7 +605,7 @@ struct GenerateBothSheet: View {
     @State var alertMessage = ""
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("E-Way Bill Details")) {
                     TextField("Transporter ID (GSTIN/PAN)", text: $transporterId)

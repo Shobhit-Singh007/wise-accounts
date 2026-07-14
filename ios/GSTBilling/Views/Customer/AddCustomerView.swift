@@ -36,7 +36,7 @@ struct AddCustomerView: View {
             Section("GST Details") {
                 TextField("GSTIN", text: $gstin)
                     .autocapitalization(.allCharacters)
-                    .onChange(of: gstin) { _ in
+                    .onChange(of: gstin) { _, _ in
                         if !gstin.isEmpty, let err = gstinError {
                             errorMessage = err
                         } else if errorMessage == "Invalid GSTIN format" {

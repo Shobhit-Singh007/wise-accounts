@@ -11,7 +11,7 @@ struct CustomerGroupsView: View {
     @State private var toastMessage: String?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if isLoading && groups.isEmpty {
                     ProgressView("Loading groups...")
@@ -139,7 +139,7 @@ struct AddGroupSheet: View {
     @State private var errorMessage: String?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Group Details") {
                     TextField("Group Name", text: $name)
@@ -206,7 +206,7 @@ struct EditGroupSheet: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Group Details") {
                     TextField("Group Name", text: $name)

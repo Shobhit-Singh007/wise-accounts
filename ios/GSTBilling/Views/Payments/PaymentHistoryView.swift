@@ -17,7 +17,7 @@ struct PaymentHistoryView: View {
                         Text(m.replacingOccurrences(of: "_", with: " ").capitalized).tag(Optional(m))
                     }
                 }
-                .onChange(of: viewModel.selectedMethod) { _ in
+                .onChange(of: viewModel.selectedMethod) { _, _ in
                     Task { await viewModel.loadPayments(businessId: authManager.businessId) }
                 }
             }

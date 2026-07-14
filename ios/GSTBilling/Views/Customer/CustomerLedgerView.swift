@@ -10,6 +10,7 @@ struct CustomerLedgerView: View {
     @State private var showEntrySheet = false
     @State private var entryType = "GAVE"
     @State private var showSmsSheet = false
+    @Environment(\.openURL) private var openURL
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -260,7 +261,7 @@ struct CustomerLedgerView: View {
                 .onTapGesture {
                     let fullUrl = imageUrl.hasPrefix("http") ? imageUrl : Constants.baseURL.replacingOccurrences(of: "/api/v1", with: "") + imageUrl
                     if let url = URL(string: fullUrl) {
-                        UIApplication.shared.open(url)
+                        openURL(url)
                     }
                 }
             }
@@ -381,7 +382,7 @@ struct LedgerEntrySheet: View {
     private let paymentModes = ["CASH", "UPI", "BANK_TRANSFER", "CHEQUE", "OTHER"]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section {
                     HStack {
@@ -553,7 +554,7 @@ struct LedgerSmsSheet: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Send Ledger SMS") {
                     TextField("Phone Number", text: $phone)

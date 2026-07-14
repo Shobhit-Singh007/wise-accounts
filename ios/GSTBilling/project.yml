@@ -1,0 +1,149 @@
+name: GSTBilling
+options:
+  bundleIdPrefix: com.gstbilling
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: false
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    INFOPLIST_FILE: GSTBilling/Resources/Info.plist
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    PRODUCT_BUNDLE_IDENTIFIER: com.gstbilling.app
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ENABLE_MODULES: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+    CONFIGURATION_LIST_FILE: GSTBilling/Project.xcconfig
+  configs:
+    Debug:
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      GCC_PREPROCESSOR_DEFINITIONS: ["DEBUG=1"]
+      OnlyActiveArch: YES
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+      SWIFT_COMPILATION_MODE: wholemodule
+      DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+      VALIDATE_PRODUCT: YES
+      ENABLE_TESTABILITY: NO
+
+settings:
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+    Release:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: RELEASE
+
+targets:
+  GSTBilling:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GSTBilling/App
+        group: App
+      - path: GSTBilling/Navigation
+        group: Navigation
+      - path: GSTBilling/Models
+        group: Models
+      - path: GSTBilling/ViewModels
+        group: ViewModels
+      - path: GSTBilling/Services
+        group: Services
+      - path: GSTBilling/Theme
+        group: Theme
+      - path: GSTBilling/Utilities
+        group: Utilities
+      - path: GSTBilling/Views/Auth
+        group: Views/Auth
+      - path: GSTBilling/Views/Billing
+        group: Views/Billing
+      - path: GSTBilling/Views/Customer
+        group: Views/Customer
+      - path: GSTBilling/Views/Dashboard
+        group: Views/Dashboard
+      - path: GSTBilling/Views/Inventory
+        group: Views/Inventory
+      - path: GSTBilling/Views/Notifications
+        group: Views/Notifications
+      - path: GSTBilling/Views/Payments
+        group: Views/Payments
+      - path: GSTBilling/Views/Reports
+        group: Views/Reports
+      - path: GSTBilling/Views/Settings
+        group: Views/Settings
+      - path: GSTBilling/Views/Staff
+        group: Views/Staff
+      - path: GSTBilling/Views/Sync
+        group: Views/Sync
+    resources:
+      - path: GSTBilling/Resources/Assets.xcassets
+      - path: GSTBilling/Resources/Info.plist
+      - path: GSTBilling/Resources/Base.lproj
+        destination: resources
+      - path: GSTBilling/Resources/hi.lproj
+        destination: resources
+    info:
+      path: GSTBilling/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Wise Accounts
+        CFBundleName: GSTBilling
+        CFBundleIdentifier: com.gstbilling.app
+        CFBundleVersion: "1"
+        CFBundleShortVersionString: "1.0.0"
+        CFBundlePackageType: APPL
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIconName: AppIcon
+        UILaunchStoryboardName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes:
+          - fetch
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.gstbilling.sync
+        NSCameraUsageDescription: "This app uses the camera to scan barcodes and GST QR codes"
+        NSPhotoLibraryUsageDescription: "This app accesses your photo library to upload business logos and product images"
+        NSPhotoLibraryAddUsageDescription: "This app saves invoice and report PDFs to your photo library"
+    settings:
+      base:
+        INFOPLIST_FILE: GSTBilling/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.gstbilling.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        CLANG_ENABLE_MODULES: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+    configs:
+      Debug:
+        SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+        GCC_PREPROCESSOR_DEFINITIONS: ["DEBUG=1"]
+        OnlyActiveArch: YES
+      Release:
+        SWIFT_OPTIMIZATION_LEVEL: "-O"
+        SWIFT_COMPILATION_MODE: wholemodule
+        DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+        VALIDATE_PRODUCT: YES
+        ENABLE_TESTABILITY: NO
+    entitlements:
+      path: GSTBilling/GSTBilling.entitlements
+      properties:
+        com.apple.developer.background-modes:
+          - fetch
+          - processing

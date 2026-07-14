@@ -11,7 +11,7 @@ struct BarcodeScannerView: View {
     var onBarcodeScanned: (String) -> Void
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 if permissionGranted {
                     CameraView(scannedCode: $scannedCode, isScanning: $isScanning)

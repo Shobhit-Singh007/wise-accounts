@@ -8,6 +8,7 @@ struct InvoicePreviewView: View {
     @StateObject private var viewModel = InvoicePreviewViewModel()
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,7 +48,7 @@ struct InvoicePreviewView: View {
 
     private func printInvoice() {
         guard let url = APIService.shared.getInvoicePrintUrl(businessId: authManager.businessId, invoiceId: invoiceId) else { return }
-        UIApplication.shared.open(url)
+        openURL(url)
     }
 
     private func sharePdf() {

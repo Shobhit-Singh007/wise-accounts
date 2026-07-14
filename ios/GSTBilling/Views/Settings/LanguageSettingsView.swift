@@ -5,7 +5,7 @@ struct LanguageSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 ForEach(AppLanguage.allCases) { language in
                     HStack {
