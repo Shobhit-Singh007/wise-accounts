@@ -67,7 +67,7 @@ const plans = [
 function PricingSection() {
   const navigate = useNavigate()
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<string>('')
+  const [, setSelectedPlan] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
