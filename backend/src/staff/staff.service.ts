@@ -79,16 +79,27 @@ export class StaffService {
     const frontendUrl = this.configService.get('FRONTEND_URL', 'https://wiseaccs.com');
     const inviteLink = `${frontendUrl}/staff/accept-invite/${token}`;
 
-    await this.notifications.sendStaffInviteSms(dto.phone, businessName, inviteLink).catch((err) => {
-      this.logger.error(`Failed to send staff invite SMS: ${err.message}`);
-    });
+    const inviter = dto.email ? await this.prisma.user.findUnique({ where: { id: inviterId }, select: { name: true } }) : null;
+
+    try {
+      await this.notifications.sendStaffInviteSms(dto.phone, businessName, inviteLink);
+      this.logger.log(`Staff invite SMS sent to ${dto.phone}: ${inviteLink}`);
+    } catch (err) {
+      this.logger.error(`Failed to send staff invite SMS: ${(err as Error).message}`);
+      this.logger.log(`STAFF INVITE LINK (SMS fallback): ${inviteLink}`);
+    }
 
     if (dto.email) {
-      const inviter = await this.prisma.user.findUnique({ where: { id: inviterId }, select: { name: true } });
-      await this.notifications.sendStaffInviteEmail(dto.email, businessName, inviter?.name || 'Admin', inviteLink).catch((err) => {
-        this.logger.error(`Failed to send staff invite email: ${err.message}`);
-      });
+      try {
+        await this.notifications.sendStaffInviteEmail(dto.email, businessName, inviter?.name || 'Admin', inviteLink);
+        this.logger.log(`Staff invite email sent to ${dto.email}: ${inviteLink}`);
+      } catch (err) {
+        this.logger.error(`Failed to send staff invite email: ${(err as Error).message}`);
+        this.logger.log(`STAFF INVITE LINK (Email fallback): ${inviteLink}`);
+      }
     }
+
+    this.logger.log(`Staff invite created - Phone: ${dto.phone}, Link: ${inviteLink}`);
 
     return {
       invite: {
@@ -102,7 +113,7 @@ export class StaffService {
         expiresAt: invite.expiresAt,
         createdAt: invite.createdAt,
       },
-      message: `Invitation sent to ${dto.phone}. Share the invite link: /staff/accept-invite/${token}`,
+      message: `Invitation sent to ${dto.phone}. Invite link: ${inviteLink}`,
     };
   }
 

@@ -245,22 +245,69 @@ export class NotificationsService {
   }
 
   private async sendSms(phone: string, message: string) {
-    if (!this.snsClient) {
-      this.logger.warn(`SMS not sent (SNS not configured): ${phone} - ${message}`);
+    const msg91AuthKey = this.configService.get<string>('MSG91_AUTH_KEY');
+    const msg91FlowId = this.configService.get<string>('MSG91_FLOW_ID');
+
+    if (msg91AuthKey) {
+      try {
+        const formattedPhone = phone.startsWith('+') ? phone.replace('+', '') : phone.replace(/^0/, '');
+
+        if (msg91FlowId) {
+          const response = await fetch('https://api.msg91.com/api/v5/flow/', {
+            method: 'POST',
+            headers: {
+              'authkey': msg91AuthKey,
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              flow_id: msg91FlowId,
+              sender: this.configService.get('SMS_SENDER_ID', 'WISEACCS'),
+              mobiles: formattedPhone,
+              VAR1: message,
+            }),
+          });
+          const result = await response.json();
+          this.logger.log(`MSG91 SMS (flow) sent to ${phone}: ${JSON.stringify(result)}`);
+        } else {
+          const response = await fetch('https://api.msg91.com/api/v2/sendsms', {
+            method: 'POST',
+            headers: {
+              'authkey': msg91AuthKey,
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              sender: this.configService.get('SMS_SENDER_ID', 'WISEACCS'),
+              to: [formattedPhone],
+              message: message,
+              type: 'text',
+            }),
+          });
+          const result = await response.json();
+          this.logger.log(`MSG91 SMS (direct) sent to ${phone}: ${JSON.stringify(result)}`);
+        }
+      } catch (error) {
+        this.logger.error(`Failed to send SMS via MSG91 to ${phone}: ${(error as Error).message}`);
+      }
       return;
     }
-    try {
-      await this.snsClient.send(new PublishCommand({
-        PhoneNumber: phone,
-        Message: message,
-        MessageAttributes: {
-          'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_PROMOTIONAL_TYPE') || 'Promotional' },
-          'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
-        },
-      }));
-    } catch (error) {
-      this.logger.error(`Failed to send SMS to ${phone}: ${(error as Error).message}`);
+
+    if (this.snsClient) {
+      try {
+        await this.snsClient.send(new PublishCommand({
+          PhoneNumber: phone,
+          Message: message,
+          MessageAttributes: {
+            'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_PROMOTIONAL_TYPE') || 'Promotional' },
+            'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
+          },
+        }));
+      } catch (error) {
+        this.logger.error(`Failed to send SMS via SNS to ${phone}: ${(error as Error).message}`);
+      }
+      return;
     }
+
+    this.logger.warn(`SMS not sent (No provider configured): ${phone} - ${message}`);
   }
 
   private async sendEmail(to: string, subject: string, body: string) {

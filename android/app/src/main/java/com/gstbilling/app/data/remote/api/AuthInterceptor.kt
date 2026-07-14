@@ -56,20 +56,28 @@ class AuthInterceptor @Inject constructor(
                         } else {
                             try {
                                 val refreshResponse = apiServiceProvider.get().refreshToken(RefreshTokenRequest(rt))
-                                val tokenResponse = refreshResponse.body()
+                                val apiResponse = refreshResponse.body()
+                                val tokenResponse = apiResponse?.data
                                 if (refreshResponse.isSuccessful && tokenResponse != null) {
                                     val existingBusinessId = sessionManager.getBusinessId() ?: ""
                                     val existingBusinessName = sessionManager.getBusinessName() ?: ""
-                                    sessionManager.saveAuthData(
-                                        accessToken = tokenResponse.accessToken,
-                                        refreshToken = tokenResponse.refreshToken,
-                                        userId = tokenResponse.user.id,
-                                        businessId = existingBusinessId,
-                                        businessName = existingBusinessName,
-                                        userName = tokenResponse.user.name,
-                                        phone = tokenResponse.user.phone
-                                    )
-                                    tokenResponse.accessToken.also { cachedToken = it }
+                                    val user = tokenResponse.user
+                                    if (user != null && user.id.isNotBlank()) {
+                                        sessionManager.saveAuthData(
+                                            accessToken = tokenResponse.accessToken,
+                                            refreshToken = tokenResponse.refreshToken,
+                                            userId = user.id,
+                                            businessId = existingBusinessId,
+                                            businessName = existingBusinessName,
+                                            userName = user.name,
+                                            phone = user.phone
+                                        )
+                                        tokenResponse.accessToken.also { cachedToken = it }
+                                    } else {
+                                        cachedToken = null
+                                        sessionManager.clearSession()
+                                        null
+                                    }
                                 } else {
                                     cachedToken = null
                                     sessionManager.clearSession()

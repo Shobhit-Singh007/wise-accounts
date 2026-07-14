@@ -17,8 +17,13 @@ class AuthRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.login(LoginRequest(phone = phone, password = password))
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
+                val apiResponse = response.body()
+                val tokenData = apiResponse?.data
+                if (tokenData != null) {
+                    val user = tokenData.user
+                    if (user == null || user.id.isBlank()) {
+                        throw Exception("Login failed: user data not found in response")
+                    }
                     var businessId = ""
                     var businessName = ""
                     try {
@@ -33,16 +38,18 @@ class AuthRepository @Inject constructor(
                     } catch (_: Exception) {}
 
                     sessionManager.saveAuthData(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken,
-                        userId = body.user.id,
+                        accessToken = tokenData.accessToken,
+                        refreshToken = tokenData.refreshToken,
+                        userId = user.id,
                         businessId = businessId,
                         businessName = businessName,
-                        userName = body.user.name,
-                        phone = body.user.phone
+                        userName = user.name,
+                        phone = user.phone
                     )
-                    body
-                } else null
+                    tokenData
+                } else {
+                    throw Exception(apiResponse?.message ?: "Login failed: empty response")
+                }
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Login failed"
                 throw Exception(errorBody)
@@ -61,8 +68,13 @@ class AuthRepository @Inject constructor(
                 RegisterRequest(phone = phone, name = name, email = email, password = password)
             )
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
+                val apiResponse = response.body()
+                val tokenData = apiResponse?.data
+                if (tokenData != null) {
+                    val user = tokenData.user
+                    if (user == null || user.id.isBlank()) {
+                        throw Exception("Registration failed: user data not found in response")
+                    }
                     var businessId = ""
                     var businessName = ""
                     try {
@@ -77,16 +89,18 @@ class AuthRepository @Inject constructor(
                     } catch (_: Exception) {}
 
                     sessionManager.saveAuthData(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken,
-                        userId = body.user.id,
+                        accessToken = tokenData.accessToken,
+                        refreshToken = tokenData.refreshToken,
+                        userId = user.id,
                         businessId = businessId,
                         businessName = businessName,
-                        userName = body.user.name,
-                        phone = body.user.phone
+                        userName = user.name,
+                        phone = user.phone
                     )
-                    body
-                } else null
+                    tokenData
+                } else {
+                    throw Exception(apiResponse?.message ?: "Registration failed: empty response")
+                }
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Registration failed"
                 throw Exception(errorBody)
@@ -106,8 +120,13 @@ class AuthRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.verifyOtp(VerifyOtpRequest(phone = phone, otp = otp))
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
+                val apiResponse = response.body()
+                val tokenData = apiResponse?.data
+                if (tokenData != null) {
+                    val user = tokenData.user
+                    if (user == null || user.id.isBlank()) {
+                        throw Exception("OTP verification failed: user data not found in response")
+                    }
                     var businessId = ""
                     var businessName = ""
                     try {
@@ -122,16 +141,18 @@ class AuthRepository @Inject constructor(
                     } catch (_: Exception) {}
 
                     sessionManager.saveAuthData(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken,
-                        userId = body.user.id,
+                        accessToken = tokenData.accessToken,
+                        refreshToken = tokenData.refreshToken,
+                        userId = user.id,
                         businessId = businessId,
                         businessName = businessName,
-                        userName = body.user.name,
-                        phone = body.user.phone
+                        userName = user.name,
+                        phone = user.phone
                     )
-                    body
-                } else null
+                    tokenData
+                } else {
+                    throw Exception(apiResponse?.message ?: "OTP verification failed: empty response")
+                }
             } else {
                 val errorBody = response.errorBody()?.string() ?: "OTP verification failed"
                 throw Exception(errorBody)
@@ -144,8 +165,13 @@ class AuthRepository @Inject constructor(
             val currentRefreshToken = sessionManager.getRefreshToken() ?: throw Exception("No refresh token")
             val response = apiService.refreshToken(RefreshTokenRequest(refreshToken = currentRefreshToken))
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
+                val apiResponse = response.body()
+                val tokenData = apiResponse?.data
+                if (tokenData != null) {
+                    val user = tokenData.user
+                    if (user == null || user.id.isBlank()) {
+                        throw Exception("Session refresh failed: user data not found in response")
+                    }
                     var businessId = ""
                     var businessName = ""
                     try {
@@ -160,16 +186,18 @@ class AuthRepository @Inject constructor(
                     } catch (_: Exception) {}
 
                     sessionManager.saveAuthData(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken,
-                        userId = body.user.id,
+                        accessToken = tokenData.accessToken,
+                        refreshToken = tokenData.refreshToken,
+                        userId = user.id,
                         businessId = businessId,
                         businessName = businessName,
-                        userName = body.user.name,
-                        phone = body.user.phone
+                        userName = user.name,
+                        phone = user.phone
                     )
-                    body
-                } else null
+                    tokenData
+                } else {
+                    throw Exception(apiResponse?.message ?: "Session refresh failed: empty response")
+                }
             } else {
                 sessionManager.clearSession()
                 throw Exception("Session expired")

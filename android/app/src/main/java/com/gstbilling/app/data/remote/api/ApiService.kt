@@ -9,19 +9,19 @@ interface ApiService {
 
     // ── Auth ──
     @POST("auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<TokenResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<ApiResponse<TokenResponse>>
 
     @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<TokenResponse>
+    suspend fun login(@Body request: LoginRequest): Response<ApiResponse<TokenResponse>>
 
     @POST("auth/refresh")
-    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<TokenResponse>
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<ApiResponse<TokenResponse>>
 
     @POST("auth/send-otp")
     suspend fun sendOtp(@Body request: SendOtpRequest): Response<ApiResponse<Map<String, Any>>>
 
     @POST("auth/verify-otp")
-    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<TokenResponse>
+    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<ApiResponse<TokenResponse>>
 
     // ── Businesses ──
     @GET("businesses")
