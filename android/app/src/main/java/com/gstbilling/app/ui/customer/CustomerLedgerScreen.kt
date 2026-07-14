@@ -36,6 +36,8 @@ import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -93,6 +95,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     }
                 }
                 is AppResult.Error -> snackbarMessage = result.message
+                is AppResult.Loading -> {}
             }
         }
     }
@@ -123,6 +126,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     }
                 }
                 is AppResult.Error -> snackbarMessage = result.message
+                is AppResult.Loading -> {}
             }
         }
     }
@@ -148,6 +152,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     smsPhone = result.data?.customer?.phone ?: ""
                 }
                 is AppResult.Error -> errorMessage = result.message
+                is AppResult.Loading -> {}
             }
             isLoading = false
         }
@@ -182,6 +187,7 @@ class CustomerLedgerViewModel @Inject constructor(
                         isSaving = false
                         return@launch
                     }
+                    is AppResult.Loading -> {}
                 }
             }
             val request = CreateLedgerEntryRequest(
@@ -200,6 +206,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     loadLedger(customerId)
                 }
                 is AppResult.Error -> snackbarMessage = result.message
+                is AppResult.Loading -> {}
             }
             isSaving = false
         }
@@ -213,6 +220,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     loadLedger(customerId)
                 }
                 is AppResult.Error -> snackbarMessage = result.message
+                is AppResult.Loading -> {}
             }
         }
     }
@@ -239,6 +247,7 @@ class CustomerLedgerViewModel @Inject constructor(
                     snackbarMessage = "SMS sent to ${result.data?.phone}"
                 }
                 is AppResult.Error -> snackbarMessage = result.message
+                is AppResult.Loading -> {}
             }
             isSendingSms = false
         }

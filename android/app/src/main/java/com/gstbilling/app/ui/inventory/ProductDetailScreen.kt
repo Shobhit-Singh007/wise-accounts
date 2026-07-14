@@ -175,7 +175,7 @@ fun ProductDetailScreen(
                             DetailRow(icon = Icons.Default.Code, label = "HSN Code", value = p.hsnCode ?: "N/A")
                             DetailRow(icon = Icons.Default.Scale, label = "Unit", value = p.unit ?: "N/A")
                             if (p.sku != null) {
-                                DetailRow(icon = Icons.Default.Barcode, label = "Barcode", value = p.sku!!)
+                                DetailRow(icon = Icons.Default.QrCode, label = "Barcode", value = p.sku!!)
                             }
                         }
                     }
@@ -220,6 +220,7 @@ fun ProductDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             HorizontalDivider()
+                            val isLow = p.lowStockAlert != null && p.stock <= p.lowStockAlert!!
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -235,7 +236,6 @@ fun ProductDetailScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Current Stock", style = MaterialTheme.typography.bodyMedium)
                                 }
-                                val isLow = p.lowStockAlert != null && p.stock <= p.lowStockAlert!!
                                 Text(
                                     "${p.stock} ${p.unit ?: ""}",
                                     style = MaterialTheme.typography.titleMedium,

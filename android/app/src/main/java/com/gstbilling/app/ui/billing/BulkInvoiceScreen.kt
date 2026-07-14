@@ -90,7 +90,7 @@ class BulkInvoiceViewModel @Inject constructor(
                 apiService.createBulkInvoices(businessId.toString(), request)
             }) {
                 is AppResult.Success -> {
-                    result = result2.data?.data
+                    result = result2.data?.body()?.data
                 }
                 is AppResult.Error -> {
                     errorMessage = result2.message

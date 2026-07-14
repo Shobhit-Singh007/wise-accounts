@@ -281,7 +281,7 @@ fun StockTransferScreen(
                 value = viewModel.quantity,
                 onValueChange = { viewModel.quantity = it },
                 label = { Text("Quantity *") },
-                leadingIcon = { Icon(Icons.Default.Number, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Default.Numbers, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()

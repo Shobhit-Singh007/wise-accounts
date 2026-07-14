@@ -185,11 +185,11 @@ private fun CameraPreview(
                                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                                 val scanner = BarcodeScanning.getClient()
                                 scanner.process(image)
-                                    .addOnSuccessListener { barcodes ->
+                                    .addOnSuccessListener { barcodes: MutableList<Barcode> ->
                                         for (barcode in barcodes) {
                                             barcode.rawValue?.let { value ->
                                                 onBarcodeDetected(value)
-                                                break
+                                                return@addOnSuccessListener
                                             }
                                         }
                                     }

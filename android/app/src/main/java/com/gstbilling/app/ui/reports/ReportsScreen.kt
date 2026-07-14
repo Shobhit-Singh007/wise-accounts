@@ -570,7 +570,7 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "₹${String.format("%.2f", entry.invoiceValue.ifEmpty { entry.grandTotal })}",
+                                "₹${String.format("%.2f", if (entry.invoiceValue != 0.0) entry.invoiceValue else entry.grandTotal)}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -879,7 +879,7 @@ fun Gstr3bReportDetail(report: Gstr3bReport?) {
             item {
                 Gstr3bLabeledTable(
                     headers = listOf("Label", "Taxable", "IGST", "CGST", "SGST"),
-                    rows = report.exemptNilNonGst
+                    rows = report.exemptNilNonGst.map { Gstr3bLabeledSupply(it.label, it.taxableValue, it.igst, it.cgst, it.sgst, it.cess) }
                 )
             }
         }

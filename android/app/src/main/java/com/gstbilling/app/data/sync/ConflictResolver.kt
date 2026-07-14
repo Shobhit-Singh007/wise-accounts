@@ -76,7 +76,7 @@ class ConflictResolver(private val defaultStrategy: ConflictStrategy = ConflictS
 
         for (key in allKeys) {
             val localValue = entity.localData[key]
-            val serverValue = entity.serverData?.get[key]
+            val serverValue = entity.serverData?.get(key)
             merged[key] = when {
                 localValue == serverValue -> localValue
                 localValue != null && serverValue == null -> localValue

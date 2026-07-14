@@ -320,7 +320,7 @@ fun ProductReportScreen(
 }
 
 @Composable
-private fun DateRangeHeader(
+internal fun DateRangeHeader(
     startDate: String?,
     endDate: String?,
     onStartClick: () -> Unit,

@@ -64,7 +64,7 @@ class PaymentHistoryViewModel @Inject constructor(
                 )
             }) {
                 is AppResult.Success -> {
-                    val allPayments = result.data?.data ?: emptyList()
+                    val allPayments = result.data?.body()?.data ?: emptyList()
                     payments = if (filterMethod.isNotBlank()) {
                         allPayments.filter { it.mode.equals(filterMethod, ignoreCase = true) }
                     } else {
@@ -78,6 +78,10 @@ class PaymentHistoryViewModel @Inject constructor(
             }
             isLoading = false
         }
+    }
+
+    fun clearErrorMessage() {
+        errorMessage = null
     }
 
     fun clearFilters() {
@@ -275,7 +279,7 @@ fun PaymentHistoryScreen(
                 Snackbar(
                     modifier = Modifier.padding(16.dp),
                     action = {
-                        TextButton(onClick = { viewModel.errorMessage = null }) {
+                        TextButton(onClick = { viewModel.clearErrorMessage() }) {
                             Text("Dismiss")
                         }
                     }

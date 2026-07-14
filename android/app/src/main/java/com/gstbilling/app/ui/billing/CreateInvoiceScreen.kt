@@ -94,7 +94,7 @@ class CreateInvoiceViewModel @Inject constructor(
         customerSearchJob = viewModelScope.launch {
             isSearchingCustomers = true
             try {
-                val businessId = sessionManager.getBusinessId()?.toLongOrNull() ?: return@launch
+                val businessId = sessionManager.getBusinessId() ?: return@launch
                 when (val result = invoiceRepository.searchCustomers(businessId, query)) {
                     is AppResult.Success -> customerSearchResults = result.data ?: emptyList()
                     is AppResult.Error -> customerSearchResults = emptyList()
@@ -137,7 +137,7 @@ class CreateInvoiceViewModel @Inject constructor(
         productSearchJobs[lineIndex] = viewModelScope.launch {
             isSearchingProducts = true
             try {
-                val businessId = sessionManager.getBusinessId()?.toLongOrNull() ?: return@launch
+                val businessId = sessionManager.getBusinessId() ?: return@launch
                 when (val result = invoiceRepository.searchProducts(businessId, query)) {
                     is AppResult.Success -> productSearchResults = result.data ?: emptyList()
                     is AppResult.Error -> productSearchResults = emptyList()

@@ -49,7 +49,7 @@ class InvoicePreviewViewModel @Inject constructor(
                 apiService.getInvoicePrintHtml(businessId.toString(), invoiceId.toString())
             }) {
                 is AppResult.Success -> {
-                    printHtml = result.data?.data?.html
+                    printHtml = result.data?.body()?.data?.html
                 }
                 is AppResult.Error -> {
                     errorMessage = result.message

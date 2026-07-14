@@ -84,7 +84,7 @@ class RecordPaymentViewModel @Inject constructor(
                     )
                 }) {
                     is AppResult.Success -> {
-                        upiLink = result.data?.data?.upi_link
+                        upiLink = result.data?.body()?.data?.upi_link
                     }
                     is AppResult.Error -> {
                         errorMessage = result.message
@@ -134,7 +134,7 @@ class RecordPaymentViewModel @Inject constructor(
                 )
             }) {
                 is AppResult.Success -> {
-                    upiLink = result.data?.data?.upi_link
+                    upiLink = result.data?.body()?.data?.upi_link
                 }
                 is AppResult.Error -> {
                     errorMessage = result.message

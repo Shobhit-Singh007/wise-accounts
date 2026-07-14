@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -367,9 +368,9 @@ private fun NotificationItem(
 
 @Composable
 private fun NotificationTypeIcon(type: String) {
-    val (icon, color) = when (type) {
+    val pair: Pair<ImageVector, Color> = when (type) {
         "payment_received" -> Icons.Default.Payment to Color(0xFF2E7D32)
-        "payment_reminder" -> Icons.Default.Reminder to MaterialTheme.colorScheme.primary
+        "payment_reminder" -> Icons.Default.Notifications to MaterialTheme.colorScheme.primary
         "low_stock" -> Icons.Default.Warning to Color(0xFFF57C00)
         "invoice_created" -> Icons.Default.Receipt to MaterialTheme.colorScheme.primary
         "invoice_overdue" -> Icons.Default.Error to MaterialTheme.colorScheme.error
@@ -378,6 +379,8 @@ private fun NotificationTypeIcon(type: String) {
         "system" -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
         else -> Icons.Default.Notifications to MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val icon = pair.first
+    val color = pair.second
 
     Surface(
         color = color.copy(alpha = 0.12f),

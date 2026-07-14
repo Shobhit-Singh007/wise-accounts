@@ -58,7 +58,7 @@ class PaymentCollectionViewModel @Inject constructor(
                 )
             }) {
                 is AppResult.Success -> {
-                    payments = result.data?.data ?: emptyList()
+                    payments = result.data?.body()?.data ?: emptyList()
                 }
                 is AppResult.Error -> {
                     errorMessage = result.message
@@ -67,6 +67,10 @@ class PaymentCollectionViewModel @Inject constructor(
             }
             isLoading = false
         }
+    }
+
+    fun clearErrorMessage() {
+        errorMessage = null
     }
 
     fun clearFilters() {
@@ -174,7 +178,7 @@ fun PaymentCollectionScreen(
                 Snackbar(
                     modifier = Modifier.padding(16.dp),
                     action = {
-                        TextButton(onClick = { viewModel.errorMessage = null }) {
+                        TextButton(onClick = { viewModel.clearErrorMessage() }) {
                             Text("Dismiss")
                         }
                     }

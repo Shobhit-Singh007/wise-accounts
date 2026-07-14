@@ -271,7 +271,7 @@ fun EditPermissionsScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = "${selectedPermissions.size} permissions selected",
+                                    text = "${viewModel.selectedPermissions.size} permissions selected",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
@@ -307,8 +307,8 @@ fun EditPermissionsScreen(
 
                     // Permission groups
                     PERMISSION_GROUPS.forEach { (group, permissions) ->
-                        val allSelected = permissions.all { it in selectedPermissions }
-                        val someSelected = permissions.any { it in selectedPermissions }
+                        val allSelected = permissions.all { it in viewModel.selectedPermissions }
+                        val someSelected = permissions.any { it in viewModel.selectedPermissions }
 
                         Card(
                             modifier = Modifier
@@ -334,7 +334,7 @@ fun EditPermissionsScreen(
                                     )
                                     if (someSelected && !allSelected) {
                                         Text(
-                                            text = "${permissions.count { it in selectedPermissions }}/${permissions.size}",
+                                            text = "${permissions.count { it in viewModel.selectedPermissions }}/${permissions.size}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -346,11 +346,11 @@ fun EditPermissionsScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(start = 36.dp, end = 12.dp, vertical = 2.dp),
+                                            .padding(start = 36.dp, top = 2.dp, end = 12.dp, bottom = 2.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Checkbox(
-                                            checked = permission in selectedPermissions,
+                                            checked = permission in viewModel.selectedPermissions,
                                             onCheckedChange = { viewModel.togglePermission(permission) }
                                         )
                                         Text(

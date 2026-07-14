@@ -44,6 +44,7 @@ class InvoiceShareViewModel @Inject constructor(
         private set
     var shareSuccess by mutableStateOf(false)
         private set
+    fun resetShareSuccess() { shareSuccess = false }
     var selectedMethod by mutableStateOf("SMS")
     var recipient by mutableStateOf("")
     var customMessage by mutableStateOf("")
@@ -54,7 +55,7 @@ class InvoiceShareViewModel @Inject constructor(
             val businessId = sessionManager.getBusinessId() ?: return@launch
             when (val result = safeApiCall { apiService.getInvoice(invoiceId) }) {
                 is AppResult.Success -> {
-                    invoice = result.data?.data
+                    invoice = result.data?.body()?.data
                 }
                 is AppResult.Error -> {
                     errorMessage = result.message
@@ -129,7 +130,7 @@ fun InvoiceShareScreen(
     LaunchedEffect(viewModel.shareSuccess) {
         if (viewModel.shareSuccess) {
             snackbarHostState.showSnackbar("Invoice shared successfully")
-            viewModel.shareSuccess = false
+            viewModel.resetShareSuccess()
             onBack()
         }
     }

@@ -43,6 +43,7 @@ class InvoiceDetailViewModel @Inject constructor(
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
+    fun clearErrorMessage() { errorMessage = null }
     var showEwayBillSheet by mutableStateOf(false)
     var showEinvoiceSheet by mutableStateOf(false)
     var showGenerateBothSheet by mutableStateOf(false)
@@ -84,6 +85,7 @@ class InvoiceDetailViewModel @Inject constructor(
             when (result) {
                 is AppResult.Success -> { invoice = result.data }
                 is AppResult.Error -> { errorMessage = result.message }
+                is AppResult.Loading -> {}
             }
             isLoading = false
         }
@@ -353,7 +355,7 @@ fun InvoiceDetailScreen(
                             modifier = Modifier.weight(1f),
                             enabled = !hasEwayBill
                         ) {
-                            Icon(Icons.Default.Truck, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.LocalShipping, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(if (hasEwayBill) "Generated" else "E-Way Bill", style = MaterialTheme.typography.labelMedium)
                         }
@@ -433,30 +435,30 @@ fun InvoiceDetailScreen(
 
         if (viewModel.showGenerateBothSheet) {
             GenerateBothSheet(
-                invoice = invoice,
+                invoice = invoice!!,
                 onDismiss = { viewModel.showGenerateBothSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateBoth(invoice.business_id, invoice.id, request)
+                    viewModel.generateBoth(invoice!!.business_id, invoice!!.id, request)
                 }
             )
         }
 
         if (viewModel.showEwayBillSheet) {
             EwayBillSheet(
-                invoice = invoice,
+                invoice = invoice!!,
                 onDismiss = { viewModel.showEwayBillSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateEwayBill(invoice.business_id, invoice.id, request)
+                    viewModel.generateEwayBill(invoice!!.business_id, invoice!!.id, request)
                 }
             )
         }
 
         if (viewModel.showEinvoiceSheet) {
             EinvoiceSheet(
-                invoice = invoice,
+                invoice = invoice!!,
                 onDismiss = { viewModel.showEinvoiceSheet = false },
                 onGenerate = { request ->
-                    viewModel.generateEinvoice(invoice.business_id, invoice.id, request)
+                    viewModel.generateEinvoice(invoice!!.business_id, invoice!!.id, request)
                 }
             )
         }
@@ -465,7 +467,7 @@ fun InvoiceDetailScreen(
             Snackbar(
                 modifier = Modifier.padding(16.dp),
                 action = {
-                    TextButton(onClick = { viewModel.errorMessage = null }) {
+                    TextButton(onClick = { viewModel.clearErrorMessage() }) {
                         Text("Dismiss")
                     }
                 }

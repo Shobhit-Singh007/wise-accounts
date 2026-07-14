@@ -161,9 +161,9 @@ class InvoiceRepository @Inject constructor(
                 val type = object : TypeToken<List<InvoiceItemRequest>>() {}.type
                 val items: List<InvoiceItemRequest> = gson.fromJson(invoice.itemsJson, type) ?: emptyList()
                 val request = CreateInvoiceRequest(
-                    customerId = invoice.customerId,
-                    invoiceDate = invoice.invoiceDate,
-                    dueDate = invoice.dueDate,
+                    customer_id = invoice.customerId,
+                    invoice_date = invoice.invoiceDate,
+                    due_date = invoice.dueDate,
                     items = items,
                     discount = invoice.discount,
                     notes = invoice.notes

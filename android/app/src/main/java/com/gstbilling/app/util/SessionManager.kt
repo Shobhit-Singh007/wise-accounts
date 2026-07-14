@@ -37,12 +37,12 @@ class SessionManager @Inject constructor(
     )
 
     private data class Key(
-        val USER_ID = longPreferencesKey("user_id"),
-        val BUSINESS_ID = longPreferencesKey("business_id"),
-        val BUSINESS_NAME = stringPreferencesKey("business_name"),
-        val USER_NAME = stringPreferencesKey("user_name"),
-        val USER_PHONE = stringPreferencesKey("user_phone"),
-        val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in"),
+        val USER_ID: Preferences.Key<Long> = longPreferencesKey("user_id"),
+        val BUSINESS_ID: Preferences.Key<Long> = longPreferencesKey("business_id"),
+        val BUSINESS_NAME: Preferences.Key<String> = stringPreferencesKey("business_name"),
+        val USER_NAME: Preferences.Key<String> = stringPreferencesKey("user_name"),
+        val USER_PHONE: Preferences.Key<String> = stringPreferencesKey("user_phone"),
+        val IS_LOGGED_IN: Preferences.Key<Boolean> = booleanPreferencesKey("is_logged_in"),
     )
 
     private val Key = Key()

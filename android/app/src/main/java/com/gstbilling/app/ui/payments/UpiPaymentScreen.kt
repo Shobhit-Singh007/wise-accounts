@@ -70,7 +70,7 @@ class UpiPaymentViewModel @Inject constructor(
                 )
             }) {
                 is AppResult.Success -> {
-                    val link = result.data?.data?.upi_link
+                    val link = result.data?.body()?.data?.upi_link
                     upiLink = link
                     link?.let { generateQrCode(it) }
                 }
@@ -234,9 +234,8 @@ fun UpiPaymentScreen(
                             OutlinedButton(
                                 onClick = {
                                     val clip = ClipData.newPlainText("UPI Link", link)
-                                    context.getSystemService(Context.CLIPBOARD_SERVICE as ClipboardManager)?.let {
-                                        (it as ClipboardManager).setPrimaryClip(clip)
-                                    }
+                                    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                    clipboardManager?.setPrimaryClip(clip)
                                     Toast.makeText(context, "UPI link copied", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f)

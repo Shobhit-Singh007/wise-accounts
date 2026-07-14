@@ -198,7 +198,8 @@ fun NavGraph(
                 productId = productId,
                 onBack = { navController.popBackStack() },
                 onEdit = { navController.navigate(Routes.editProduct(productId)) },
-                onAdjustStock = { navController.navigate(Routes.stockAdjust(productId)) }
+                onAdjustStock = { navController.navigate(Routes.stockAdjust(productId)) },
+                onViewStockBatches = { /* TODO: Navigate to stock batches */ }
             )
         }
 
@@ -227,7 +228,8 @@ fun NavGraph(
 
         composable(Routes.LOW_STOCK_ALERTS) {
             LowStockAlertsScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onProductClick = { productId -> navController.navigate(Routes.productDetail(productId)) }
             )
         }
 
@@ -300,7 +302,8 @@ fun NavGraph(
             val invoiceId = backStackEntry.arguments?.getLong("invoiceId") ?: 0L
             InvoicePreviewScreen(
                 invoiceId = invoiceId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onShare = { /* TODO: Share invoice */ }
             )
         }
 
@@ -410,7 +413,9 @@ fun NavGraph(
 
         composable(Routes.UPI_PAYMENT) {
             UpiPaymentScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                initialAmount = null,
+                initialDescription = null
             )
         }
 

@@ -43,36 +43,42 @@ class AuthInterceptor @Inject constructor(
 
         if (response.code == 401) {
             response.close()
-            val newToken = runBlocking {
-                mutex.withLock {
+            val newToken: String? = runBlocking {
+                mutex.lock()
+                try {
                     if (cachedToken != token) {
-                        return@withLock cachedToken
-                    }
-                    val refreshToken = sessionManager.getRefreshToken() ?: return@withLock null
-                    try {
-                        val refreshResponse = apiServiceProvider.get().refreshToken(RefreshTokenRequest(refreshToken))
-                        if (refreshResponse.isSuccessful) {
-                            val body = refreshResponse.body()?.data
-                            if (body != null) {
-                                sessionManager.saveAuthData(
-                                    accessToken = body.access_token,
-                                    refreshToken = body.refresh_token,
-                                    userId = body.user.id,
-                                    businessId = body.user.business_id,
-                                    businessName = body.user.business_name,
-                                    userName = body.user.name,
-                                    phone = body.user.phone
-                                )
-                                body.access_token.also { cachedToken = it }
-                            } else null
-                        } else {
-                            cachedToken = null
-                            sessionManager.clearSession()
+                        cachedToken
+                    } else {
+                        val rt = sessionManager.getRefreshToken()
+                        if (rt == null) {
                             null
+                        } else {
+                            try {
+                                val refreshResponse = apiServiceProvider.get().refreshToken(RefreshTokenRequest(rt))
+                                val tokenResponse = refreshResponse.body()
+                                if (refreshResponse.isSuccessful && tokenResponse != null) {
+                                    sessionManager.saveAuthData(
+                                        accessToken = tokenResponse.access_token,
+                                        refreshToken = tokenResponse.refresh_token,
+                                        userId = tokenResponse.user.id,
+                                        businessId = tokenResponse.user.business_id,
+                                        businessName = tokenResponse.user.business_name,
+                                        userName = tokenResponse.user.name,
+                                        phone = tokenResponse.user.phone
+                                    )
+                                    tokenResponse.access_token.also { cachedToken = it }
+                                } else {
+                                    cachedToken = null
+                                    sessionManager.clearSession()
+                                    null
+                                }
+                            } catch (_: Exception) {
+                                null
+                            }
                         }
-                    } catch (_: Exception) {
-                        null
                     }
+                } finally {
+                    mutex.unlock()
                 }
             }
 
