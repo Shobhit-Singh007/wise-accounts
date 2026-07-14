@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { InviteStaffDto } from './dto/invite-staff.dto';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
 import { ROLE_PRESETS, ALL_PERMISSIONS } from './permissions';
@@ -8,7 +10,13 @@ import { randomBytes } from 'crypto';
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(StaffService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async invite(businessId: string, inviterId: string, dto: InviteStaffDto) {
     const membership = await this.prisma.userBusiness.findUnique({
@@ -51,6 +59,9 @@ export class StaffService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    const business = await this.prisma.business.findUnique({ where: { id: businessId }, select: { name: true } });
+    const businessName = business?.name || 'the business';
+
     const invite = await this.prisma.staffInvite.create({
       data: {
         businessId,
@@ -64,6 +75,20 @@ export class StaffService {
         expiresAt,
       },
     });
+
+    const frontendUrl = this.configService.get('FRONTEND_URL', 'https://wiseaccs.com');
+    const inviteLink = `${frontendUrl}/staff/accept-invite/${token}`;
+
+    await this.notifications.sendStaffInviteSms(dto.phone, businessName, inviteLink).catch((err) => {
+      this.logger.error(`Failed to send staff invite SMS: ${err.message}`);
+    });
+
+    if (dto.email) {
+      const inviter = await this.prisma.user.findUnique({ where: { id: inviterId }, select: { name: true } });
+      await this.notifications.sendStaffInviteEmail(dto.email, businessName, inviter?.name || 'Admin', inviteLink).catch((err) => {
+        this.logger.error(`Failed to send staff invite email: ${err.message}`);
+      });
+    }
 
     return {
       invite: {

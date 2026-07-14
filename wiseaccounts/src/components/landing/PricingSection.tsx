@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
@@ -7,6 +9,12 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import CheckIcon from '@mui/icons-material/Check'
 import Stack from '@mui/material/Stack'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
 
 const plans = [
   {
@@ -57,6 +65,77 @@ const plans = [
 ]
 
 function PricingSection() {
+  const navigate = useNavigate()
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handlePlanClick = (planName: string) => {
+    if (planName === 'Enterprise') {
+      navigate('/contact')
+    } else if (planName === 'Free') {
+      window.location.href = '/admin/register'
+    } else if (planName === 'Business') {
+      setSelectedPlan(planName)
+      setCheckoutOpen(true)
+    }
+  }
+
+  const handleCheckout = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://wiseaccs.com/api/v1'}/subscriptions/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'business' }),
+      })
+      const data = await response.json()
+      if (!data.order_id) {
+        throw new Error(data.message || 'Failed to create order')
+      }
+
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        name: 'Wise Accounts',
+        description: 'Business Plan - Monthly Subscription',
+        order_id: data.order_id,
+        handler: async (response: any) => {
+          try {
+            await fetch(`${import.meta.env.VITE_API_URL || 'https://wiseaccs.com/api/v1'}/subscriptions/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: 'business',
+              }),
+            })
+            window.location.href = '/admin/register?plan=business&payment=success'
+          } catch {
+            window.location.href = '/admin/register?plan=business&payment=pending'
+          }
+        },
+        prefill: { contact: '', email: '' },
+        theme: { color: '#1565C0' },
+      }
+
+      const razorpay = new (window as any).Razorpay(options)
+      razorpay.on('payment.failed', () => {
+        setError('Payment failed. Please try again.')
+        setLoading(false)
+      })
+      razorpay.open()
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong')
+      setLoading(false)
+    }
+  }
+
   return (
     <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: 'background.default' }}>
       <Container maxWidth="lg">
@@ -151,6 +230,8 @@ function PricingSection() {
                   variant={plan.popular ? 'contained' : 'outlined'}
                   fullWidth
                   size="large"
+                  onClick={() => handlePlanClick(plan.name)}
+                  disabled={loading}
                   sx={{ py: 1.5 }}
                 >
                   {plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}
@@ -160,6 +241,25 @@ function PricingSection() {
           ))}
         </Box>
       </Container>
+
+      <Dialog open={checkoutOpen} onClose={() => { setCheckoutOpen(false); setError(''); }} maxWidth="sm" fullWidth>
+        <DialogTitle>Subscribe to Business Plan</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            You'll be charged ₹499/month for the Business plan. You can cancel anytime.
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Typography variant="body2" color="text.secondary">
+            Click "Pay ₹499" to proceed with Razorpay checkout.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => { setCheckoutOpen(false); setError(''); }} disabled={loading}>Cancel</Button>
+          <Button variant="contained" onClick={handleCheckout} disabled={loading} startIcon={loading ? <CircularProgress size={16} /> : null}>
+            {loading ? 'Processing...' : 'Pay ₹499'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

@@ -3,8 +3,10 @@ import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
+import { useNavigate } from 'react-router-dom'
 
 function HeroSection() {
+  const navigate = useNavigate()
   return (
     <Box
       sx={{
@@ -77,6 +79,7 @@ function HeroSection() {
               <Button
                 variant="contained"
                 size="large"
+                onClick={() => window.location.href = '/admin/register'}
                 sx={{
                   backgroundColor: '#fff',
                   color: 'primary.main',
@@ -94,6 +97,7 @@ function HeroSection() {
               <Button
                 variant="outlined"
                 size="large"
+                onClick={() => navigate('/features')}
                 sx={{
                   borderColor: '#fff',
                   color: '#fff',

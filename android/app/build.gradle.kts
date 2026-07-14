@@ -76,15 +76,8 @@ android {
     }
 }
 
-configurations.configureEach {
-    resolutionStrategy {
-        force("androidx.core:core:1.12.0")
-        force("androidx.core:core-ktx:1.12.0")
-    }
-}
-
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -133,7 +126,6 @@ dependencies {
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material:material")
 
     implementation("org.apache.poi:poi:5.2.5")
     implementation("org.apache.poi:poi-ooxml:5.2.5")

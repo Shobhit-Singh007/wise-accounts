@@ -156,6 +156,19 @@ export class NotificationsService {
     });
   }
 
+  async sendStaffInviteSms(phone: string, businessName: string, inviteLink: string) {
+    const msg = `You've been invited to join ${businessName} on Wise Accounts! Accept here: ${inviteLink}`;
+    await this.sendSms(phone, msg);
+    this.logger.log(`Staff invite SMS sent to ${phone}`);
+  }
+
+  async sendStaffInviteEmail(email: string, businessName: string, inviterName: string, inviteLink: string) {
+    const subject = `Invitation to join ${businessName} on Wise Accounts`;
+    const body = `${inviterName} has invited you to join ${businessName} as a team member on Wise Accounts.\n\nAccept the invitation here: ${inviteLink}\n\nThis invitation expires in 7 days.`;
+    await this.sendEmail(email, subject, body);
+    this.logger.log(`Staff invite email sent to ${email}`);
+  }
+
   async createInAppNotification(businessId: string, userId: string | null, dto: { type: string; title: string; message: string; data?: any }) {
     const notification = await this.prisma.notification.create({
       data: {
