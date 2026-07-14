@@ -5,12 +5,15 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { PrismaService } from '../prisma/prisma.service';
 import { DynamoDBService } from '../aws/dynamo-db.service';
+import { Twilio } from 'twilio';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private snsClient: SNSClient | null = null;
   private sesClient: SESClient | null = null;
+  private twilioClient: Twilio | null = null;
+  private twilioFromNumber: string | null = null;
 
   constructor(
     private prisma: PrismaService,
@@ -21,6 +24,15 @@ export class NotificationsService {
     if (this.configService.get<string>('AWS_ACCESS_KEY_ID')) {
       this.snsClient = new SNSClient({ region });
       this.sesClient = new SESClient({ region });
+    }
+
+    // Initialize Twilio if configured
+    const twilioSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+    const twilioToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    this.twilioFromNumber = this.configService.get<string>('TWILIO_FROM_NUMBER') ?? null;
+    if (twilioSid && twilioToken && this.twilioFromNumber) {
+      this.twilioClient = new Twilio(twilioSid, twilioToken);
+      this.logger.log('Twilio SMS client initialized');
     }
   }
 
@@ -244,7 +256,24 @@ export class NotificationsService {
     return { message: 'Notification deleted' };
   }
 
-  private async sendSms(phone: string, message: string) {
+  async sendSms(phone: string, message: string) {
+    // Try Twilio first (if configured)
+    if (this.twilioClient && this.twilioFromNumber) {
+      try {
+        const formattedPhone = phone.startsWith('+') ? phone : phone.startsWith('91') ? `+${phone}` : `+91${phone.replace(/^0/, '')}`;
+        const result = await this.twilioClient.messages.create({
+          body: message,
+          from: this.twilioFromNumber,
+          to: formattedPhone,
+        });
+        this.logger.log(`Twilio SMS sent to ${phone}: ${result.sid}`);
+        return;
+      } catch (error) {
+        this.logger.error(`Failed to send SMS via Twilio to ${phone}: ${(error as Error).message}`);
+      }
+    }
+
+    // Try MSG91 next
     const msg91AuthKey = this.configService.get<string>('MSG91_AUTH_KEY');
     const msg91FlowId = this.configService.get<string>('MSG91_FLOW_ID');
 
@@ -285,12 +314,13 @@ export class NotificationsService {
           const result = await response.json();
           this.logger.log(`MSG91 SMS (direct) sent to ${phone}: ${JSON.stringify(result)}`);
         }
+        return;
       } catch (error) {
         this.logger.error(`Failed to send SMS via MSG91 to ${phone}: ${(error as Error).message}`);
       }
-      return;
     }
 
+    // Fallback to AWS SNS
     if (this.snsClient) {
       try {
         await this.snsClient.send(new PublishCommand({

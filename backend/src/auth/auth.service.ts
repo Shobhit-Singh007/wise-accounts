@@ -6,18 +6,21 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { DynamoDBService } from '../aws/dynamo-db.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly otpStore = new Map<string, { otp: string; expiresAt: Date }>();
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
     private dynamoDB: DynamoDBService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -130,38 +133,30 @@ export class AuthService {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.dynamoDB.setCached(`otp:${phone}`, { otp, expiresAt: expiresAt.toISOString() }, 600);
+    this.otpStore.set(phone, { otp, expiresAt });
 
     if (this.configService.get('NODE_ENV') !== 'production') {
       this.logger.log(`OTP for ${phone}: ${otp}`);
     }
 
     try {
-      const { SNSClient, PublishCommand } = await import('@aws-sdk/client-sns');
-      const sns = new SNSClient({ region: this.configService.get('AWS_REGION') || 'ap-south-1' });
-      await sns.send(new PublishCommand({
-        PhoneNumber: phone,
-        Message: `Your Wise Accounts verification code is: ${otp}. Valid for 10 minutes.`,
-        MessageAttributes: {
-          'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_TRANSACTIONAL_TYPE') || 'Transactional' },
-          'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
-        },
-      }));
+      await this.notificationsService.sendSms(phone, `Your Wise Accounts verification code is: ${otp}. Valid for 10 minutes.`);
     } catch (err) {
-      this.logger.error(`SNS OTP failed for ${phone}: ${(err as Error).message}`);
+      this.logger.error(`SMS OTP failed for ${phone}: ${(err as Error).message}`);
     }
 
     return { success: true, message: 'OTP sent successfully', expiresIn: 600 };
   }
 
   async verifyOtp(phone: string, otp: string) {
-    const cached = await this.dynamoDB.getCached<{ otp: string; expiresAt: string }>(`otp:${phone}`);
+    const cached = this.otpStore.get(phone);
 
     if (!cached) {
       throw new BadRequestException('OTP expired or not found. Please request a new OTP.');
     }
 
-    if (new Date(cached.expiresAt) < new Date()) {
+    if (cached.expiresAt < new Date()) {
+      this.otpStore.delete(phone);
       throw new BadRequestException('OTP expired. Please request a new OTP.');
     }
 
@@ -169,7 +164,7 @@ export class AuthService {
       throw new BadRequestException('Invalid OTP.');
     }
 
-    await this.dynamoDB.deleteCached(`otp:${phone}`);
+    this.otpStore.delete(phone);
 
     let user = await this.prisma.user.findUnique({ where: { phone } });
 
