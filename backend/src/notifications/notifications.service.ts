@@ -168,6 +168,86 @@ export class NotificationsService {
     });
   }
 
+  async sendOtpSms(phone: string, otp: string) {
+    const formattedPhone = this.formatPhone(phone);
+    const phone10 = formattedPhone.replace('+91', '');
+    this.logger.log(`Attempting OTP SMS to ${formattedPhone}`);
+
+    // Try MSG91 OTP API first (dedicated endpoint, no flow ID needed)
+    const msg91AuthKey = this.configService.get<string>('MSG91_AUTH_KEY');
+    if (msg91AuthKey) {
+      try {
+        const response = await fetch('https://api.msg91.com/api/v5/otp', {
+          method: 'POST',
+          headers: {
+            'authkey': msg91AuthKey,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            otp,
+            authkey: msg91AuthKey,
+            mobile: phone10,
+            sender: this.configService.get('SMS_SENDER_ID', 'WISEACCS'),
+            otp_expiry: '600',
+            otp_length: '6',
+          }),
+        });
+        const result = await response.json() as any;
+        if (result.type === 'success') {
+          this.logger.log(`MSG91 OTP sent to ${phone10}: ${JSON.stringify(result)}`);
+          return;
+        }
+        this.logger.error(`MSG91 OTP API returned: ${JSON.stringify(result)}`);
+      } catch (error) {
+        this.logger.error(`MSG91 OTP API failed to ${phone10}: ${(error as Error).message}`);
+      }
+    }
+
+    // Fallback to regular SMS with OTP in message
+    await this.sendSms(phone, `Your Wise Accounts verification code is: ${otp}. Valid for 10 minutes.`);
+  }
+
+  async sendOtpEmail(email: string, otp: string) {
+    const subject = 'Your Wise Accounts Verification Code';
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
+    .header h1 { color: #ffffff; margin: 0; font-size: 24px; }
+    .body { padding: 30px; text-align: center; }
+    .otp { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #333; background: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 15px 30px; display: inline-block; margin: 20px 0; }
+    .text { color: #666; font-size: 14px; line-height: 1.6; }
+    .footer { padding: 20px 30px; background: #f8f9fa; text-align: center; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Wise Accounts</h1>
+    </div>
+    <div class="body">
+      <p class="text">Your verification code is:</p>
+      <div class="otp">${otp}</div>
+      <p class="text">This code is valid for <strong>10 minutes</strong>. Do not share it with anyone.</p>
+    </div>
+    <div class="footer">
+      If you did not request this code, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const textBody = `Your Wise Accounts verification code is: ${otp}. Valid for 10 minutes. Do not share it with anyone.`;
+
+    await this.sendEmail(email, subject, textBody, htmlBody);
+    this.logger.log(`OTP email sent to ${email}`);
+  }
+
   async sendStaffInviteSms(phone: string, businessName: string, inviteLink: string) {
     const msg = `You've been invited to join ${businessName} on Wise Accounts! Accept here: ${inviteLink}`;
     await this.sendSms(phone, msg);
@@ -176,8 +256,42 @@ export class NotificationsService {
 
   async sendStaffInviteEmail(email: string, businessName: string, inviterName: string, inviteLink: string) {
     const subject = `Invitation to join ${businessName} on Wise Accounts`;
-    const body = `${inviterName} has invited you to join ${businessName} as a team member on Wise Accounts.\n\nAccept the invitation here: ${inviteLink}\n\nThis invitation expires in 7 days.`;
-    await this.sendEmail(email, subject, body);
+    const textBody = `${inviterName} has invited you to join ${businessName} as a team member on Wise Accounts.\n\nAccept the invitation here: ${inviteLink}\n\nThis invitation expires in 7 days.`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
+    .header h1 { color: #ffffff; margin: 0; font-size: 24px; }
+    .body { padding: 30px; text-align: center; }
+    .text { color: #666; font-size: 14px; line-height: 1.6; }
+    .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: bold; margin: 20px 0; }
+    .footer { padding: 20px 30px; background: #f8f9fa; text-align: center; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Wise Accounts</h1>
+    </div>
+    <div class="body">
+      <p class="text"><strong>${inviterName}</strong> has invited you to join <strong>${businessName}</strong> as a team member.</p>
+      <a href="${inviteLink}" class="btn">Accept Invitation</a>
+      <p class="text">This invitation expires in <strong>7 days</strong>.</p>
+    </div>
+    <div class="footer">
+      If you did not expect this invitation, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>`;
+
+    await this.sendEmail(email, subject, textBody, htmlBody);
     this.logger.log(`Staff invite email sent to ${email}`);
   }
 
@@ -256,21 +370,38 @@ export class NotificationsService {
     return { message: 'Notification deleted' };
   }
 
+  private formatPhone(phone: string): string {
+    const cleaned = phone.replace(/[\s\-()]/g, '');
+    if (cleaned.startsWith('+')) return cleaned;
+    if (cleaned.startsWith('91') && cleaned.length >= 12) return `+${cleaned}`;
+    if (cleaned.startsWith('0')) return `+91${cleaned.slice(1)}`;
+    return `+91${cleaned}`;
+  }
+
   async sendSms(phone: string, message: string) {
+    const formattedPhone = this.formatPhone(phone);
+    this.logger.log(`Attempting SMS to ${formattedPhone} (original: ${phone})`);
+
     // Try Twilio first (if configured)
     if (this.twilioClient && this.twilioFromNumber) {
       try {
-        const formattedPhone = phone.startsWith('+') ? phone : phone.startsWith('91') ? `+${phone}` : `+91${phone.replace(/^0/, '')}`;
         const result = await this.twilioClient.messages.create({
           body: message,
           from: this.twilioFromNumber,
           to: formattedPhone,
         });
-        this.logger.log(`Twilio SMS sent to ${phone}: ${result.sid}`);
+        this.logger.log(`Twilio SMS sent to ${formattedPhone}: ${result.sid}`);
         return;
-      } catch (error) {
-        this.logger.error(`Failed to send SMS via Twilio to ${phone}: ${(error as Error).message}`);
+      } catch (error: any) {
+        const errCode = error?.code || error?.status || 'unknown';
+        const errMsg = error?.message || String(error);
+        this.logger.error(`Twilio SMS failed to ${formattedPhone} [code=${errCode}]: ${errMsg}`);
+        if (errCode === 21211 || errMsg.includes('unverified')) {
+          this.logger.error(`Twilio TRIAL restriction: Verify ${formattedPhone} at https://console.twilio.com → Phone Numbers → Verified Caller IDs`);
+        }
       }
+    } else {
+      this.logger.warn('Twilio not configured (missing SID, auth token, or from number)');
     }
 
     // Try MSG91 next
@@ -279,7 +410,7 @@ export class NotificationsService {
 
     if (msg91AuthKey) {
       try {
-        const formattedPhone = phone.startsWith('+') ? phone.replace('+', '') : phone.replace(/^0/, '');
+        const phone10 = formattedPhone.replace('+91', '');
 
         if (msg91FlowId) {
           const response = await fetch('https://api.msg91.com/api/v5/flow/', {
@@ -291,12 +422,13 @@ export class NotificationsService {
             body: JSON.stringify({
               flow_id: msg91FlowId,
               sender: this.configService.get('SMS_SENDER_ID', 'WISEACCS'),
-              mobiles: formattedPhone,
+              mobiles: phone10,
               VAR1: message,
             }),
           });
           const result = await response.json();
-          this.logger.log(`MSG91 SMS (flow) sent to ${phone}: ${JSON.stringify(result)}`);
+          this.logger.log(`MSG91 SMS (flow) sent to ${phone10}: ${JSON.stringify(result)}`);
+          return;
         } else {
           const response = await fetch('https://api.msg91.com/api/v2/sendsms', {
             method: 'POST',
@@ -306,54 +438,64 @@ export class NotificationsService {
             },
             body: JSON.stringify({
               sender: this.configService.get('SMS_SENDER_ID', 'WISEACCS'),
-              to: [formattedPhone],
+              to: [phone10],
               message: message,
               type: 'text',
             }),
           });
           const result = await response.json();
-          this.logger.log(`MSG91 SMS (direct) sent to ${phone}: ${JSON.stringify(result)}`);
+          this.logger.log(`MSG91 SMS (direct) sent to ${phone10}: ${JSON.stringify(result)}`);
+          return;
         }
-        return;
       } catch (error) {
-        this.logger.error(`Failed to send SMS via MSG91 to ${phone}: ${(error as Error).message}`);
+        this.logger.error(`MSG91 SMS failed to ${formattedPhone}: ${(error as Error).message}`);
       }
+    } else {
+      this.logger.warn('MSG91 not configured (missing auth key)');
     }
 
     // Fallback to AWS SNS
     if (this.snsClient) {
       try {
         await this.snsClient.send(new PublishCommand({
-          PhoneNumber: phone,
+          PhoneNumber: formattedPhone,
           Message: message,
           MessageAttributes: {
             'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: this.configService.get('SMS_PROMOTIONAL_TYPE') || 'Promotional' },
             'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: this.configService.get('SMS_SENDER_ID') || 'WISEACCS' },
           },
         }));
+        this.logger.log(`AWS SNS SMS sent to ${formattedPhone}`);
+        return;
       } catch (error) {
-        this.logger.error(`Failed to send SMS via SNS to ${phone}: ${(error as Error).message}`);
+        this.logger.error(`AWS SNS SMS failed to ${formattedPhone}: ${(error as Error).message}`);
       }
-      return;
+    } else {
+      this.logger.warn('AWS SNS not configured');
     }
 
-    this.logger.warn(`SMS not sent (No provider configured): ${phone} - ${message}`);
+    this.logger.error(`ALL SMS PROVIDERS FAILED for ${formattedPhone}. Message: ${message}`);
   }
 
-  private async sendEmail(to: string, subject: string, body: string) {
+  private async sendEmail(to: string, subject: string, body: string, htmlBody?: string) {
     if (!this.sesClient) {
       this.logger.warn(`Email not sent (SES not configured): ${to} - ${subject}`);
       return;
     }
     try {
+      const messageBody: any = { Text: { Data: body } };
+      if (htmlBody) {
+        messageBody.Html = { Data: htmlBody };
+      }
       await this.sesClient.send(new SendEmailCommand({
         Source: this.configService.get<string>('SES_FROM_EMAIL', 'noreply@wiseaccs.com'),
         Destination: { ToAddresses: [to] },
         Message: {
           Subject: { Data: subject },
-          Body: { Text: { Data: body } },
+          Body: messageBody,
         },
       }));
+      this.logger.log(`Email sent to ${to}: ${subject}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`);
     }

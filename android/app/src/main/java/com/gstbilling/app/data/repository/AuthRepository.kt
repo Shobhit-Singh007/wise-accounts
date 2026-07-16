@@ -108,8 +108,8 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun sendOtp(phone: String): AppResult<Boolean> {
-        return when (val result = safeApiCall { apiService.sendOtp(SendOtpRequest(phone = phone)) }) {
+    suspend fun sendOtp(phone: String, email: String? = null): AppResult<Boolean> {
+        return when (val result = safeApiCall { apiService.sendOtp(SendOtpRequest(phone = phone, email = email)) }) {
             is AppResult.Success -> AppResult.Success(true)
             is AppResult.Error -> AppResult.Error(result.message ?: "Failed to send OTP")
             is AppResult.Loading -> AppResult.Loading

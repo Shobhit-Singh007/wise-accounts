@@ -129,23 +129,52 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
-  async sendOtp(phone: string) {
+  async sendOtp(phone: string, email?: string) {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     this.otpStore.set(phone, { otp, expiresAt });
 
-    if (this.configService.get('NODE_ENV') !== 'production') {
+    const isDev = this.configService.get('NODE_ENV') !== 'production';
+
+    if (isDev) {
       this.logger.log(`OTP for ${phone}: ${otp}`);
     }
 
+    let smsSent = false;
+    let emailSent = false;
+
+    // Try SMS
     try {
-      await this.notificationsService.sendSms(phone, `Your Wise Accounts verification code is: ${otp}. Valid for 10 minutes.`);
+      await this.notificationsService.sendOtpSms(phone, otp);
+      smsSent = true;
     } catch (err) {
       this.logger.error(`SMS OTP failed for ${phone}: ${(err as Error).message}`);
     }
 
-    return { success: true, message: 'OTP sent successfully', expiresIn: 600 };
+    // Try email if provided
+    if (email) {
+      try {
+        await this.notificationsService.sendOtpEmail(email, otp);
+        emailSent = true;
+      } catch (err) {
+        this.logger.error(`Email OTP failed for ${email}: ${(err as Error).message}`);
+      }
+    }
+
+    const delivered = smsSent || emailSent;
+
+    if (isDev) {
+      return { success: true, message: 'OTP sent', expiresIn: 600, otp };
+    }
+
+    return {
+      success: true,
+      message: delivered
+        ? `OTP sent via ${smsSent && emailSent ? 'SMS and email' : smsSent ? 'SMS' : 'email'}`
+        : 'OTP generated but delivery failed. Check server logs.',
+      expiresIn: 600,
+    };
   }
 
   async verifyOtp(phone: string, otp: string) {

@@ -957,12 +957,83 @@ Start-Service -Name "postgresql-x64-16"
 - [ ] App icons (image files needed)
 
 ### Deployment:
-- [ ] Rebuild Docker images with new backend changes (staff invite SMS/email, subscriptions module)
-- [ ] Rebuild nginx image with updated landing site (plans + Razorpay)
-- [ ] Deploy to EC2
+- [x] Email OTP fallback via AWS SES (DONE)
+- [x] Staff invite email with HTML template (DONE)
+- [x] MSG91 dedicated OTP API (DONE)
+- [ ] Rebuild Docker images and deploy to EC2
 
 ### External Config:
-- [ ] AWS SES production access (remove sandbox)
+- [ ] AWS SES production access (remove sandbox) — emails only go to verified addresses
 - [ ] AWS SNS SMS spending limit increase
 - [ ] Razorpay live keys (currently using test keys)
 - [ ] App Store / Play Store accounts
+
+### SMS Providers (backend/src/notifications/notifications.service.ts):
+1. **MSG91 OTP API** (primary for OTP) - Dedicated endpoint, no flow ID needed
+   - Auth Key: see `backend/.env` (MSG91_AUTH_KEY)
+   - Status: DLT registration submitted, pending ~24hrs
+   
+2. **Twilio** (fallback) - Free trial, requires verified numbers
+   - Credentials: see `backend/.env` (TWILIO_*)
+   - Trial restriction: can only send to verified caller IDs
+
+3. **AWS SNS** (fallback) - Requires spending limit increase
+
+### Email OTP (via AWS SES):
+- Sender: `support@wiseaccs.com` (verified in SES)
+- Fallback sender: `noreply@wiseaccs.com` (also verified)
+- Used for: OTP verification, staff invite emails
+- SES sandbox: only sends to verified email addresses until production access approved
+
+---
+
+## Session Changes (2026-07-16) — Session 10
+
+### 43. Email OTP Fallback + SMS Fixes
+
+**Problem:** SMS OTP not delivering due to DLT registration requirement (TRAI) and Twilio trial restrictions.
+
+**Solution:** Added email OTP as immediate fallback while DLT registration completes.
+
+**Backend Changes:**
+- `auth/dto/send-otp.dto.ts` — Added optional `email` field
+- `auth/auth.service.ts` — `sendOtp()` now accepts optional email, sends OTP via both SMS and email
+- `auth/auth.controller.ts` — Updated Swagger docs for email parameter
+- `notifications/notifications.service.ts`:
+  - New `sendOtpSms()` — Uses MSG91 dedicated OTP API (`/api/v5/otp`)
+  - New `sendOtpEmail()` — Sends styled HTML email with OTP via AWS SES
+  - Updated `sendStaffInviteEmail()` — Now sends styled HTML email with "Accept Invitation" button
+  - Updated `sendEmail()` — Supports optional HTML body parameter
+  - Added `formatPhone()` helper for consistent phone number formatting
+  - Improved error logging for all SMS providers (Twilio, MSG91, SNS)
+
+**Config Changes:**
+- `.env` + `.env.docker` — `SES_FROM_EMAIL` changed to `support@wiseaccs.com`
+- `docker-compose.yml` — `NODE_ENV` changed from `production` to `development` (allows OTP in dev response)
+
+**Dev Mode Behavior:**
+- `POST /auth/send-otp` returns OTP in response when `NODE_ENV=development`
+- Allows testing without real SMS/email delivery
+
+**API Change:**
+```
+POST /auth/send-otp
+{
+  "phone": "9999999999",
+  "email": "user@example.com"  ← NEW optional field
+}
+```
+
+**Files Changed:**
+- `backend/src/auth/auth.service.ts`
+- `backend/src/auth/auth.controller.ts`
+- `backend/src/auth/dto/send-otp.dto.ts`
+- `backend/src/notifications/notifications.service.ts`
+- `backend/.env`
+- `backend/.env.docker`
+- `docker-compose.yml`
+- `memory.md`
+
+---
+
+## Quick Commands Reference

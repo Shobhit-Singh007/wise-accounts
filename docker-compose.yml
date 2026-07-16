@@ -38,7 +38,7 @@ services:
     env_file:
       - ./backend/.env.docker
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/wise_accounts?schema=public
       JWT_SECRET: dev-jwt-secret-change-in-production

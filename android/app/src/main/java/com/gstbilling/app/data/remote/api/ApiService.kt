@@ -490,7 +490,7 @@ data class UserInfo(
 
 data class RefreshTokenRequest(val refreshToken: String)
 
-data class SendOtpRequest(val phone: String)
+data class SendOtpRequest(val phone: String, val email: String? = null)
 
 data class VerifyOtpRequest(val phone: String, val otp: String)
 

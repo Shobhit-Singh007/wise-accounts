@@ -40,9 +40,9 @@ export class AuthController {
 
   @Public()
   @Post('send-otp')
-  @ApiOperation({ summary: 'Send OTP to phone number' })
+  @ApiOperation({ summary: 'Send OTP to phone number (optionally also via email)' })
   async sendOtp(@Body() dto: SendOtpDto) {
-    return this.authService.sendOtp(dto.phone);
+    return this.authService.sendOtp(dto.phone, dto.email);
   }
 
   @Public()
