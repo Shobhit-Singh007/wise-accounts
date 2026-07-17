@@ -19,6 +19,10 @@ class AuthInterceptor @Inject constructor(
     private val mutex = Mutex()
     @Volatile private var cachedToken: String? = null
 
+    fun clearCachedToken() {
+        cachedToken = null
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 

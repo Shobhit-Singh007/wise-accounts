@@ -57,6 +57,7 @@ import { productsApi, type Product } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
 import { generateQrCodeSvg } from '../utils/barcodeUtils';
 
+
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
   CONFIRMED: 'success',
   DRAFT: 'default',

@@ -53,6 +53,15 @@ import com.gstbilling.app.ui.reports.ProductReportScreen
 import com.gstbilling.app.ui.reports.ProfitLossScreen
 import com.gstbilling.app.ui.reports.ReportsScreen
 import com.gstbilling.app.ui.settings.SettingsScreen
+import com.gstbilling.app.ui.settings.BusinessProfileScreen
+import com.gstbilling.app.ui.settings.TaxSettingsScreen
+import com.gstbilling.app.ui.settings.InvoiceTemplateScreen
+import com.gstbilling.app.ui.settings.PaymentMethodsScreen
+import com.gstbilling.app.ui.settings.PrintSettingsScreen
+import com.gstbilling.app.ui.settings.SyncDataScreen
+import com.gstbilling.app.ui.settings.BackupScreen
+import com.gstbilling.app.ui.dataimport.DataImportScreen
+import com.gstbilling.app.ui.dataimport.ExportDataScreen
 import com.gstbilling.app.ui.staff.EditPermissionsScreen
 import com.gstbilling.app.ui.staff.StaffScreen
 import com.gstbilling.app.util.SessionManager
@@ -390,6 +399,15 @@ fun NavGraph(
                 onNavigateToSuppliers = { navController.navigate(Routes.SUPPLIERS) },
                 onNavigateToLowStock = { navController.navigate(Routes.LOW_STOCK_ALERTS) },
                 onNavigateToPurchaseOrders = { navController.navigate(Routes.PURCHASE_ORDERS) },
+                onNavigateToDataImport = { navController.navigate(Routes.DATA_IMPORT) },
+                onNavigateToExportData = { navController.navigate(Routes.EXPORT_DATA) },
+                onNavigateToBusinessProfile = { navController.navigate(Routes.BUSINESS_PROFILE) },
+                onNavigateToTaxSettings = { navController.navigate(Routes.TAX_SETTINGS) },
+                onNavigateToInvoiceTemplate = { navController.navigate(Routes.INVOICE_TEMPLATE) },
+                onNavigateToPaymentMethods = { navController.navigate(Routes.PAYMENT_METHODS) },
+                onNavigateToPrintSettings = { navController.navigate(Routes.PRINT_SETTINGS) },
+                onNavigateToSyncData = { navController.navigate(Routes.SYNC_DATA) },
+                onNavigateToBackup = { navController.navigate(Routes.BACKUP) },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
@@ -519,6 +537,60 @@ fun NavGraph(
 
         composable(Routes.STOCK_MOVEMENTS) {
             StockMovementsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.DATA_IMPORT) {
+            DataImportScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.EXPORT_DATA) {
+            ExportDataScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.BUSINESS_PROFILE) {
+            BusinessProfileScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.TAX_SETTINGS) {
+            TaxSettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.INVOICE_TEMPLATE) {
+            InvoiceTemplateScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.PAYMENT_METHODS) {
+            PaymentMethodsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.PRINT_SETTINGS) {
+            PrintSettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SYNC_DATA) {
+            SyncDataScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.BACKUP) {
+            BackupScreen(
                 onBack = { navController.popBackStack() }
             )
         }

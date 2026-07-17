@@ -105,6 +105,9 @@ struct SettingsView: View {
                 NavigationLink(destination: ConflictResolutionView(business: business)) {
                     Label("Conflict Resolution", systemImage: "arrow.triangle.2.circlepath")
                 }
+                NavigationLink(value: AppRoute.exportData) {
+                    Label("Export Data", systemImage: "square.and.arrow.up")
+                }
             }
 
             Section {

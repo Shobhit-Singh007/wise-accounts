@@ -58,6 +58,15 @@ fun SettingsScreen(
     onNavigateToSuppliers: () -> Unit = {},
     onNavigateToLowStock: () -> Unit = {},
     onNavigateToPurchaseOrders: () -> Unit = {},
+    onNavigateToDataImport: () -> Unit = {},
+    onNavigateToExportData: () -> Unit = {},
+    onNavigateToBusinessProfile: () -> Unit = {},
+    onNavigateToTaxSettings: () -> Unit = {},
+    onNavigateToInvoiceTemplate: () -> Unit = {},
+    onNavigateToPaymentMethods: () -> Unit = {},
+    onNavigateToPrintSettings: () -> Unit = {},
+    onNavigateToSyncData: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -154,7 +163,7 @@ fun SettingsScreen(
                     title = "Business Profile",
                     subtitle = "Edit your business details",
                     icon = Icons.Default.Store,
-                    onClick = { }
+                    onClick = onNavigateToBusinessProfile
                 )
             }
 
@@ -181,7 +190,7 @@ fun SettingsScreen(
                     title = "Tax Settings",
                     subtitle = "Configure GST and tax rates",
                     icon = Icons.Default.Receipt,
-                    onClick = { }
+                    onClick = onNavigateToTaxSettings
                 )
             }
 
@@ -200,7 +209,7 @@ fun SettingsScreen(
                     title = "Invoice Template",
                     subtitle = "Customize invoice format",
                     icon = Icons.Default.Description,
-                    onClick = { }
+                    onClick = onNavigateToInvoiceTemplate
                 )
             }
 
@@ -209,7 +218,7 @@ fun SettingsScreen(
                     title = "Payment Methods",
                     subtitle = "UPI, Razorpay, Cash, etc.",
                     icon = Icons.Default.Payment,
-                    onClick = { }
+                    onClick = onNavigateToPaymentMethods
                 )
             }
 
@@ -218,7 +227,7 @@ fun SettingsScreen(
                     title = "Print Settings",
                     subtitle = "Bluetooth printer configuration",
                     icon = Icons.Default.Print,
-                    onClick = { }
+                    onClick = onNavigateToPrintSettings
                 )
             }
 
@@ -234,10 +243,28 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
+                    title = "Import Data",
+                    subtitle = "Import CSV/Excel from Khatabook, GoGST",
+                    icon = Icons.Default.FileUpload,
+                    onClick = onNavigateToDataImport
+                )
+            }
+
+            item {
+                SettingsItem(
+                    title = "Export Data",
+                    subtitle = "Export customers, products, invoices as CSV",
+                    icon = Icons.Default.FileDownload,
+                    onClick = onNavigateToExportData
+                )
+            }
+
+            item {
+                SettingsItem(
                     title = "Sync Data",
                     subtitle = "Sync offline data with server",
                     icon = Icons.Default.Sync,
-                    onClick = { }
+                    onClick = onNavigateToSyncData
                 )
             }
 
@@ -246,7 +273,7 @@ fun SettingsScreen(
                     title = "Backup",
                     subtitle = "Backup your data to cloud",
                     icon = Icons.Default.CloudUpload,
-                    onClick = { }
+                    onClick = onNavigateToBackup
                 )
             }
 

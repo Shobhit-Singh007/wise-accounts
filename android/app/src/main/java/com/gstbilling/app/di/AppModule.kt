@@ -14,6 +14,7 @@ import com.gstbilling.app.data.local.dao.InvoiceDao
 import com.gstbilling.app.data.local.dao.ProductDao
 import com.gstbilling.app.data.remote.api.ApiService
 import com.gstbilling.app.data.remote.api.AuthInterceptor
+import com.gstbilling.app.data.remote.api.ImportApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -67,6 +68,12 @@ object AppModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImportApi(retrofit: Retrofit): ImportApi {
+        return retrofit.create(ImportApi::class.java)
     }
 
     @Provides

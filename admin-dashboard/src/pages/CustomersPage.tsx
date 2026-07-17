@@ -13,10 +13,11 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Add as AddIcon, Receipt as ReceiptIcon, Download as DownloadIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { customersApi, type Customer, type CustomerCreate } from '../api/customers';
 import { useBusiness } from '../context/BusinessContext';
+import { exportToCsv } from '../utils/exportUtils';
 
 const initialState: CustomerCreate = {
   name: '',
@@ -160,9 +161,18 @@ export default function CustomersPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Customers</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
-          Add Customer
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={() => {
+            exportToCsv(
+              ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Balance', 'Credit Limit', 'Status'],
+              customers.map(c => [c.name, c.phone, c.email || '', c.gstin || '', c.address || '', c.city || '', c.state || '', c.pincode || '', c.balance || 0, c.creditLimit || 0, c.isActive ? 'Active' : 'Inactive']),
+              'customers'
+            );
+          }}>Export CSV</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
+            Add Customer
+          </Button>
+        </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

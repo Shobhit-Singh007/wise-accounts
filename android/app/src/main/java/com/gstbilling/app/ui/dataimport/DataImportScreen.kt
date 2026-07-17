@@ -1,4 +1,4 @@
-package com.gstbilling.app.ui.`import`
+package com.gstbilling.app.ui.dataimport
 
 import android.app.Activity
 import android.content.Intent

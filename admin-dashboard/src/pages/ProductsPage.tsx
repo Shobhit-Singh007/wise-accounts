@@ -25,12 +25,13 @@ import {
   Tab,
   Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon, Download as DownloadIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { productsApi, type Product, type ProductCreate } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
 import client from '../api/client';
 import { generateBarcodeSvg } from '../utils/barcodeUtils';
+import { exportToCsv } from '../utils/exportUtils';
 
 interface Category {
   id: string;
@@ -338,6 +339,13 @@ export default function ProductsPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Products</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={() => {
+            exportToCsv(
+              ['Name', 'SKU', 'HSN', 'Unit', 'Selling Price', 'Purchase Price', 'Tax Rate', 'Stock', 'Status'],
+              products.map(p => [p.name, p.sku || '', p.hsnCode, p.unit, p.sellingPrice, p.purchasePrice || 0, `${p.taxRate}%`, p.stock ?? 0, p.isActive ? 'Active' : 'Inactive']),
+              'products'
+            );
+          }}>Export CSV</Button>
           <Button variant="outlined" startIcon={<CategoryIcon />} onClick={() => setCategoriesOpen(true)}>
             Manage Categories
           </Button>

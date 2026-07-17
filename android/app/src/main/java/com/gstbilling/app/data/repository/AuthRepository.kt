@@ -10,7 +10,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val apiService: ApiService,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val authInterceptor: AuthInterceptor
 ) {
 
     suspend fun login(phone: String, password: String): AppResult<TokenResponse> {
@@ -24,6 +25,18 @@ class AuthRepository @Inject constructor(
                     if (user == null || user.id.isBlank()) {
                         throw Exception("Login failed: user data not found in response")
                     }
+
+                    sessionManager.saveAuthData(
+                        accessToken = tokenData.accessToken,
+                        refreshToken = tokenData.refreshToken,
+                        userId = user.id,
+                        businessId = "",
+                        businessName = "",
+                        userName = user.name,
+                        phone = user.phone
+                    )
+                    authInterceptor.clearCachedToken()
+
                     var businessId = ""
                     var businessName = ""
                     try {
@@ -37,15 +50,19 @@ class AuthRepository @Inject constructor(
                         }
                     } catch (_: Exception) {}
 
-                    sessionManager.saveAuthData(
-                        accessToken = tokenData.accessToken,
-                        refreshToken = tokenData.refreshToken,
-                        userId = user.id,
-                        businessId = businessId,
-                        businessName = businessName,
-                        userName = user.name,
-                        phone = user.phone
-                    )
+                    if (businessId.isNotEmpty()) {
+                        sessionManager.saveAuthData(
+                            accessToken = tokenData.accessToken,
+                            refreshToken = tokenData.refreshToken,
+                            userId = user.id,
+                            businessId = businessId,
+                            businessName = businessName,
+                            userName = user.name,
+                            phone = user.phone
+                        )
+                        authInterceptor.clearCachedToken()
+                    }
+
                     tokenData
                 } else {
                     throw Exception(apiResponse?.message ?: "Login failed: empty response")
@@ -97,6 +114,7 @@ class AuthRepository @Inject constructor(
                         userName = user.name,
                         phone = user.phone
                     )
+                    authInterceptor.clearCachedToken()
                     tokenData
                 } else {
                     throw Exception(apiResponse?.message ?: "Registration failed: empty response")
@@ -149,6 +167,7 @@ class AuthRepository @Inject constructor(
                         userName = user.name,
                         phone = user.phone
                     )
+                    authInterceptor.clearCachedToken()
                     tokenData
                 } else {
                     throw Exception(apiResponse?.message ?: "OTP verification failed: empty response")
@@ -194,6 +213,7 @@ class AuthRepository @Inject constructor(
                         userName = user.name,
                         phone = user.phone
                     )
+                    authInterceptor.clearCachedToken()
                     tokenData
                 } else {
                     throw Exception(apiResponse?.message ?: "Session refresh failed: empty response")
