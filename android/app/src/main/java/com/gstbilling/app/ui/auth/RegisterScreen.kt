@@ -143,7 +143,7 @@ fun RegisterScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sign up for GST Billing",
+                text = "Sign up for Wise Accounts",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -75,9 +75,10 @@ object AppModule {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "gst_billing_db"
+            "wise_accounts_db"
         )
             .addMigrations(MIGRATION_1_2)
+            .fallbackToDestructiveMigration()
             .build()
     }
 
