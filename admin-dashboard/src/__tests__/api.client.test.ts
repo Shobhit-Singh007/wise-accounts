@@ -16,8 +16,8 @@ describe('API Client', () => {
     const clientModule = await import('../api/client');
     const client = clientModule.default;
     clientInterceptors = {
-      request: client.interceptors.request.handlers,
-      response: client.interceptors.response.handlers,
+      request: client.interceptors.request.handlers ?? [],
+      response: client.interceptors.response.handlers ?? [],
     };
   });
 
