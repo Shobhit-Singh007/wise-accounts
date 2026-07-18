@@ -21,6 +21,7 @@ import StaffPage from './pages/StaffPage';
 import CustomerLedgerPage from './pages/CustomerLedgerPage';
 import BatchExpiryPage from './pages/BatchExpiryPage';
 import InventoryManagementPage from './pages/InventoryManagementPage';
+import ImportPage from './pages/ImportPage';
 import { CircularProgress, Box } from '@mui/material';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -101,6 +102,7 @@ function AppRoutes() {
         <Route path="/staff" element={<StaffPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/import" element={<ImportPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

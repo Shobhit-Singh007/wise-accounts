@@ -126,16 +126,19 @@ export class BillingController {
   }
 
   @Get(':invoiceId/pdf')
-  @ApiOperation({ summary: 'Download invoice as PDF (supports template selection)' })
+  @ApiOperation({ summary: 'Download invoice as PDF (supports template and document type selection)' })
   @ApiQuery({ name: 'template', required: false, description: 'Template ID for PDF styling' })
+  @ApiQuery({ name: 'documentType', required: false, enum: ['INVOICE', 'QUOTATION', 'PROFORMA', 'DELIVERY_CHALLAN', 'JOBWORK', 'CREDIT_NOTE', 'LETTERHEAD'], description: 'Document type for PDF rendering' })
   async getPdf(
     @Param('businessId') businessId: string,
     @Param('invoiceId') invoiceId: string,
     @Query('template') template?: string,
+    @Query('documentType') documentType?: string,
     @Res() res?: Response,
   ) {
     const invoice = await this.billingService.findOneInvoice(businessId, invoiceId);
-    const pdf = await this.billingService.getInvoicePdf(businessId, invoiceId, template);
+    const docType = (documentType as any) || (invoice as any).documentType || 'INVOICE';
+    const pdf = await this.billingService.getInvoicePdf(businessId, invoiceId, template, docType);
     const safeName = (invoice.invoiceNo || 'Invoice').replace(/[^a-zA-Z0-9]/g, '_');
     res!.set({
       'Content-Type': 'application/pdf',
@@ -146,15 +149,19 @@ export class BillingController {
   }
 
   @Get(':invoiceId/print')
-  @ApiOperation({ summary: 'Get invoice as printable HTML (supports template selection)' })
+  @ApiOperation({ summary: 'Get invoice as printable HTML (supports template and document type selection)' })
   @ApiQuery({ name: 'template', required: false, description: 'Template ID for HTML styling' })
+  @ApiQuery({ name: 'documentType', required: false, enum: ['INVOICE', 'QUOTATION', 'PROFORMA', 'DELIVERY_CHALLAN', 'JOBWORK', 'CREDIT_NOTE', 'LETTERHEAD'], description: 'Document type for HTML rendering' })
   async getPrint(
     @Param('businessId') businessId: string,
     @Param('invoiceId') invoiceId: string,
     @Query('template') template?: string,
+    @Query('documentType') documentType?: string,
     @Res() res?: Response,
   ) {
-    const html = await this.billingService.getInvoicePrintHtml(businessId, invoiceId, template);
+    const invoice = await this.billingService.findOneInvoice(businessId, invoiceId);
+    const docType = (documentType as any) || (invoice as any).documentType || 'INVOICE';
+    const html = await this.billingService.getInvoicePrintHtml(businessId, invoiceId, template, docType);
     res!.set({ 'Content-Type': 'text/html' });
     res!.send(html);
   }

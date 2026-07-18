@@ -11,45 +11,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.gstbilling.app.util.SessionManager
-import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusinessProfileScreen(
     onBack: () -> Unit,
-    sessionManager: SessionManager? = null
+    viewModel: SubSettingsViewModel = hiltViewModel()
 ) {
-    val scope = rememberCoroutineScope()
-    var businessName by remember { mutableStateOf("") }
-    var ownerName by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var gstin by remember { mutableStateOf("") }
-    var businessType by remember { mutableStateOf("Regular") }
-    var showSavedToast by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val businessTypes = listOf("Regular", "Composition", "Unregistered", "Consumer")
 
     LaunchedEffect(Unit) {
-        sessionManager?.let {
-            businessName = it.getBusinessName() ?: ""
-        }
+        viewModel.clearMessages()
+        viewModel.loadBusinessProfile()
     }
 
-    if (showSavedToast) {
-        Snackbar(
-            modifier = Modifier.padding(16.dp),
-            dismissAction = {
-                TextButton(onClick = { showSavedToast = false }) {
-                    Text("OK")
-                }
-            }
-        ) {
-            Text("Profile saved successfully")
+    LaunchedEffect(viewModel.saveSuccess) {
+        if (viewModel.saveSuccess) {
+            kotlinx.coroutines.delay(2000)
+            viewModel.clearMessages()
         }
     }
 
@@ -63,9 +44,7 @@ fun BusinessProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        showSavedToast = true
-                    }) {
+                    IconButton(onClick = { viewModel.saveBusinessProfile() }) {
                         Icon(Icons.Default.Save, contentDescription = "Save")
                     }
                 }
@@ -73,185 +52,64 @@ fun BusinessProfileScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Business Information",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+            if (viewModel.isLoading && !viewModel.saveSuccess) {
+                CircularProgressIndicator(modifier = Modifier.fillMaxWidth().wrapContentWidth())
+            }
 
-                    OutlinedTextField(
-                        value = businessName,
-                        onValueChange = { businessName = it },
-                        label = { Text("Business Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = ownerName,
-                        onValueChange = { ownerName = it },
-                        label = { Text("Owner Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = { Text("Phone") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Business Information", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    OutlinedTextField(value = viewModel.businessName, onValueChange = { viewModel.onBusinessNameChange(it) }, label = { Text("Business Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(value = viewModel.ownerName, onValueChange = { viewModel.onOwnerNameChange(it) }, label = { Text("Owner Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(value = viewModel.phone, onValueChange = { viewModel.onPhoneChange(it) }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(value = viewModel.email, onValueChange = { viewModel.onEmailChange(it) }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Address",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { address = it },
-                        label = { Text("Address") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2
-                    )
-
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = { city = it },
-                        label = { Text("City") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = state,
-                        onValueChange = { state = it },
-                        label = { Text("State") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Address", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    OutlinedTextField(value = viewModel.address, onValueChange = { viewModel.onAddressChange(it) }, label = { Text("Address") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                    OutlinedTextField(value = viewModel.city, onValueChange = { viewModel.onCityChange(it) }, label = { Text("City") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(value = viewModel.state, onValueChange = { viewModel.onStateChange(it) }, label = { Text("State") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Tax Information",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedTextField(
-                        value = gstin,
-                        onValueChange = { gstin = it },
-                        label = { Text("GSTIN") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        supportingText = { Text("GST Identification Number") }
-                    )
-
-                    ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
-                    ) {
-                        OutlinedTextField(
-                            value = businessType,
-                            onValueChange = {},
-                            label = { Text("Business Type") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false }
-                        ) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Tax Information", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    OutlinedTextField(value = viewModel.gstin, onValueChange = { viewModel.onGstinChange(it) }, label = { Text("GSTIN") }, modifier = Modifier.fillMaxWidth(), singleLine = true, supportingText = { Text("GST Identification Number") })
+                    ExposedDropdownMenuBox(expanded = dropdownExpanded, onExpandedChange = { dropdownExpanded = !dropdownExpanded }) {
+                        OutlinedTextField(value = viewModel.businessType, onValueChange = {}, label = { Text("Business Type") }, modifier = Modifier.fillMaxWidth().menuAnchor(), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) })
+                        ExposedDropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
                             businessTypes.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type) },
-                                    onClick = {
-                                        businessType = type
-                                        dropdownExpanded = false
-                                    }
-                                )
+                                DropdownMenuItem(text = { Text(type) }, onClick = { viewModel.onBusinessTypeChange(type); dropdownExpanded = false })
                             }
                         }
                     }
                 }
             }
 
-            Button(
-                onClick = {
-                    showSavedToast = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
+            viewModel.errorMessage?.let { error ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Text(text = error, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(16.dp))
+                }
+            }
+
+            if (viewModel.saveSuccess) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    Text("Profile saved successfully", color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(16.dp))
+                }
+            }
+
+            Button(onClick = { viewModel.saveBusinessProfile() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Save Profile")
             }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

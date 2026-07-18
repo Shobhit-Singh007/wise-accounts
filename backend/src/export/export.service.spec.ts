@@ -286,7 +286,7 @@ describe('ExportService', () => {
         orderBy: { invoiceDate: 'desc' },
       });
       expect(result.rows).toHaveLength(2);
-      expect(result.headers).toHaveLength(12);
+      expect(result.headers).toHaveLength(13);
     });
 
     it('should filter by SALE direction', async () => {
@@ -336,7 +336,7 @@ describe('ExportService', () => {
 
       const result = await service.exportInvoices('biz-1');
       const balance = 1130 - 1000; // grandTotal - paidAmount
-      expect(result.rows[0][10]).toBe(String(balance));
+      expect(result.rows[0][11]).toBe(String(balance));
     });
 
     it('should format invoice date as YYYY-MM-DD', async () => {
@@ -367,9 +367,9 @@ describe('ExportService', () => {
       mockPrisma.invoice.findMany.mockResolvedValue([invoiceWithNulls]);
 
       const result = await service.exportInvoices('biz-1');
-      expect(result.rows[0][8]).toBe('0'); // grandTotal defaults to 0
-      expect(result.rows[0][9]).toBe('0'); // paidAmount defaults to 0
-      expect(result.rows[0][10]).toBe('0'); // balance = 0 - 0
+      expect(result.rows[0][9]).toBe('0'); // grandTotal defaults to 0
+      expect(result.rows[0][10]).toBe('0'); // paidAmount defaults to 0
+      expect(result.rows[0][11]).toBe('0'); // balance = 0 - 0
     });
 
     it('should return empty rows when no invoices', async () => {

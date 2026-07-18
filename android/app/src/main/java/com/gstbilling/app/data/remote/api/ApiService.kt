@@ -225,7 +225,8 @@ interface ApiService {
     @GET("businesses/{businessId}/invoices/{invoiceId}/print")
     suspend fun getInvoicePrintHtml(
         @Path("businessId") businessId: String,
-        @Path("invoiceId") invoiceId: String
+        @Path("invoiceId") invoiceId: String,
+        @Query("documentType") documentType: String? = null
     ): Response<ApiResponse<InvoicePrintResponse>>
 
     // ── Bulk Invoice ──
@@ -455,6 +456,15 @@ interface ApiService {
     @Streaming
     suspend fun getLedgerPdf(
         @Path("id") id: String
+    ): Response<okhttp3.ResponseBody>
+
+    // ── Selective Export ──
+    @GET("businesses/{businessId}/export/selective")
+    @Streaming
+    suspend fun selectiveExport(
+        @Path("businessId") businessId: String,
+        @Query("entities") entities: String,
+        @Query("format") format: String = "csv"
     ): Response<okhttp3.ResponseBody>
 }
 

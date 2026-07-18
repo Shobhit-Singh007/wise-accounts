@@ -8,6 +8,8 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -156,6 +158,74 @@ class ExportDataViewModel @Inject constructor(
             }
         }
     }
+
+    fun exportSuppliers(onShare: (String, String, String) -> Unit) {
+        isExporting = true
+        exportMessage = null
+        viewModelScope.launch {
+            val businessId = sessionManager.getBusinessId() ?: run {
+                exportMessage = "No business ID found"
+                isExporting = false
+                return@launch
+            }
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    apiService.getSuppliers(businessId)
+                }
+                val suppliers = response.body()?.data ?: emptyList()
+                val headers = listOf("Name", "Phone", "Email", "GSTIN", "Address")
+                val rows = suppliers.map { s ->
+                    listOf(s.name, s.phone ?: "", s.email ?: "", s.gstin ?: "", s.address ?: "")
+                }
+                val content = when (selectedFormat) {
+                    ExportFormat.CSV -> buildCsv(headers, rows)
+                    ExportFormat.JSON -> buildJsonString(headers, rows)
+                }
+                withContext(Dispatchers.IO) {
+                    onShare("suppliers.${selectedFormat.extension}", content, selectedFormat.mimeType)
+                }
+                exportMessage = "Exported ${suppliers.size} suppliers as ${selectedFormat.label}"
+            } catch (e: Exception) {
+                exportMessage = "Export failed: ${e.localizedMessage}"
+            } finally {
+                isExporting = false
+            }
+        }
+    }
+
+    fun exportPayments(onShare: (String, String, String) -> Unit) {
+        isExporting = true
+        exportMessage = null
+        viewModelScope.launch {
+            val businessId = sessionManager.getBusinessId() ?: run {
+                exportMessage = "No business ID found"
+                isExporting = false
+                return@launch
+            }
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    apiService.getBusinessPayments(businessId, perPage = 9999)
+                }
+                val payments = response.body()?.data ?: emptyList()
+                val headers = listOf("Invoice ID", "Date", "Amount", "Mode", "Reference", "Notes")
+                val rows = payments.map { p ->
+                    listOf(p.invoiceId, p.date.take(10), "${p.amount}", p.mode, p.reference ?: "", p.notes ?: "")
+                }
+                val content = when (selectedFormat) {
+                    ExportFormat.CSV -> buildCsv(headers, rows)
+                    ExportFormat.JSON -> buildJsonString(headers, rows)
+                }
+                withContext(Dispatchers.IO) {
+                    onShare("payments.${selectedFormat.extension}", content, selectedFormat.mimeType)
+                }
+                exportMessage = "Exported ${payments.size} payments as ${selectedFormat.label}"
+            } catch (e: Exception) {
+                exportMessage = "Export failed: ${e.localizedMessage}"
+            } finally {
+                isExporting = false
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -254,6 +324,22 @@ fun ExportDataScreen(
                 icon = Icons.Default.Receipt,
                 enabled = !viewModel.isExporting,
                 onClick = { viewModel.exportInvoices(shareFile) }
+            )
+
+            ExportCard(
+                title = "Suppliers",
+                subtitle = "Export supplier contacts and details",
+                icon = Icons.Default.LocalShipping,
+                enabled = !viewModel.isExporting,
+                onClick = { viewModel.exportSuppliers(shareFile) }
+            )
+
+            ExportCard(
+                title = "Payments",
+                subtitle = "Export payment history and receipts",
+                icon = Icons.Default.Payments,
+                enabled = !viewModel.isExporting,
+                onClick = { viewModel.exportPayments(shareFile) }
             )
 
             if (viewModel.isExporting) {

@@ -16,6 +16,9 @@ import {
   FormControlLabel,
   MenuItem,
   Avatar,
+  Checkbox,
+  FormGroup,
+  LinearProgress,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -24,6 +27,7 @@ import {
   Notifications as NotifIcon,
   Key as KeyIcon,
   Dangerous as DangerIcon,
+  ImportExport as ImportExportIcon,
 } from '@mui/icons-material';
 import { useBusiness } from '../context/BusinessContext';
 import { businessesApi, type Business } from '../api/businesses';
@@ -64,6 +68,12 @@ export default function SettingsPage() {
     ewayClientId: '', ewayClientSecret: '', ewayUsername: '', ewayPassword: '', ewayEnvironment: 'sandbox',
     einvoiceClientId: '', einvoiceClientSecret: '', einvoiceUsername: '', einvoicePassword: '', einvoiceEnvironment: 'sandbox',
   });
+
+  const [exportEntities, setExportEntities] = useState({
+    customers: true, products: true, invoices: true, suppliers: false, payments: false,
+  });
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [exporting, setExporting] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -216,7 +226,7 @@ export default function SettingsPage() {
     );
   }
 
-  const tabIcons = [<BusinessIcon />, <InvoiceIcon />, <TaxIcon />, <NotifIcon />, <KeyIcon />, <DangerIcon />];
+  const tabIcons = [<BusinessIcon />, <InvoiceIcon />, <TaxIcon />, <NotifIcon />, <KeyIcon />, <ImportExportIcon />, <DangerIcon />];
 
   return (
     <Box>
@@ -226,7 +236,7 @@ export default function SettingsPage() {
 
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          {['Business Profile', 'Invoice Settings', 'Tax Settings', 'Notifications', 'API Credentials', 'Danger Zone'].map((label, i) => (
+          {['Business Profile', 'Invoice Settings', 'Tax Settings', 'Notifications', 'API Credentials', 'Import / Export', 'Danger Zone'].map((label, i) => (
             <Tab key={label} label={label} icon={tabIcons[i]} iconPosition="start" />
           ))}
         </Tabs>
@@ -435,6 +445,87 @@ export default function SettingsPage() {
               )}
 
               {tab === 5 && (
+                <Box sx={{ maxWidth: 600 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>Import / Export</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Select which data to export, or import data from another system.
+                  </Typography>
+
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Export Entities</Typography>
+                  <FormGroup sx={{ mb: 2 }}>
+                    {(['customers', 'products', 'invoices', 'suppliers', 'payments'] as const).map((key) => (
+                      <FormControlLabel
+                        key={key}
+                        control={
+                          <Checkbox
+                            checked={exportEntities[key]}
+                            onChange={(e) => setExportEntities({ ...exportEntities, [key]: e.target.checked })}
+                          />
+                        }
+                        label={key.charAt(0).toUpperCase() + key.slice(1)}
+                      />
+                    ))}
+                  </FormGroup>
+
+                  <TextField
+                    label="Export Format"
+                    select
+                    value={exportFormat}
+                    onChange={(e) => setExportFormat(e.target.value)}
+                    size="small"
+                    fullWidth
+                    sx={{ mb: 3, maxWidth: 200 }}
+                  >
+                    <MenuItem value="csv">CSV</MenuItem>
+                    <MenuItem value="json">JSON</MenuItem>
+                  </TextField>
+
+                  {exporting && <LinearProgress sx={{ mb: 2 }} />}
+
+                  <Button
+                    variant="contained"
+                    disabled={exporting || !Object.values(exportEntities).some(Boolean)}
+                    onClick={async () => {
+                      if (!currentBusinessId) return;
+                      const selected = Object.entries(exportEntities).filter(([, v]) => v).map(([k]) => k);
+                      if (!selected.length) return;
+                      setExporting(true);
+                      try {
+                        const token = localStorage.getItem('accessToken');
+                        const qs = selected.join(',');
+                        const url = `/api/v1/businesses/${currentBusinessId}/export/selective?entities=${qs}&format=${exportFormat}`;
+                        const resp = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                        if (!resp.ok) throw new Error(`Export failed: ${resp.status}`);
+                        const blob = await resp.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `export_${selected.join('_')}.${exportFormat === 'json' ? 'json' : 'csv'}`;
+                        a.click();
+                        URL.revokeObjectURL(blobUrl);
+                        setSuccess(`Exported ${selected.join(', ')} as ${exportFormat.toUpperCase()}`);
+                      } catch (err: any) {
+                        setError(err.message || 'Export failed');
+                      }
+                      setExporting(false);
+                    }}
+                  >
+                    Export Selected
+                  </Button>
+
+                  <Divider sx={{ my: 3 }} />
+
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Import Data</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Import customers, products, or invoices from CSV, Excel, or JSON files.
+                  </Typography>
+                  <Button variant="outlined" onClick={() => window.location.href = '/admin/import'}>
+                    Go to Import Page
+                  </Button>
+                </Box>
+              )}
+
+              {tab === 6 && (
                 <Box sx={{ maxWidth: 500 }}>
                   <Typography variant="h6" color="error" sx={{ mb: 1 }}>Danger Zone</Typography>
                   <Alert severity="error" sx={{ mb: 2 }}>

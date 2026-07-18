@@ -138,6 +138,7 @@ struct InvoiceDetailView: View {
     @State private var errorMessage = ""
     @State private var showPrintConfirm = false
     @State private var printMethod: PrintMethod = .airprint
+    @State private var selectedDocType = "INVOICE"
 
     enum PrintMethod {
         case airprint, thermal
@@ -230,7 +231,17 @@ struct InvoiceDetailView: View {
             }
 
             Section("Actions") {
-                if let printUrl = APIService.shared.getInvoicePrintUrl(businessId: business.id, invoiceId: invoice.id) {
+                Picker("Document Type", selection: $selectedDocType) {
+                    Text("Tax Invoice").tag("INVOICE")
+                    Text("Quotation").tag("QUOTATION")
+                    Text("Proforma Invoice").tag("PROFORMA")
+                    Text("Delivery Challan").tag("DELIVERY_CHALLAN")
+                    Text("Jobwork Challan").tag("JOBWORK")
+                    Text("Credit Note").tag("CREDIT_NOTE")
+                    Text("Letterhead").tag("LETTERHEAD")
+                }
+
+                if let printUrl = APIService.shared.getInvoicePrintUrl(businessId: business.id, invoiceId: invoice.id, documentType: selectedDocType) {
                     Link(destination: printUrl) {
                         Label("Print Invoice", systemImage: "printer")
                     }
@@ -365,9 +376,12 @@ struct InvoiceDetailView: View {
 
     private func downloadPdf() async {
         do {
-            let data = try await APIService.shared.getInvoicePdfData(businessId: business.id, invoiceId: invoice.id)
+            let docTypeParam = selectedDocType == "INVOICE" ? nil : selectedDocType
+            let data = try await APIService.shared.getInvoicePdfData(businessId: business.id, invoiceId: invoice.id, documentType: docTypeParam)
             await MainActor.run {
-                let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("\(invoice.invoiceNo).pdf")
+                let labels = ["INVOICE": "Invoice", "QUOTATION": "Quotation", "PROFORMA": "Proforma", "DELIVERY_CHALLAN": "Challan", "JOBWORK": "Jobwork", "CREDIT_NOTE": "CreditNote", "LETTERHEAD": "Letterhead"]
+                let label = labels[selectedDocType] ?? "Invoice"
+                let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("\(label)_\(invoice.invoiceNo).pdf")
                 try? data.write(to: tmpUrl)
                 let activityVC = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
                 if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,

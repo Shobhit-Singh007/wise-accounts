@@ -78,6 +78,19 @@ class ProductRepository @Inject constructor(
         }
     }
 
+    suspend fun adjustStock(productId: String, request: StockAdjustRequest): AppResult<Product> {
+        return safeApiCall {
+            val response = apiService.adjustStock(productId, request)
+            if (response.isSuccessful) {
+                val updated = response.body()?.data ?: throw Exception("Failed to adjust stock")
+                productDao.insert(updated.toEntity())
+                updated
+            } else {
+                throw Exception(response.errorBody()?.string() ?: "Failed to adjust stock")
+            }
+        }
+    }
+
     suspend fun syncPending() {
         val pending = productDao.getPendingSync()
         for (product in pending) {

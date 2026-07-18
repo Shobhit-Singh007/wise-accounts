@@ -191,6 +191,8 @@ fun InvoiceDetailScreen(
     val context = LocalContext.current
     val invoice = viewModel.invoice
     var showCancelDialog by remember { mutableStateOf(false) }
+    var selectedDocType by remember { mutableStateOf("INVOICE") }
+    var docTypeExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(invoiceId) {
         viewModel.loadInvoice(invoiceId)
@@ -371,18 +373,64 @@ fun InvoiceDetailScreen(
                         }
                     }
 
+                    val docTypes = listOf(
+                        "INVOICE" to "Tax Invoice",
+                        "QUOTATION" to "Quotation",
+                        "PROFORMA" to "Proforma Invoice",
+                        "DELIVERY_CHALLAN" to "Delivery Challan",
+                        "JOBWORK" to "Jobwork Challan",
+                        "CREDIT_NOTE" to "Credit Note",
+                        "LETTERHEAD" to "Letterhead"
+                    )
+                    val docTypeLabels = docTypes.associate { it.first to it.second }
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { docTypeExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Print: ${docTypeLabels[selectedDocType] ?: "Tax Invoice"}")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                        }
+                        DropdownMenu(
+                            expanded = docTypeExpanded,
+                            onDismissRequest = { docTypeExpanded = false }
+                        ) {
+                            docTypes.forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        selectedDocType = value
+                                        docTypeExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        if (value == selectedDocType) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     OutlinedButton(
                         onClick = {
+                            val docTypeParam = if (selectedDocType == "INVOICE") "" else "?documentType=$selectedDocType"
                             val baseUrl = "http://10.0.2.2:3000/api/v1"
-                            val url = "$baseUrl/businesses/${invoice.businessId}/invoices/${invoice.id}/print"
+                            val url = "$baseUrl/businesses/${invoice.businessId}/invoices/${invoice.id}/print$docTypeParam"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null)
+                        Icon(Icons.Default.OpenInNew, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Print / PDF")
+                        Text("Open in Browser")
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))

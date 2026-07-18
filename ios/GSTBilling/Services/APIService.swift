@@ -386,8 +386,12 @@ final class APIService {
     }
 
     // Invoice PDF
-    func getInvoicePdfData(businessId: String, invoiceId: String) async throws -> Data {
-        let url = URL(string: "\(Constants.baseURL)/businesses/\(businessId)/invoices/\(invoiceId)/pdf")!
+    func getInvoicePdfData(businessId: String, invoiceId: String, documentType: String? = nil) async throws -> Data {
+        var urlString = "\(Constants.baseURL)/businesses/\(businessId)/invoices/\(invoiceId)/pdf"
+        if let docType = documentType, docType != "INVOICE" {
+            urlString += "?documentType=\(docType)"
+        }
+        let url = URL(string: urlString)!
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
         if let token = authToken {
@@ -400,8 +404,29 @@ final class APIService {
         return data
     }
 
-    func getInvoicePrintUrl(businessId: String, invoiceId: String) -> URL? {
-        return URL(string: "\(Constants.baseURL)/businesses/\(businessId)/invoices/\(invoiceId)/print")
+    func getInvoicePrintUrl(businessId: String, invoiceId: String, documentType: String? = nil) -> URL? {
+        var urlString = "\(Constants.baseURL)/businesses/\(businessId)/invoices/\(invoiceId)/print"
+        if let docType = documentType, docType != "INVOICE" {
+            urlString += "?documentType=\(docType)"
+        }
+        return URL(string: urlString)
+    }
+
+    // Selective Export
+    func selectiveExport(businessId: String, entities: [String], format: String = "csv") async throws -> Data {
+        let entitiesStr = entities.joined(separator: ",")
+        let urlString = "\(Constants.baseURL)/businesses/\(businessId)/export/selective?entities=\(entitiesStr)&format=\(format)"
+        let url = URL(string: urlString)!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "GET"
+        if let token = authToken {
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return data
     }
 
     // Invoice Settings

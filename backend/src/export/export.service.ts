@@ -70,7 +70,7 @@ export class ExportService {
     });
 
     const headers = [
-      'Invoice No', 'Date', 'Type', 'Direction', 'Customer/Supplier',
+      'Invoice No', 'Date', 'Type', 'Direction', 'Customer/Supplier', 'Document Type',
       'Subtotal', 'Tax Amount', 'Discount', 'Grand Total', 'Paid Amount', 'Balance', 'Status',
     ];
     const rows: string[][] = invoices.map((inv) => {
@@ -82,6 +82,7 @@ export class ExportService {
         inv.type,
         inv.direction,
         party,
+        (inv as any).documentType || 'INVOICE',
         String(inv.subtotal ?? 0),
         String(inv.taxAmount ?? 0),
         String(inv.discount ?? 0),
@@ -93,6 +94,48 @@ export class ExportService {
     });
 
     this.logger.log(`Exported ${rows.length} invoices for business ${businessId}`);
+    return { headers, rows };
+  }
+
+  async exportSuppliers(businessId: string): Promise<{ headers: string[]; rows: string[][] }> {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { businessId },
+      orderBy: { name: 'asc' },
+    });
+
+    const headers = ['Name', 'Phone', 'Email', 'Address', 'GSTIN'];
+    const rows: string[][] = suppliers.map((s) => [
+      s.name,
+      s.phone ?? '',
+      s.email ?? '',
+      s.address ?? '',
+      s.gstin ?? '',
+    ]);
+
+    this.logger.log(`Exported ${rows.length} suppliers for business ${businessId}`);
+    return { headers, rows };
+  }
+
+  async exportPayments(businessId: string): Promise<{ headers: string[]; rows: string[][] }> {
+    const payments = await this.prisma.payment.findMany({
+      where: { businessId },
+      include: { invoice: { select: { invoiceNo: true } }, customer: { select: { name: true } } },
+      orderBy: { paidAt: 'desc' },
+    });
+
+    const headers = ['Payment ID', 'Date', 'Invoice No', 'Customer', 'Amount', 'Method', 'Reference', 'Notes'];
+    const rows: string[][] = payments.map((p) => [
+      p.id,
+      p.paidAt.toISOString().slice(0, 10),
+      p.invoice?.invoiceNo ?? '',
+      p.customer?.name ?? '',
+      String(p.amount),
+      p.method,
+      p.reference ?? '',
+      p.notes ?? '',
+    ]);
+
+    this.logger.log(`Exported ${rows.length} payments for business ${businessId}`);
     return { headers, rows };
   }
 

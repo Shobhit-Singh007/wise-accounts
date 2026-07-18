@@ -21,7 +21,6 @@ import com.gstbilling.app.data.remote.api.StockAdjustRequest
 import com.gstbilling.app.data.repository.ProductRepository
 import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
-import com.gstbilling.app.util.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -66,26 +65,23 @@ class StockAdjustViewModel @Inject constructor(
         errorMessage = null
         successMessage = null
         viewModelScope.launch {
-            val businessId = sessionManager.getBusinessId() ?: ""
             val request = StockAdjustRequest(
                 quantity = qty,
                 reason = notes.ifBlank { adjustmentType },
                 type = adjustmentType
             )
-            val result = safeApiCall {
-                val apiService = com.gstbilling.app.data.remote.api.ApiService::class.java
-                null
-            }
-            // Direct API call via repository is not available for adjust, use safeApiCall pattern
-            // For now we simulate success through the repository
-            val currentProduct = product
-            if (currentProduct != null) {
-                val newStock = when (adjustmentType) {
-                    "PURCHASE", "RETURN" -> currentProduct.stock + qty
-                    "SALE" -> currentProduct.stock - qty
-                    else -> currentProduct.stock + qty
+            when (val result = productRepository.adjustStock(productId, request)) {
+                is AppResult.Success -> {
+                    val updatedProduct = result.data
+                    // Refresh local product
+                    product = productRepository.getProductById(productId)
+                    successMessage = "Stock adjusted to ${updatedProduct.stock}"
+                    onSuccess()
                 }
-                successMessage = "Stock adjusted from ${currentProduct.stock} to $newStock"
+                is AppResult.Error -> {
+                    errorMessage = result.message ?: "Failed to adjust stock"
+                }
+                else -> {}
             }
             isSubmitting = false
         }

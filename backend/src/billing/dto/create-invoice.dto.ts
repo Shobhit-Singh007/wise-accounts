@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsArray, IsNumber, IsEnum, Min, ValidateNested, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { InvoiceType, InvoiceDirection } from '@prisma/client';
+import { InvoiceType, InvoiceDirection, DocumentType } from '@prisma/client';
 
 class InvoiceItemDto {
   @ApiProperty({ required: false })
@@ -104,4 +104,9 @@ export class CreateInvoiceDto {
   @IsString()
   @IsOptional()
   referenceId?: string;
+
+  @ApiProperty({ enum: DocumentType, required: false, default: 'INVOICE', description: 'Document type: INVOICE, QUOTATION, PROFORMA, DELIVERY_CHALLAN, JOBWORK, CREDIT_NOTE, LETTERHEAD' })
+  @IsEnum(DocumentType)
+  @IsOptional()
+  documentType?: DocumentType;
 }

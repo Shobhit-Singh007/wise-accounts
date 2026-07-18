@@ -67,6 +67,24 @@ struct ExportDataView: View {
                     ) {
                         exportInvoices()
                     }
+                    
+                    ExportRow(
+                        title: "Suppliers",
+                        subtitle: "Export supplier contacts and details",
+                        icon: "truck.box.fill",
+                        enabled: !isExporting
+                    ) {
+                        exportSuppliers()
+                    }
+                    
+                    ExportRow(
+                        title: "Payments",
+                        subtitle: "Export payment history and receipts",
+                        icon: "creditcard.fill",
+                        enabled: !isExporting
+                    ) {
+                        exportPayments()
+                    }
                 }
                 
                 if isExporting {
@@ -211,6 +229,88 @@ struct ExportDataView: View {
                 shareFile(content: content, fileName: fileName, mimeType: mimeType)
                 await MainActor.run {
                     exportMessage = "Exported \(invoices.count) invoices as \(selectedFormat.rawValue)"
+                    isExporting = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportMessage = "Export failed: \(error.localizedDescription)"
+                    isExporting = false
+                }
+            }
+        }
+    }
+    
+    private func exportSuppliers() {
+        guard let businessId = AuthManager.shared.currentBusiness?.id else { return }
+        isExporting = true
+        exportMessage = nil
+        
+        Task {
+            do {
+                let suppliers = try await apiService.getSuppliers(businessId: businessId)
+                let headers = ["Name", "Phone", "Email", "GSTIN", "Address", "City", "State"]
+                let rows = suppliers.map { s in
+                    [s.name, s.phone ?? "", s.email ?? "", s.gstin ?? "", s.address ?? "", s.city ?? "", s.state ?? ""]
+                }
+                let content: String
+                let fileName: String
+                let mimeType: String
+                
+                switch selectedFormat {
+                case .csv:
+                    content = ExportFormatter.buildCsv(headers: headers, rows: rows)
+                    fileName = "suppliers.csv"
+                    mimeType = "text/csv"
+                case .json:
+                    content = ExportFormatter.buildJson(headers: headers, rows: rows)
+                    fileName = "suppliers.json"
+                    mimeType = "application/json"
+                }
+                
+                shareFile(content: content, fileName: fileName, mimeType: mimeType)
+                await MainActor.run {
+                    exportMessage = "Exported \(suppliers.count) suppliers as \(selectedFormat.rawValue)"
+                    isExporting = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportMessage = "Export failed: \(error.localizedDescription)"
+                    isExporting = false
+                }
+            }
+        }
+    }
+    
+    private func exportPayments() {
+        guard let businessId = AuthManager.shared.currentBusiness?.id else { return }
+        isExporting = true
+        exportMessage = nil
+        
+        Task {
+            do {
+                let payments = try await apiService.getPayments(businessId: businessId)
+                let headers = ["Invoice ID", "Date", "Amount", "Method", "Reference", "Notes"]
+                let rows = payments.map { p in
+                    [p.invoiceId ?? "", p.paidAt?.prefix(10).description ?? "", "\(p.amount)", p.method, p.reference ?? "", p.notes ?? ""]
+                }
+                let content: String
+                let fileName: String
+                let mimeType: String
+                
+                switch selectedFormat {
+                case .csv:
+                    content = ExportFormatter.buildCsv(headers: headers, rows: rows)
+                    fileName = "payments.csv"
+                    mimeType = "text/csv"
+                case .json:
+                    content = ExportFormatter.buildJson(headers: headers, rows: rows)
+                    fileName = "payments.json"
+                    mimeType = "application/json"
+                }
+                
+                shareFile(content: content, fileName: fileName, mimeType: mimeType)
+                await MainActor.run {
+                    exportMessage = "Exported \(payments.count) payments as \(selectedFormat.rawValue)"
                     isExporting = false
                 }
             } catch {

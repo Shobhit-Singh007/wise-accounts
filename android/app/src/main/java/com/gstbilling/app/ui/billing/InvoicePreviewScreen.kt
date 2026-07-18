@@ -41,12 +41,12 @@ class InvoicePreviewViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    fun loadPrintHtml(invoiceId: String) {
+    fun loadPrintHtml(invoiceId: String, documentType: String? = null) {
         viewModelScope.launch {
             isLoading = true
             val businessId = sessionManager.getBusinessId() ?: return@launch
             when (val result = safeApiCall {
-                apiService.getInvoicePrintHtml(businessId.toString(), invoiceId.toString())
+                apiService.getInvoicePrintHtml(businessId.toString(), invoiceId.toString(), documentType)
             }) {
                 is AppResult.Success -> {
                     printHtml = result.data?.body()?.data?.html
@@ -67,14 +67,15 @@ fun InvoicePreviewScreen(
     invoiceId: String,
     onBack: () -> Unit,
     onShare: () -> Unit,
+    documentType: String? = null,
     viewModel: InvoicePreviewViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val html = viewModel.printHtml
     var webView by remember { mutableStateOf<WebView?>(null) }
 
-    LaunchedEffect(invoiceId) {
-        viewModel.loadPrintHtml(invoiceId)
+    LaunchedEffect(invoiceId, documentType) {
+        viewModel.loadPrintHtml(invoiceId, documentType)
     }
 
     Scaffold(

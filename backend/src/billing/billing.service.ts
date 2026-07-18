@@ -35,7 +35,7 @@ export class BillingService {
     if (!business) throw new NotFoundException('Business not found');
 
     const direction = dto.direction || 'SALE';
-    const invoiceNo = await this.generateInvoiceNumber(businessId, dto.type, direction);
+    const invoiceNo = await this.generateInvoiceNumber(businessId, dto.type, direction, dto.documentType);
 
     const isInterState = direction === 'SALE'
       ? await this.isInterState(business, dto.customerId)
@@ -103,6 +103,7 @@ export class BillingService {
           notes: dto.notes,
           terms: dto.terms,
           referenceId: dto.referenceId,
+          documentType: dto.documentType || 'INVOICE',
           createdById: userId,
           items: { create: items },
         },
@@ -556,13 +557,17 @@ export class BillingService {
     return { creditNoteNo, totalCredit, message: 'Credit note created' };
   }
 
-  async getInvoicePdf(businessId: string, invoiceId: string, templateId?: string): Promise<Buffer> {
+  async getInvoicePdf(businessId: string, invoiceId: string, templateId?: string, documentType?: string): Promise<Buffer> {
     const invoice = await this.findOneInvoice(businessId, invoiceId);
     const business = await this.prisma.business.findUnique({ where: { id: businessId } });
     const settings = (business?.settings as any) || {};
     const template = templateId
       ? this.templatesService.getTemplate(templateId)
       : this.templatesService.getActiveTemplate(settings);
+
+    const docTypeLabel = this.getDocumentTypeLabel(documentType || (invoice as any).documentType || 'INVOICE');
+    const showTax = !['DELIVERY_CHALLAN', 'LETTERHEAD'].includes(documentType || 'INVOICE');
+    const showPaymentInfo = !['QUOTATION', 'PROFORMA', 'DELIVERY_CHALLAN', 'LETTERHEAD'].includes(documentType || 'INVOICE');
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 30 });
@@ -579,7 +584,7 @@ export class BillingService {
       if (headerStyle === 'filled') {
         doc.rect(0, 0, doc.page.width, 100).fill(accent);
         doc.fillColor('white').fontSize(18).font('Helvetica-Bold').text(invoice.invoiceNo, 30, 20);
-        doc.fontSize(10).font('Helvetica').text(`${invoice.direction} Invoice`, 30, 42);
+        doc.fontSize(10).font('Helvetica').text(docTypeLabel, 30, 42);
         doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 56);
         if (invoice.dueDate) doc.text(`Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}`, 30, 70);
       } else if (headerStyle === 'gradient') {
@@ -588,21 +593,21 @@ export class BillingService {
           doc.rect(0, i, doc.page.width, 1).fill(accent);
         }
         doc.fillColor('white').fontSize(18).font('Helvetica-Bold').text(invoice.invoiceNo, 30, 20);
-        doc.fontSize(10).font('Helvetica').text(`${invoice.direction} Invoice`, 30, 42);
+        doc.fontSize(10).font('Helvetica').text(docTypeLabel, 30, 42);
         doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 56);
       } else if (headerStyle === 'bordered') {
         doc.rect(0, 0, doc.page.width, 4).fill(accent);
         doc.fillColor(accent).fontSize(18).font('Helvetica-Bold').text(invoice.invoiceNo, 30, 15);
-        doc.fontSize(10).font('Helvetica').text(`${invoice.direction} Invoice | Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 38);
+        doc.fontSize(10).font('Helvetica').text(`${docTypeLabel} | Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 38);
       } else if (headerStyle === 'underline') {
         doc.fillColor(accent).fontSize(18).font('Helvetica-Bold').text(invoice.invoiceNo, 30, 20);
-        doc.fontSize(10).font('Helvetica').text(`${invoice.direction} Invoice`, 30, 42);
+        doc.fontSize(10).font('Helvetica').text(docTypeLabel, 30, 42);
         doc.moveTo(30, 55).lineTo(doc.page.width - 30, 55).strokeColor(accent).lineWidth(2).stroke();
         doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 60);
       } else {
         // minimal
         doc.fillColor(accent).fontSize(20).font('Helvetica-Bold').text(invoice.invoiceNo, 30, 20);
-        doc.fontSize(10).font('Helvetica').fillColor('#666').text(`${invoice.direction} Invoice | ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 45);
+        doc.fontSize(10).font('Helvetica').fillColor('#666').text(`${docTypeLabel} | ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 30, 45);
       }
 
       // Business info (right side)
@@ -654,7 +659,10 @@ export class BillingService {
       y = Math.max(y + 80, 220);
       const colX = [30, 200, 270, 330, 390, 450, 515];
       const colW = [170, 70, 60, 60, 60, 65, 65];
-      const headers = ['Item', 'Qty', 'Rate', 'Disc', 'Taxable', 'Tax', 'Total'];
+      const headers = showTax
+        ? ['Item', 'Qty', 'Rate', 'Disc', 'Taxable', 'Tax', 'Total']
+        : ['Item', 'Qty', 'Rate', 'Disc', '', '', 'Total'];
+      const taxColCount = showTax ? 7 : 4;
 
       if (tableStyle === 'striped') {
         doc.rect(30, y, doc.page.width - 60, 20).fill(accent);
@@ -700,9 +708,11 @@ export class BillingService {
         doc.text(`${item.quantity} ${item.unit}`, colX[1], y, { width: colW[1], align: 'right' });
         doc.text(`Rs. ${item.rate.toFixed(2)}`, colX[2], y, { width: colW[2], align: 'right' });
         doc.text(item.discount > 0 ? `Rs. ${item.discount.toFixed(2)}` : '-', colX[3], y, { width: colW[3], align: 'right' });
-        doc.text(`Rs. ${item.taxableValue.toFixed(2)}`, colX[4], y, { width: colW[4], align: 'right' });
-        const taxLabel = item.igst > 0 ? `${item.taxRate}% IGST` : `${item.taxRate}%`;
-        doc.text(taxLabel, colX[5], y, { width: colW[5], align: 'right' });
+        if (showTax) {
+          doc.text(`Rs. ${item.taxableValue.toFixed(2)}`, colX[4], y, { width: colW[4], align: 'right' });
+          const taxLabel = item.igst > 0 ? `${item.taxRate}% IGST` : `${item.taxRate}%`;
+          doc.text(taxLabel, colX[5], y, { width: colW[5], align: 'right' });
+        }
         doc.font('Helvetica-Bold').text(`Rs. ${item.total.toFixed(2)}`, colX[6], y, { width: colW[6], align: 'right' });
         doc.font('Helvetica');
         y += 16;
@@ -719,10 +729,11 @@ export class BillingService {
       const totalX = 350;
       const totalW = doc.page.width - 30 - totalX;
 
+      const totalLines = showTax ? 85 : 55;
       if (tableStyle === 'modern' || tableStyle === 'alternate') {
-        doc.roundedRect(totalX, y, totalW, 85, 4).fill(accent + '08');
+        doc.roundedRect(totalX, y, totalW, totalLines, 4).fill(accent + '08');
       } else {
-        doc.fillColor('#e8eaf6').rect(totalX, y, totalW, 85).fill('#e8eaf6');
+        doc.fillColor('#e8eaf6').rect(totalX, y, totalW, totalLines).fill('#e8eaf6');
       }
 
       let ty = y + 8;
@@ -735,16 +746,18 @@ export class BillingService {
       doc.fillColor('#333').text(`Rs. ${(invoice.discount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, totalX + 110, ty, { width: totalW - 120, align: 'right' });
       ty += 16;
 
-      doc.fillColor('#666').text('Tax:', totalX + 10, ty, { width: 100 });
-      doc.fillColor('#333').text(`Rs. ${invoice.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, totalX + 110, ty, { width: totalW - 120, align: 'right' });
-      ty += 18;
+      if (showTax) {
+        doc.fillColor('#666').text('Tax:', totalX + 10, ty, { width: 100 });
+        doc.fillColor('#333').text(`Rs. ${invoice.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, totalX + 110, ty, { width: totalW - 120, align: 'right' });
+        ty += 18;
+      }
 
       doc.fillColor(accent).font('Helvetica-Bold').fontSize(11);
       doc.text('Grand Total:', totalX + 10, ty, { width: 100 });
       doc.text(`Rs. ${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, totalX + 110, ty, { width: totalW - 120, align: 'right' });
       ty += 16;
 
-      if (invoice.paidAmount > 0) {
+      if (showPaymentInfo && invoice.paidAmount > 0) {
         doc.fillColor('#666').font('Helvetica').fontSize(9);
         doc.text('Paid:', totalX + 10, ty, { width: 100 });
         doc.fillColor('#2e7d32').text(`Rs. ${invoice.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, totalX + 110, ty, { width: totalW - 120, align: 'right' });
@@ -795,7 +808,7 @@ export class BillingService {
     });
   }
 
-  async getInvoicePrintHtml(businessId: string, invoiceId: string, templateId?: string): Promise<string> {
+  async getInvoicePrintHtml(businessId: string, invoiceId: string, templateId?: string, documentType?: string): Promise<string> {
     const invoice = await this.findOneInvoice(businessId, invoiceId);
     const business = await this.prisma.business.findUnique({ where: { id: businessId } });
     const settings = (business?.settings as any) || {};
@@ -807,6 +820,9 @@ export class BillingService {
     const headerStyle = template.headerStyle;
     const tableStyle = template.tableStyle;
     const statusColors: Record<string, string> = { CONFIRMED: '#2e7d32', DRAFT: '#ff8f00', CANCELLED: '#c62828', CREDITED: '#e65100' };
+    const docTypeLabel = this.getDocumentTypeLabel(documentType || (invoice as any).documentType || 'INVOICE');
+    const showTax = !['DELIVERY_CHALLAN', 'LETTERHEAD'].includes(documentType || 'INVOICE');
+    const showPaymentInfo = !['QUOTATION', 'PROFORMA', 'DELIVERY_CHALLAN', 'LETTERHEAD'].includes(documentType || 'INVOICE');
 
     let headerCss = `padding:20px;display:flex;justify-content:space-between;color:white`;
     if (headerStyle === 'filled') headerCss = `background:${accent};color:white;padding:20px;display:flex;justify-content:space-between`;
@@ -845,7 +861,7 @@ ${tableRowCss}
 .einvoice-section{background:#e3f2fd;border:1px solid #1565c0;padding:10px;margin:10px 0;border-radius:4px}
 .bank-details{background:#f5f5f5;padding:10px;margin:10px 0;border-radius:4px;font-size:11px}
 </style></head><body>
-<div class="header"><div><h1>${invoice.invoiceNo}</h1><div class="meta">${invoice.direction} Invoice | ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</div>
+<div class="header"><div><h1>${invoice.invoiceNo}</h1><div class="meta">${docTypeLabel} | ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</div>
 ${invoice.dueDate ? `<div class="meta">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
 <div style="margin-top:8px"><span class="status">${invoice.status}</span></div></div>
 <div style="text-align:right"><strong>${business?.name || ''}</strong><br>
@@ -858,16 +874,16 @@ ${invoice.customer.city || ''} ${invoice.customer.state || ''} ${invoice.custome
 ${invoice.customer.gstin ? 'GSTIN: ' + invoice.customer.gstin + '<br>' : ''}${invoice.customer.phone ? 'Ph: ' + invoice.customer.phone : ''}` : 'Walk-in Customer'}</div></div>
 ${invoice.ewayBillNo ? `<div class="eway-section"><strong>E-Way Bill:</strong> ${invoice.ewayBillNo} | Vehicle: ${invoice.vehicleNo || '-'} | Transporter: ${invoice.transporterName || '-'} | Distance: ${invoice.distanceKm || '-'} km</div>` : ''}
 ${invoice.irn ? `<div class="einvoice-section"><strong>IRN:</strong> ${invoice.irn}<br>${invoice.ackNo ? 'Ack No: ' + invoice.ackNo : ''}${invoice.irnDate ? ' | Date: ' + new Date(invoice.irnDate).toLocaleDateString('en-IN') : ''}</div>` : ''}
-<table><thead><tr><th style="text-align:left">Item</th><th>Qty</th><th>Rate</th><th>Disc</th><th>Taxable</th><th>Tax</th><th>Total</th></tr></thead><tbody>
+<table><thead><tr><th style="text-align:left">Item</th><th>Qty</th><th>Rate</th><th>Disc</th>${showTax ? '<th>Taxable</th><th>Tax</th>' : ''}<th>Total</th></tr></thead><tbody>
 ${invoice.items.map(i => `<tr><td style="text-align:left">${i.itemName}</td><td>${i.quantity} ${i.unit}</td><td>₹${i.rate.toFixed(2)}</td>
-<td>${i.discount > 0 ? '₹' + i.discount.toFixed(2) : '-'}</td><td>₹${i.taxableValue.toFixed(2)}</td>
-<td>${i.igst > 0 ? i.taxRate + '% IGST' : i.taxRate + '%'}</td><td>₹${i.total.toFixed(2)}</td></tr>`).join('')}
+<td>${i.discount > 0 ? '₹' + i.discount.toFixed(2) : '-'}</td>${showTax ? `<td>₹${i.taxableValue.toFixed(2)}</td>
+<td>${i.igst > 0 ? i.taxRate + '% IGST' : i.taxRate + '%'}</td>` : ''}<td>₹${i.total.toFixed(2)}</td></tr>`).join('')}
 </tbody></table>
 <div class="totals"><table><tr><td>Subtotal</td><td style="text-align:right">₹${invoice.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
 <tr><td>Discount</td><td style="text-align:right">₹${(invoice.discount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
-<tr><td>Tax</td><td style="text-align:right">₹${invoice.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
+${showTax ? `<tr><td>Tax</td><td style="text-align:right">₹${invoice.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>` : ''}
 <tr class="grand"><td>Grand Total</td><td style="text-align:right">₹${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
-${invoice.paidAmount > 0 ? `<tr><td>Paid</td><td style="text-align:right;color:#2e7d32">₹${invoice.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
+${showPaymentInfo && invoice.paidAmount > 0 ? `<tr><td>Paid</td><td style="text-align:right;color:#2e7d32">₹${invoice.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
 <tr><td><strong>Balance</strong></td><td style="text-align:right;color:#c62828"><strong>₹${(invoice.grandTotal - invoice.paidAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></td></tr>` : ''}
 </table></div>
 ${invoice.notes ? `<div class="section"><h3>Notes</h3><p>${invoice.notes}</p></div>` : ''}
@@ -877,12 +893,35 @@ ${settings.showBankDetails && settings.bankName ? `<div class="bank-details"><st
 </body></html>`;
   }
 
-  private async generateInvoiceNumber(businessId: string, type: string, direction: string): Promise<string> {
+  private async generateInvoiceNumber(businessId: string, type: string, direction: string, documentType?: string): Promise<string> {
+    const docTypePrefixes: Record<string, string> = {
+      INVOICE: 'INV',
+      QUOTATION: 'QUO',
+      PROFORMA: 'PRO',
+      DELIVERY_CHALLAN: 'DC',
+      JOBWORK: 'JW',
+      CREDIT_NOTE: 'CN',
+      LETTERHEAD: 'LTR',
+    };
     const dirPrefix = direction === 'PURCHASE' ? 'PUR-' : '';
-    const prefix = type === 'B2B' ? `${dirPrefix}INV-B2B-` : `${dirPrefix}INV-`;
+    const prefix = docTypePrefixes[documentType || 'INVOICE'] || 'INV';
+    const typeSuffix = type === 'B2B' ? '-B2B' : '';
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 900) + 100;
-    return `${prefix}${timestamp}-${random}`;
+    return `${dirPrefix}${prefix}${typeSuffix}-${timestamp}-${random}`;
+  }
+
+  private getDocumentTypeLabel(documentType: string): string {
+    const labels: Record<string, string> = {
+      INVOICE: 'Tax Invoice',
+      QUOTATION: 'Quotation',
+      PROFORMA: 'Proforma Invoice',
+      DELIVERY_CHALLAN: 'Delivery Challan',
+      JOBWORK: 'Job Work',
+      CREDIT_NOTE: 'Credit Note',
+      LETTERHEAD: 'Letterhead',
+    };
+    return labels[documentType] || 'Tax Invoice';
   }
 
   private async isInterState(business: any, customerId?: string): Promise<boolean> {

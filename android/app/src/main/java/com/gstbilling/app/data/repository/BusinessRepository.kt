@@ -39,6 +39,8 @@ class BusinessRepository @Inject constructor(
         }
     }
 
+    fun getApiService(): ApiService = apiService
+
     suspend fun getWarehouses(): AppResult<List<Warehouse>> {
         val businessId = sessionManager.getBusinessId() ?: return AppResult.Error("Business not found")
         return safeApiCall {

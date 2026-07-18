@@ -29,6 +29,9 @@ import {
   RadioGroup,
   Autocomplete,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -537,6 +540,7 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
   const [bothOpen, setBothOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState('classic');
   const [showQrCode, setShowQrCode] = useState(false);
+  const [docType, setDocType] = useState('INVOICE');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   // Load active template and QR setting from settings
@@ -558,16 +562,17 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
   const hasGstin = party?.gstin;
 
   const handlePrint = () => {
-    invoicesApi.openPrint(businessId, invoice.id);
+    invoicesApi.openPrint(businessId, invoice.id, docType === 'INVOICE' ? undefined : docType);
   };
 
   const handleDownloadPdf = async () => {
     try {
-      const blob = await invoicesApi.downloadPdf(businessId, invoice.id);
+      const blob = await invoicesApi.downloadPdf(businessId, invoice.id, docType === 'INVOICE' ? undefined : docType);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${invoice.invoiceNo}.pdf`;
+      const labels: Record<string, string> = { INVOICE: 'Invoice', QUOTATION: 'Quotation', PROFORMA: 'Proforma', DELIVERY_CHALLAN: 'Challan', JOBWORK: 'Jobwork', CREDIT_NOTE: 'CreditNote', LETTERHEAD: 'Letterhead' };
+      a.download = `${labels[docType] || 'Invoice'}_${invoice.invoiceNo}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -832,6 +837,23 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
               E-Way Bill & e-Invoice
             </Button>
           )}
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="doc-type-label">Document</InputLabel>
+            <Select
+              labelId="doc-type-label"
+              value={docType}
+              label="Document"
+              onChange={(e) => setDocType(e.target.value)}
+            >
+              <MenuItem value="INVOICE">Tax Invoice</MenuItem>
+              <MenuItem value="QUOTATION">Quotation</MenuItem>
+              <MenuItem value="PROFORMA">Proforma Invoice</MenuItem>
+              <MenuItem value="DELIVERY_CHALLAN">Delivery Challan</MenuItem>
+              <MenuItem value="JOBWORK">Jobwork Challan</MenuItem>
+              <MenuItem value="CREDIT_NOTE">Credit Note</MenuItem>
+              <MenuItem value="LETTERHEAD">Letterhead</MenuItem>
+            </Select>
+          </FormControl>
           <Button size="small" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
           <Button size="small" startIcon={<DownloadIcon />} onClick={handleDownloadPdf}>Download PDF</Button>
           {invoice.status !== 'CANCELLED' && (

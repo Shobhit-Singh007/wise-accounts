@@ -30,6 +30,16 @@ enum InvoiceStatus {
   CREDITED
 }
 
+enum DocumentType {
+  INVOICE
+  QUOTATION
+  PROFORMA
+  DELIVERY_CHALLAN
+  JOBWORK
+  CREDIT_NOTE
+  LETTERHEAD
+}
+
 enum PaymentMethod {
   CASH
   UPI
@@ -376,6 +386,7 @@ model Invoice {
   distanceKm     Int?
   supplyType     String?   @default("Regular")
   docType        String?   @default("Tax Invoice")
+  documentType   DocumentType @default(INVOICE)
   valueOfGoods   Float?
 
   irn            String?

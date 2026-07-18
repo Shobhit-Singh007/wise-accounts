@@ -17,6 +17,7 @@ import { RecurringInvoicesModule } from './recurring-invoices/recurring-invoices
 import { AwsModule } from './aws/aws.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ExportModule } from './export/export.module';
+import { ImportModule } from './import/import.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -39,6 +40,7 @@ import { HealthController } from './common/health.controller';
     RecurringInvoicesModule,
     SubscriptionsModule,
     ExportModule,
+    ImportModule,
   ],
   controllers: [HealthController],
 })

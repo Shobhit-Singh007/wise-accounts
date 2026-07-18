@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "DocumentType" AS ENUM ('INVOICE', 'QUOTATION', 'PROFORMA', 'DELIVERY_CHALLAN', 'JOBWORK', 'CREDIT_NOTE', 'LETTERHEAD');
+
+-- AlterTable
+ALTER TABLE "Invoice" ADD COLUMN     "documentType" "DocumentType" NOT NULL DEFAULT 'INVOICE';

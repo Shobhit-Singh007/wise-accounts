@@ -175,12 +175,13 @@ export const invoicesApi = {
   getPdfUrl: (businessId: string, id: string) =>
     `/api/v1${prefix(businessId)}/invoices/${id}/pdf`,
 
-  getPrintUrl: (businessId: string, id: string) =>
-    `/api/v1${prefix(businessId)}/invoices/${id}/print`,
+  getPrintUrl: (businessId: string, id: string, documentType?: string) =>
+    `/api/v1${prefix(businessId)}/invoices/${id}/print${documentType ? `?documentType=${documentType}` : ''}`,
 
-  downloadPdf: (businessId: string, id: string) => {
+  downloadPdf: (businessId: string, id: string, documentType?: string) => {
     const token = localStorage.getItem('accessToken');
-    return fetch(`/api/v1${prefix(businessId)}/invoices/${id}/pdf`, {
+    const qs = documentType ? `?documentType=${documentType}` : '';
+    return fetch(`/api/v1${prefix(businessId)}/invoices/${id}/pdf${qs}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then((r) => {
       if (!r.ok) throw new Error(`PDF download failed: ${r.status}`);
@@ -188,9 +189,10 @@ export const invoicesApi = {
     });
   },
 
-  openPrint: (businessId: string, id: string) => {
+  openPrint: (businessId: string, id: string, documentType?: string) => {
     const token = localStorage.getItem('accessToken');
-    fetch(`/api/v1${prefix(businessId)}/invoices/${id}/print`, {
+    const qs = documentType ? `?documentType=${documentType}` : '';
+    fetch(`/api/v1${prefix(businessId)}/invoices/${id}/print${qs}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => {
