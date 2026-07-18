@@ -42,9 +42,9 @@ $BACKEND_URL = aws s3 presign s3://$S3_BUCKET/backend-image.tar --expires-in 360
 $NGINX_URL = aws s3 presign s3://$S3_BUCKET/nginx-image.tar --expires-in 3600 --region $S3_REGION
 
 $SSM_PARAMS_FILE = Join-Path $PSScriptRoot "..\tmp_ssm.json"
-@{
+$json = @{
     commands = @(
-        "cd ~/wise-accounts",
+        "cd /home/ec2-user/wise-accounts",
         "curl -sSf -o backend-image.tar '$BACKEND_URL'",
         "curl -sSf -o nginx-image.tar '$NGINX_URL'",
         "sudo docker load -i backend-image.tar",
@@ -54,7 +54,8 @@ $SSM_PARAMS_FILE = Join-Path $PSScriptRoot "..\tmp_ssm.json"
         "sudo docker ps",
         "curl -s http://localhost/api/v1/health"
     )
-} | ConvertTo-Json -Compress | Set-Content -Path $SSM_PARAMS_FILE -Encoding UTF8
+} | ConvertTo-Json -Compress
+[System.IO.File]::WriteAllText($SSM_PARAMS_FILE, $json, [System.Text.UTF8Encoding]::new($false))
 
 $CMD_ID = aws ssm send-command --instance-id $INSTANCE_ID --document-name "AWS-RunShellScript" --parameters "file://$SSM_PARAMS_FILE" --region $EC2_REGION --query "Command.CommandId" --output text
 Write-Host "  SSM Command sent: $CMD_ID" -ForegroundColor Cyan
