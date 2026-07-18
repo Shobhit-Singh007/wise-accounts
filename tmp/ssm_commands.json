@@ -1,0 +1,1 @@
+{"commands":["cd /home/ec2-user/wise-accounts && curl -o /tmp/backend-update.zip https://wise-accounts-deploy.s3.us-east-1.amazonaws.com/backend-update.zip && unzip -o /tmp/backend-update.zip -d . && npx prisma generate && pm2 restart wise-accounts-api && pm2 status"]}

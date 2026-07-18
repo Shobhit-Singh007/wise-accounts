@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gstbilling.app.data.remote.api.*
+import com.gstbilling.app.data.remote.api.ApiService
 import com.gstbilling.app.data.repository.InvoiceRepository
 import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
@@ -52,7 +53,8 @@ data class LineItemState(
 @HiltViewModel
 class CreateInvoiceViewModel @Inject constructor(
     private val invoiceRepository: InvoiceRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val apiService: ApiService
 ) : ViewModel() {
 
     var customerId by mutableStateOf("")
@@ -78,6 +80,19 @@ class CreateInvoiceViewModel @Inject constructor(
     var productSearchResults by mutableStateOf<List<Product>>(emptyList())
     var isSearchingProducts by mutableStateOf(false)
     private var productSearchJobs = mutableMapOf<Int, Job>()
+
+    // ── Quick-add customer bottom sheet state ──
+    var showAddCustomer by mutableStateOf(false)
+    var newCustomerName by mutableStateOf("")
+    var newCustomerPhone by mutableStateOf("")
+    var newCustomerGstin by mutableStateOf("")
+    var newCustomerAddress by mutableStateOf("")
+    var newCustomerCity by mutableStateOf("")
+    var newCustomerState by mutableStateOf("")
+    var newCustomerPincode by mutableStateOf("")
+    var isCreatingCustomer by mutableStateOf(false)
+    var isGstinLookupLoading by mutableStateOf(false)
+    var newCustomerError by mutableStateOf<String?>(null)
 
     val subtotal by derivedStateOf { lineItems.sumOf { it.unitPrice.toDoubleOrNull()?.times(it.quantity.toDoubleOrNull() ?: 1.0) ?: 0.0 } }
     val discountAmount by derivedStateOf { discount.toDoubleOrNull() ?: 0.0 }
@@ -128,6 +143,75 @@ class CreateInvoiceViewModel @Inject constructor(
         customerAddress = null
         customerPhone = null
         invoiceType = "B2C"
+    }
+
+    fun lookupGstinForNewCustomer() {
+        if (newCustomerGstin.length < 15) return
+        isGstinLookupLoading = true
+        viewModelScope.launch {
+            try {
+                val businessId = sessionManager.getBusinessId() ?: ""
+                val response = apiService.lookupGstin(businessId, newCustomerGstin)
+                if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    if (data != null) {
+                        if (newCustomerName.isBlank()) newCustomerName = data["tradeName"] as? String ?: data["name"] as? String ?: ""
+                        if (newCustomerAddress.isBlank()) newCustomerAddress = data["address"] as? String ?: ""
+                        if (newCustomerCity.isBlank()) newCustomerCity = data["city"] as? String ?: ""
+                        if (newCustomerState.isBlank()) newCustomerState = data["state"] as? String ?: ""
+                        if (newCustomerPincode.isBlank()) newCustomerPincode = data["pincode"] as? String ?: ""
+                    }
+                }
+            } catch (_: Exception) { }
+            isGstinLookupLoading = false
+        }
+    }
+
+    fun createAndSelectCustomer() {
+        if (newCustomerName.isBlank()) {
+            newCustomerError = "Customer name is required"
+            return
+        }
+        isCreatingCustomer = true
+        newCustomerError = null
+        viewModelScope.launch {
+            val businessId = sessionManager.getBusinessId() ?: ""
+            val customer = Customer(
+                name = newCustomerName,
+                phone = newCustomerPhone.ifBlank { null },
+                gstin = newCustomerGstin.ifBlank { null },
+                address = newCustomerAddress.ifBlank { null },
+                city = newCustomerCity.ifBlank { null },
+                state = newCustomerState.ifBlank { null },
+                pincode = newCustomerPincode.ifBlank { null },
+                businessId = businessId
+            )
+            try {
+                val response = apiService.createCustomer(customer)
+                if (response.isSuccessful) {
+                    val created = response.body()?.data ?: customer.copy(id = "temp")
+                    selectCustomer(created)
+                    showAddCustomer = false
+                    resetNewCustomerForm()
+                } else {
+                    newCustomerError = "Failed to create customer"
+                }
+            } catch (e: Exception) {
+                newCustomerError = e.message ?: "Failed to create customer"
+            }
+            isCreatingCustomer = false
+        }
+    }
+
+    fun resetNewCustomerForm() {
+        newCustomerName = ""
+        newCustomerPhone = ""
+        newCustomerGstin = ""
+        newCustomerAddress = ""
+        newCustomerCity = ""
+        newCustomerState = ""
+        newCustomerPincode = ""
+        newCustomerError = null
     }
 
     fun searchProducts(query: String, lineIndex: Int) {
@@ -325,30 +409,38 @@ fun CreateInvoiceScreen(
             }
 
             // Customer Selection
-            OutlinedTextField(
-                value = viewModel.customerName,
-                onValueChange = {
-                    viewModel.customerName = it
-                    showCustomerSearch = true
-                    customerSearchQuery = it
-                    viewModel.searchCustomers(it)
-                },
-                label = { Text("Customer Name") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                trailingIcon = {
-                    if (viewModel.customerName.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearCustomer() }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = viewModel.customerName,
+                    onValueChange = {
+                        viewModel.customerName = it
+                        showCustomerSearch = true
+                        customerSearchQuery = it
+                        viewModel.searchCustomers(it)
+                    },
+                    label = { Text("Customer Name") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    trailingIcon = {
+                        if (viewModel.customerName.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.clearCustomer() }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        } else {
+                            IconButton(onClick = { showCustomerSearch = true }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search customer")
+                            }
                         }
-                    } else {
-                        IconButton(onClick = { showCustomerSearch = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search customer")
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+                    },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { viewModel.resetNewCustomerForm(); viewModel.showAddCustomer = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add new customer")
+                }
+            }
 
             // Customer Detail Card
             if (viewModel.customerId.isNotBlank()) {
@@ -400,6 +492,102 @@ fun CreateInvoiceScreen(
                             )
                             HorizontalDivider()
                         }
+                    }
+                }
+            }
+
+            // Quick Add Customer Bottom Sheet
+            if (viewModel.showAddCustomer) {
+                ModalBottomSheet(
+                    onDismissRequest = { viewModel.showAddCustomer = false },
+                    dragHandle = { BottomSheetDefaults.DragHandle() }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("Add New Customer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = viewModel.newCustomerName,
+                            onValueChange = { viewModel.newCustomerName = it },
+                            label = { Text("Customer Name *") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.newCustomerPhone,
+                            onValueChange = { viewModel.newCustomerPhone = it },
+                            label = { Text("Phone") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.newCustomerGstin,
+                            onValueChange = { viewModel.newCustomerGstin = it.uppercase() },
+                            label = { Text("GSTIN") },
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { viewModel.lookupGstinForNewCustomer() },
+                                    enabled = viewModel.newCustomerGstin.length >= 15 && !viewModel.isGstinLookupLoading
+                                ) {
+                                    if (viewModel.isGstinLookupLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.Search, contentDescription = "Lookup GSTIN")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.newCustomerAddress,
+                            onValueChange = { viewModel.newCustomerAddress = it },
+                            label = { Text("Address") },
+                            minLines = 2,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = viewModel.newCustomerCity,
+                                onValueChange = { viewModel.newCustomerCity = it },
+                                label = { Text("City") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = viewModel.newCustomerState,
+                                onValueChange = { viewModel.newCustomerState = it },
+                                label = { Text("State") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = viewModel.newCustomerPincode,
+                            onValueChange = { viewModel.newCustomerPincode = it },
+                            label = { Text("Pincode") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        viewModel.newCustomerError?.let { error ->
+                            Text(text = error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Button(
+                            onClick = { viewModel.createAndSelectCustomer() },
+                            enabled = !viewModel.isCreatingCustomer,
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) {
+                            if (viewModel.isCreatingCustomer) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            } else {
+                                Text("Save & Select Customer", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }

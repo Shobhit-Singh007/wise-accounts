@@ -19,6 +19,8 @@ import {
   Checkbox,
   FormGroup,
   LinearProgress,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -28,6 +30,7 @@ import {
   Key as KeyIcon,
   Dangerous as DangerIcon,
   ImportExport as ImportExportIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useBusiness } from '../context/BusinessContext';
 import { businessesApi, type Business } from '../api/businesses';
@@ -74,6 +77,7 @@ export default function SettingsPage() {
   });
   const [exportFormat, setExportFormat] = useState('csv');
   const [exporting, setExporting] = useState(false);
+  const [gstinLookupLoading, setGstinLookupLoading] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -156,6 +160,26 @@ export default function SettingsPage() {
       setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save');
     }
     setSaving(false);
+  };
+
+  const lookupGstin = async () => {
+    if (!currentBusinessId || !profile.gstin || profile.gstin.length < 15) return;
+    setGstinLookupLoading(true);
+    try {
+      const { data } = await client.get(`/businesses/${currentBusinessId}/customers/gstin/${profile.gstin}`);
+      if (data && data.name) {
+        setProfile((prev) => ({
+          ...prev,
+          name: prev.name || data.tradeName || data.name || '',
+          address: prev.address || data.address || '',
+          city: prev.city || data.city || '',
+          state: prev.state || data.state || '',
+          pincode: prev.pincode || data.pincode || '',
+        }));
+        setSuccess('GSTIN details auto-filled');
+      }
+    } catch { /* silent */ }
+    setGstinLookupLoading(false);
   };
 
   const saveInvoiceSettings = async () => {
@@ -254,7 +278,26 @@ export default function SettingsPage() {
                       <TextField label="Business Name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} size="small" fullWidth />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField label="GSTIN" value={profile.gstin} onChange={(e) => setProfile({ ...profile, gstin: e.target.value })} size="small" fullWidth />
+                      <TextField
+                        label="GSTIN"
+                        value={profile.gstin}
+                        onChange={(e) => setProfile({ ...profile, gstin: e.target.value.toUpperCase() })}
+                        size="small"
+                        fullWidth
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                size="small"
+                                onClick={lookupGstin}
+                                disabled={gstinLookupLoading || !profile.gstin || profile.gstin.length < 15}
+                              >
+                                {gstinLookupLoading ? <CircularProgress size={16} /> : <SearchIcon />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField label="Phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} size="small" fullWidth />

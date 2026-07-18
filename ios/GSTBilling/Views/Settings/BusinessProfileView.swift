@@ -13,6 +13,7 @@ struct BusinessProfileView: View {
     @State private var gstin: String
     @State private var businessType: String
     @State private var isLoading = false
+    @State private var isGstLookupLoading = false
     @State private var toastMessage: String?
 
     private let businessTypes = ["Proprietorship", "Partnership", "LLP", "Private Limited", "Public Limited", "HUF", "Others"]
@@ -51,8 +52,18 @@ struct BusinessProfileView: View {
             }
 
             Section("Tax Information") {
-                TextField("GSTIN", text: $gstin)
-                    .autocapitalization(.allCharacters)
+                HStack {
+                    TextField("GSTIN", text: $gstin)
+                        .autocapitalization(.allCharacters)
+                    if isGstLookupLoading {
+                        ProgressView()
+                    } else {
+                        Button(action: { Task { await lookupGstin() } }) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .disabled(gstin.count < 15)
+                    }
+                }
             }
 
             Section {
@@ -80,6 +91,20 @@ struct BusinessProfileView: View {
                 .animation(.easeInOut, value: toastMessage)
                 .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 2) { toastMessage = nil } }
             }
+        }
+    }
+
+    private func lookupGstin() async {
+        guard gstin.count >= 15 else { return }
+        isGstLookupLoading = true
+        defer { isGstLookupLoading = false }
+        do {
+            let result = try await APIService.shared.lookupGstin(businessId: business.id, gstin: gstin.uppercased())
+            if businessName.isEmpty { businessName = result.displayName }
+            if address.isEmpty { address = result.address ?? "" }
+            toastMessage = "GSTIN details fetched"
+        } catch {
+            toastMessage = "GSTIN lookup failed: \(error.localizedDescription)"
         }
     }
 

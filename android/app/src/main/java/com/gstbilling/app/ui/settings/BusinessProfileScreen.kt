@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -81,7 +82,26 @@ fun BusinessProfileScreen(
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Tax Information", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    OutlinedTextField(value = viewModel.gstin, onValueChange = { viewModel.onGstinChange(it) }, label = { Text("GSTIN") }, modifier = Modifier.fillMaxWidth(), singleLine = true, supportingText = { Text("GST Identification Number") })
+                    OutlinedTextField(
+                        value = viewModel.gstin,
+                        onValueChange = { viewModel.onGstinChange(it) },
+                        label = { Text("GSTIN") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { viewModel.lookupGstin(viewModel.gstin) },
+                                enabled = viewModel.gstin.length >= 15 && !viewModel.isGstinLookupLoading
+                            ) {
+                                if (viewModel.isGstinLookupLoading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.Search, contentDescription = "Lookup GSTIN")
+                                }
+                            }
+                        },
+                        supportingText = { Text("GST Identification Number") }
+                    )
                     ExposedDropdownMenuBox(expanded = dropdownExpanded, onExpandedChange = { dropdownExpanded = !dropdownExpanded }) {
                         OutlinedTextField(value = viewModel.businessType, onValueChange = {}, label = { Text("Business Type") }, modifier = Modifier.fillMaxWidth().menuAnchor(), readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) })
                         ExposedDropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {

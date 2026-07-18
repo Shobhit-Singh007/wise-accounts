@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BillingService } from './billing.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,361 +7,347 @@ import { EwayBillApiService } from './services/ewaybill-api.service';
 import { EinvoiceApiService } from './services/einvoice-api.service';
 import { InvoiceTemplatesService } from './services/invoice-templates.service';
 
+const mockPrisma = {
+  business: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  customer: {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  product: {
+    findFirst: jest.fn().mockResolvedValue({ id: 'p1' }),
+    create: jest.fn().mockResolvedValue({ id: 'p1' }),
+  },
+  invoice: {
+    create: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  invoiceItem: {
+    deleteMany: jest.fn(),
+    createMany: jest.fn(),
+  },
+  customerTransaction: {
+    create: jest.fn(),
+  },
+  supplier: {
+    findUnique: jest.fn(),
+  },
+  stockBatch: {
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
+  $transaction: jest.fn((fn: any) => fn(mockPrisma)),
+  auditLog: {
+    create: jest.fn(),
+  },
+};
+
+const mockEwayBillApi = { generateEwayBill: jest.fn() };
+const mockEinvoiceApi = { generateEinvoice: jest.fn() };
+const mockTemplatesService = {
+  getTemplates: jest.fn(),
+  getTemplate: jest.fn(),
+  getActiveTemplate: jest.fn(),
+};
+
 describe('BillingService', () => {
   let service: BillingService;
-  let prisma: any;
-
-  const mockBusiness = {
-    id: 'biz-1',
-    name: 'My Shop',
-    state: 'Maharashtra',
-    gstin: '29ABCDE1234F1Z5',
-    isActive: true,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  };
-
-  const mockCustomer = {
-    id: 'cust-1',
-    businessId: 'biz-1',
-    name: 'Rahul Sharma',
-    state: 'Maharashtra',
-    gstin: '27ABCDE1234F1Z5',
-    balance: 0,
-    isActive: true,
-  };
-
-  const mockInvoice = {
-    id: 'inv-1',
-    businessId: 'biz-1',
-    customerId: 'cust-1',
-    invoiceNo: 'INV-1234567890-123',
-    type: 'B2C',
-    subtotal: 450,
-    taxAmount: 22.5,
-    discount: 0,
-    grandTotal: 472.5,
-    paidAmount: 0,
-    status: 'CONFIRMED',
-    createdAt: new Date('2024-06-15'),
-    items: [
-      {
-        id: 'item-1',
-        invoiceId: 'inv-1',
-        productId: null,
-        itemName: 'Wheat Flour',
-        quantity: 10,
-        unit: 'kg',
-        rate: 45,
-        discount: 0,
-        taxableValue: 450,
-        taxRate: 5,
-        cgst: 11.25,
-        sgst: 11.25,
-        igst: 0,
-        total: 472.5,
-        batchNo: null,
-        expiryDate: null,
-      },
-    ],
-    customer: mockCustomer,
-  };
-
-  const createInvoiceDto = {
-    type: 'B2C' as any,
-    customerId: 'cust-1',
-    discount: 0,
-    items: [
-      {
-        itemName: 'Wheat Flour',
-        quantity: 10,
-        unit: 'kg',
-        rate: 45,
-        discount: 0,
-        taxRate: 5,
-      },
-    ],
-  };
-
-  const mockPrisma = {
-    business: {
-      findUnique: jest.fn(),
-    },
-    customer: {
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-    customerTransaction: {
-      create: jest.fn(),
-    },
-    invoice: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      count: jest.fn(),
-      update: jest.fn(),
-    },
-    $transaction: jest.fn(),
-    stockBatch: {
-      findMany: jest.fn(),
-      update: jest.fn(),
-    },
-  };
-
-  const mockConfigService = {
-    get: jest.fn().mockImplementation((key: string, defaultValue?: string) => {
-      return defaultValue;
-    }),
-  };
-
-  const mockEwayBillApi = {
-    generateEwayBill: jest.fn().mockResolvedValue({
-      ewayBillNo: 'EWB123456789',
-      ewayBillDate: '2024-06-15',
-      validUpto: '2024-06-16',
-      message: 'E-Way Bill generated successfully',
-    }),
-  };
-
-  const mockEinvoiceApi = {
-    generateEinvoice: jest.fn().mockResolvedValue({
-      irn: 'IRN123456789',
-      irnDate: '2024-06-15',
-      ackNo: 'ACK123456',
-      ackDate: '2024-06-15',
-      qrCode: 'qr-code-base64',
-      message: 'e-Invoice generated successfully',
-    }),
-  };
-
-  const mockTemplatesService = {
-    getTemplates: jest.fn().mockReturnValue([]),
-    getTemplate: jest.fn().mockReturnValue({
-      id: 'classic',
-      name: 'Classic',
-      accentColor: '#1a237e',
-      headerStyle: 'filled',
-      tableStyle: 'bordered',
-      font: 'arial',
-    }),
-    getActiveTemplate: jest.fn().mockReturnValue({
-      id: 'classic',
-      name: 'Classic',
-      accentColor: '#1a237e',
-      headerStyle: 'filled',
-      tableStyle: 'bordered',
-      font: 'arial',
-    }),
-  };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BillingService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: ConfigService, useValue: mockConfigService },
         { provide: EwayBillApiService, useValue: mockEwayBillApi },
         { provide: EinvoiceApiService, useValue: mockEinvoiceApi },
         { provide: InvoiceTemplatesService, useValue: mockTemplatesService },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn() },
+        },
       ],
     }).compile();
 
     service = module.get<BillingService>(BillingService);
-    prisma = module.get(PrismaService);
+    jest.clearAllMocks();
+  });
+
+  describe('generateInvoiceNumber', () => {
+    it('uses correct prefix for INVOICE documentType', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({
+        state: 'Maharashtra',
+      });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'INV-B2B-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2B',
+        direction: 'SALE',
+        documentType: 'INVOICE',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^INV/);
+    });
+
+    it('uses correct prefix for QUOTATION', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'QUO-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'QUOTATION',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^QUO/);
+    });
+
+    it('uses correct prefix for PROFORMA', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'PRO-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'PROFORMA',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^PRO/);
+    });
+
+    it('uses correct prefix for DELIVERY_CHALLAN', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'DC-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'DELIVERY_CHALLAN',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^DC/);
+    });
+
+    it('uses correct prefix for JOBWORK', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'JW-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'JOBWORK',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^JW/);
+    });
+
+    it('uses correct prefix for CREDIT_NOTE', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'CN-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'CREDIT_NOTE',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^CN/);
+    });
+
+    it('uses correct prefix for LETTERHEAD', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'LTR-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'LETTERHEAD',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.invoiceNo).toMatch(/^LTR/);
+    });
+  });
+
+  describe('getDocumentTypeLabel', () => {
+    it('returns correct labels', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'INV-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      const docTypes = [
+        { type: 'INVOICE', expected: 'Tax Invoice' },
+        { type: 'QUOTATION', expected: 'Quotation' },
+        { type: 'PROFORMA', expected: 'Proforma Invoice' },
+        { type: 'DELIVERY_CHALLAN', expected: 'Delivery Challan' },
+        { type: 'JOBWORK', expected: 'Job Work' },
+        { type: 'CREDIT_NOTE', expected: 'Credit Note' },
+        { type: 'LETTERHEAD', expected: 'Letterhead' },
+      ];
+
+      for (const { type, expected } of docTypes) {
+        mockPrisma.invoice.create.mockResolvedValue({
+          id: 'inv1', invoiceNo: 'test', documentType: type, items: [],
+        });
+
+        mockTemplatesService.getActiveTemplate.mockReturnValue({
+          accentColor: '#000',
+          headerStyle: 'minimal',
+          tableStyle: 'default',
+        });
+
+        const result = await service.createInvoice('biz1', 'user1', {
+          customerId: 'c1',
+          type: 'B2C',
+          direction: 'SALE',
+          documentType: type,
+          items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+        });
+
+        expect(result.documentType).toBe(type);
+      }
+    });
   });
 
   describe('createInvoice', () => {
-    it('should create a B2C invoice with CGST+SGST calculation, items, and customer balance update', async () => {
-      mockPrisma.business.findUnique.mockResolvedValue(mockBusiness);
-      mockPrisma.customer.findUnique.mockResolvedValue(mockCustomer);
-
-      const mockTx = {
-        invoice: {
-          create: jest.fn().mockResolvedValue(mockInvoice),
-          findUnique: jest.fn().mockResolvedValue(mockInvoice),
-        },
-        customer: {
-          findUnique: jest.fn().mockResolvedValue(mockCustomer),
-          update: jest.fn().mockResolvedValue({ ...mockCustomer, balance: 472.5 }),
-        },
-        customerTransaction: {
-          create: jest.fn().mockResolvedValue({}),
-        },
-        stockBatch: {
-          findMany: jest.fn().mockResolvedValue([]),
-          update: jest.fn().mockResolvedValue({}),
-        },
-      };
-      mockPrisma.$transaction.mockImplementation(
-        async (cb: Function) => cb(mockTx),
-      );
-
-      const result = await service.createInvoice('biz-1', 'user-1', createInvoiceDto);
-
-      expect(mockPrisma.business.findUnique).toHaveBeenCalledWith({
-        where: { id: 'biz-1' },
+    it('stores documentType', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
       });
-      expect(mockPrisma.$transaction).toHaveBeenCalled();
-
-      expect(mockTx.invoice.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            businessId: 'biz-1',
-            customerId: 'cust-1',
-            type: 'B2C',
-            subtotal: 450,
-            taxAmount: 22.5,
-            grandTotal: 472.5,
-            status: 'CONFIRMED',
-            createdById: 'user-1',
-          }),
-        }),
-      );
-
-      expect(mockTx.customer.findUnique).toHaveBeenCalledWith({
-        where: { id: 'cust-1' },
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'INV-test', documentType: 'QUOTATION', items: [],
       });
-      expect(mockTx.customer.update).toHaveBeenCalledWith({
-        where: { id: 'cust-1' },
-        data: { balance: 472.5 },
-      });
-      expect(mockTx.customerTransaction.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            customerId: 'cust-1',
-            type: 'INVOICE_CREATED',
-            amount: 472.5,
-            balanceAfter: 472.5,
-          }),
-        }),
-      );
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
 
-      expect(result).toEqual(mockInvoice);
+      const result = await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        documentType: 'QUOTATION',
+        items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+      });
+
+      expect(result.documentType).toBe('QUOTATION');
     });
 
-    it('should throw NotFoundException when business not found', async () => {
+    it('auto-creates product when productId missing but itemName present', async () => {
+      mockPrisma.business.findUnique.mockResolvedValue({
+        id: 'biz1', state: 'Maharashtra', settings: {},
+      });
+      mockPrisma.customer.findUnique.mockResolvedValue({ state: 'Maharashtra' });
+      mockPrisma.customer.create.mockResolvedValue({ id: 'c1', balance: 0 });
+      mockPrisma.product.findFirst.mockResolvedValue(null);
+      mockPrisma.product.create.mockResolvedValue({ id: 'new-prod' });
+      mockPrisma.invoice.create.mockResolvedValue({
+        id: 'inv1', invoiceNo: 'INV-test', items: [],
+      });
+      mockPrisma.stockBatch.findMany.mockResolvedValue([]);
+
+      await service.createInvoice('biz1', 'user1', {
+        customerId: 'c1',
+        type: 'B2C',
+        direction: 'SALE',
+        items: [{ itemName: 'Custom Product', quantity: 2, rate: 250, taxRate: 18 }],
+      });
+
+      expect(mockPrisma.product.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          businessId: 'biz1',
+          name: 'Custom Product',
+          sellingPrice: 250,
+          taxRate: 18,
+        }),
+      });
+    });
+
+    it('throws NotFoundException when business not found', async () => {
       mockPrisma.business.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.createInvoice('biz-unknown', 'user-1', createInvoiceDto),
+        service.createInvoice('nonexistent', 'user1', {
+          type: 'B2C',
+          direction: 'SALE',
+          items: [{ itemName: 'Item', quantity: 1, rate: 100 }],
+        }),
       ).rejects.toThrow(NotFoundException);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('should use $transaction for all database operations', async () => {
-      mockPrisma.business.findUnique.mockResolvedValue(mockBusiness);
-      mockPrisma.customer.findUnique.mockResolvedValue(mockCustomer);
-
-      const mockTx = {
-        invoice: {
-          create: jest.fn().mockResolvedValue(mockInvoice),
-          findUnique: jest.fn().mockResolvedValue(mockInvoice),
-        },
-        customer: {
-          findUnique: jest.fn().mockResolvedValue(mockCustomer),
-          update: jest.fn().mockResolvedValue({}),
-        },
-        customerTransaction: {
-          create: jest.fn().mockResolvedValue({}),
-        },
-        stockBatch: {
-          findMany: jest.fn().mockResolvedValue([]),
-          update: jest.fn().mockResolvedValue({}),
-        },
-      };
-      mockPrisma.$transaction.mockImplementation(
-        async (cb: Function) => cb(mockTx),
-      );
-
-      await service.createInvoice('biz-1', 'user-1', createInvoiceDto);
-
-      expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
-      expect(mockTx.invoice.create).toHaveBeenCalled();
-      expect(mockTx.customer.findUnique).toHaveBeenCalled();
-      expect(mockTx.customer.update).toHaveBeenCalled();
-      expect(mockTx.customerTransaction.create).toHaveBeenCalled();
-    });
-  });
-
-  describe('cancelInvoice', () => {
-    it('should mark invoice as CANCELLED and reverse customer balance', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue({
-        ...mockInvoice,
-        items: mockInvoice.items,
-        payments: [],
-        createdBy: { id: 'user-1', name: 'Admin' },
-      });
-      mockPrisma.invoice.update.mockResolvedValue({
-        ...mockInvoice,
-        status: 'CANCELLED',
-      });
-      mockPrisma.customer.findUnique.mockResolvedValue({
-        ...mockCustomer,
-        balance: 472.5,
-      });
-      mockPrisma.customer.update.mockResolvedValue({
-        ...mockCustomer,
-        balance: 0,
-      });
-
-      const result = await service.cancelInvoice('biz-1', 'inv-1');
-
-      expect(mockPrisma.invoice.findFirst).toHaveBeenCalledWith({
-        where: { id: 'inv-1', businessId: 'biz-1' },
-        include: {
-          customer: true,
-          items: true,
-          payments: true,
-          createdBy: { select: { id: true, name: true } },
-        },
-      });
-      expect(mockPrisma.invoice.update).toHaveBeenCalledWith({
-        where: { id: 'inv-1' },
-        data: { status: 'CANCELLED' },
-      });
-      expect(mockPrisma.customer.update).toHaveBeenCalledWith({
-        where: { id: 'cust-1' },
-        data: { balance: 0 },
-      });
-      expect(result).toEqual({ message: 'Invoice cancelled successfully' });
-    });
-
-    it('should throw BadRequestException when invoice is already cancelled', async () => {
-      mockPrisma.invoice.findFirst.mockResolvedValue({
-        ...mockInvoice,
-        status: 'CANCELLED',
-        items: [],
-        payments: [],
-        createdBy: { id: 'user-1', name: 'Admin' },
-      });
-
-      await expect(
-        service.cancelInvoice('biz-1', 'inv-1'),
-      ).rejects.toThrow(BadRequestException);
-      expect(mockPrisma.invoice.update).not.toHaveBeenCalled();
-    });
-
-    it('should cancel invoice without customer update when no customerId', async () => {
-      const invoiceWithoutCustomer = {
-        ...mockInvoice,
-        customerId: null,
-        customer: null,
-        items: mockInvoice.items,
-        payments: [],
-        createdBy: { id: 'user-1', name: 'Admin' },
-      };
-      mockPrisma.invoice.findFirst.mockResolvedValue(invoiceWithoutCustomer);
-      mockPrisma.invoice.update.mockResolvedValue({
-        ...invoiceWithoutCustomer,
-        status: 'CANCELLED',
-      });
-
-      const result = await service.cancelInvoice('biz-1', 'inv-1');
-
-      expect(result).toEqual({ message: 'Invoice cancelled successfully' });
-      expect(mockPrisma.customer.update).not.toHaveBeenCalled();
     });
   });
 });

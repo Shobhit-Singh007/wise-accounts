@@ -1,0 +1,1 @@
+{"commands":["cd /home/ec2-user/wise-accounts && docker compose exec -T backend npx prisma migrate deploy"]}

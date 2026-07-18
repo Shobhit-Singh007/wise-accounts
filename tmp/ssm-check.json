@@ -1,0 +1,1 @@
+{"commands":["pip3 install awscli --force-reinstall 2\u003e\u00261 | tail -5; aws --version 2\u003e\u00261"]}

@@ -9,7 +9,19 @@ struct CreateInvoiceView: View {
 
     @State private var showCustomerPicker = false
     @State private var showProductPicker = false
+    @State private var showAddCustomer = false
     @State private var editingItemIndex: Int?
+
+    @State private var newCustomerName = ""
+    @State private var newCustomerPhone = ""
+    @State private var newCustomerGstin = ""
+    @State private var newCustomerAddress = ""
+    @State private var newCustomerCity = ""
+    @State private var newCustomerState = ""
+    @State private var newCustomerPincode = ""
+    @State private var isSavingCustomer = false
+    @State private var isGstLookupLoading = false
+    @State private var newCustomerError: String?
 
     var isEditMode: Bool { editInvoiceId != nil }
 
@@ -28,11 +40,13 @@ struct CreateInvoiceView: View {
             Section("Customer") {
                 if let custId = viewModel.customerId, let cust = customerVM.customers.first(where: { $0.id == custId }) {
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(cust.name).font(.body).fontWeight(.medium)
-                            Spacer()
-                            Button("Change") { showCustomerPicker = true }
-                        }
+            HStack {
+                                Text(cust.name).font(.body).fontWeight(.medium)
+                                Spacer()
+                                Button("New") { showAddCustomer = true }
+                                    .font(.caption)
+                                Button("Change") { showCustomerPicker = true }
+                            }
                         if let gstin = cust.gstin, !gstin.isEmpty {
                             Text("GSTIN: \(gstin)").font(.caption).foregroundColor(.blue)
                         }
@@ -48,7 +62,12 @@ struct CreateInvoiceView: View {
                         Text("Type: \(viewModel.invoiceType)").font(.caption2).foregroundColor(.purple)
                     }
                 } else {
-                    Button("Select Customer") { showCustomerPicker = true }
+                    HStack {
+                        Button("Select Customer") { showCustomerPicker = true }
+                        Spacer()
+                        Button("New") { showAddCustomer = true }
+                            .font(.caption)
+                    }
                 }
             }
 
@@ -134,6 +153,55 @@ struct CreateInvoiceView: View {
                 }
             )
         }
+        .sheet(isPresented: $showAddCustomer) {
+            NavigationStack {
+                Form {
+                    Section("Basic Information") {
+                        TextField("Name *", text: $newCustomerName)
+                            .autocapitalization(.words)
+                        TextField("Phone", text: $newCustomerPhone)
+                            .keyboardType(.phonePad)
+                    }
+                    Section("GST Details") {
+                        HStack {
+                            TextField("GSTIN", text: $newCustomerGstin)
+                                .autocapitalization(.allCharacters)
+                            if isGstLookupLoading {
+                                ProgressView()
+                            } else {
+                                Button(action: { Task { await lookupNewCustomerGstin() } }) {
+                                    Image(systemName: "magnifyingglass")
+                                }
+                                .disabled(newCustomerGstin.count < 15)
+                            }
+                        }
+                    }
+                    Section("Address") {
+                        TextField("Address", text: $newCustomerAddress)
+                        HStack {
+                            TextField("City", text: $newCustomerCity)
+                            TextField("State", text: $newCustomerState)
+                        }
+                        TextField("Pincode", text: $newCustomerPincode)
+                            .keyboardType(.numberPad)
+                    }
+                    if let err = newCustomerError {
+                        Section { Text(err).foregroundColor(.red).font(.caption) }
+                    }
+                }
+                .navigationTitle("New Customer")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showAddCustomer = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") { Task { await saveNewCustomer() } }
+                            .disabled(newCustomerName.isEmpty || isSavingCustomer)
+                    }
+                }
+            }
+        }
         .overlay { if viewModel.isSaving { ProgressView().scaleEffect(1.5) } }
     }
 
@@ -148,6 +216,58 @@ struct CreateInvoiceView: View {
         } catch {
             viewModel.saveError = error.localizedDescription
         }
+    }
+
+    private func lookupNewCustomerGstin() async {
+        guard newCustomerGstin.count >= 15 else { return }
+        isGstLookupLoading = true
+        defer { isGstLookupLoading = false }
+        do {
+            let result = try await APIService.shared.lookupGstin(businessId: business.id, gstin: newCustomerGstin.uppercased())
+            if newCustomerName.isEmpty { newCustomerName = result.displayName }
+            if newCustomerAddress.isEmpty { newCustomerAddress = result.address ?? "" }
+            if newCustomerCity.isEmpty { newCustomerCity = result.city ?? "" }
+            if newCustomerState.isEmpty { newCustomerState = result.state ?? "" }
+            if newCustomerPincode.isEmpty { newCustomerPincode = result.pincode ?? "" }
+        } catch {
+            newCustomerError = "GSTIN lookup failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func saveNewCustomer() async {
+        isSavingCustomer = true
+        newCustomerError = nil
+        let dto = CreateCustomerRequest(
+            name: newCustomerName,
+            phone: newCustomerPhone.isEmpty ? nil : newCustomerPhone,
+            email: nil,
+            gstin: newCustomerGstin.isEmpty ? nil : newCustomerGstin,
+            address: newCustomerAddress.isEmpty ? nil : newCustomerAddress,
+            city: newCustomerCity.isEmpty ? nil : newCustomerCity,
+            state: newCustomerState.isEmpty ? nil : newCustomerState,
+            pincode: newCustomerPincode.isEmpty ? nil : newCustomerPincode,
+            creditLimit: nil,
+            openingBalance: nil,
+            groupId: nil
+        )
+        do {
+            let customer = try await APIService.shared.createCustomer(businessId: business.id, dto)
+            await customerVM.loadCustomers(businessId: business.id)
+            viewModel.customers = customerVM.customers
+            viewModel.customerId = customer.id
+            viewModel.invoiceType = (customer.gstin != nil && !(customer.gstin ?? "").isEmpty) ? "B2B" : "B2C"
+            showAddCustomer = false
+            newCustomerName = ""
+            newCustomerPhone = ""
+            newCustomerGstin = ""
+            newCustomerAddress = ""
+            newCustomerCity = ""
+            newCustomerState = ""
+            newCustomerPincode = ""
+        } catch {
+            newCustomerError = error.localizedDescription
+        }
+        isSavingCustomer = false
     }
 }
 

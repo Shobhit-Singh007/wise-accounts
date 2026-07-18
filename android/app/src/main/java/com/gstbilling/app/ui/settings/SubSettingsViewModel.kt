@@ -47,6 +47,8 @@ class SubSettingsViewModel @Inject constructor(
         private set
     var businessType by mutableStateOf("Regular")
         private set
+    var isGstinLookupLoading by mutableStateOf(false)
+        private set
 
     // ── Invoice Settings fields ──
     var invoicePrefix by mutableStateOf("INV")
@@ -121,6 +123,28 @@ class SubSettingsViewModel @Inject constructor(
     fun onStateChange(v: String) { state = v }
     fun onGstinChange(v: String) { gstin = v }
     fun onBusinessTypeChange(v: String) { businessType = v }
+
+    fun lookupGstin(gstin: String) {
+        if (gstin.length < 15) return
+        isGstinLookupLoading = true
+        viewModelScope.launch {
+            try {
+                val businessId = sessionManager.getBusinessId() ?: ""
+                val apiService = businessRepository.getApiService()
+                val response = apiService.lookupGstin(businessId, gstin)
+                if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    if (data != null) {
+                        if (businessName.isBlank()) businessName = data["tradeName"] as? String ?: data["name"] as? String ?: ""
+                        if (address.isBlank()) address = data["address"] as? String ?: ""
+                        if (city.isBlank()) city = data["city"] as? String ?: ""
+                        if (state.isBlank()) state = data["state"] as? String ?: ""
+                    }
+                }
+            } catch (_: Exception) { }
+            isGstinLookupLoading = false
+        }
+    }
 
     // ── Invoice template editable helpers ──
     fun onInvoicePrefixChange(v: String) { invoicePrefix = v }

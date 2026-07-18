@@ -46,6 +46,7 @@ import {
   Settings as SettingsIcon,
   LocalShipping as EwayIcon,
   Receipt as EinvoiceIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import {
@@ -144,6 +145,10 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [error, setError] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [productList, setProductList] = useState<Product[]>([]);
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', gstin: '', address: '', city: '', state: '', pincode: '' });
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [customerGstinLoading, setCustomerGstinLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -245,6 +250,40 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     }));
   };
 
+  const handleQuickAddCustomer = async () => {
+    if (!newCustomer.name.trim()) return;
+    setSavingCustomer(true);
+    try {
+      const { data } = await customersApi.create(businessId, newCustomer);
+      setSelectedParty(data);
+      if (data.gstin) setType('B2B');
+      setAddCustomerOpen(false);
+      setNewCustomer({ name: '', phone: '', gstin: '', address: '', city: '', state: '', pincode: '' });
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create customer');
+    }
+    setSavingCustomer(false);
+  };
+
+  const lookupNewCustomerGstin = async () => {
+    if (!newCustomer.gstin || newCustomer.gstin.length < 15) return;
+    setCustomerGstinLoading(true);
+    try {
+      const { data } = await client.get(`/businesses/${businessId}/customers/gstin/${newCustomer.gstin}`);
+      if (data && data.name) {
+        setNewCustomer((prev) => ({
+          ...prev,
+          name: prev.name || data.tradeName || data.name || '',
+          address: prev.address || data.address || '',
+          city: prev.city || data.city || '',
+          state: prev.state || data.state || '',
+          pincode: prev.pincode || data.pincode || '',
+        }));
+      }
+    } catch { /* silent */ }
+    setCustomerGstinLoading(false);
+  };
+
   const handleSave = async () => {
     if (items.length === 0 || items.every((it) => !it.itemName.trim())) {
       setError('Add at least one item');
@@ -312,24 +351,32 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={4}>
-            <Autocomplete
-              options={partyList}
-              getOptionLabel={(opt) => `${opt.name} (${opt.phone})`}
-              value={selectedParty}
-              onChange={(_, val) => {
-                setSelectedParty(val);
-                if (direction === 'SALE' && val?.gstin) {
-                  setType('B2B');
-                }
-              }}
-              inputValue={partySearch}
-              onInputChange={(_, val) => setPartySearch(val)}
-              isOptionEqualToValue={(opt, val) => opt.id === val.id}
-              renderInput={(params) => (
-                <TextField {...params} label={partyLabel} placeholder={`Search ${partyLabel.toLowerCase()}...`} size="small" />
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Autocomplete
+                options={partyList}
+                getOptionLabel={(opt) => `${opt.name} (${opt.phone})`}
+                value={selectedParty}
+                onChange={(_, val) => {
+                  setSelectedParty(val);
+                  if (direction === 'SALE' && val?.gstin) {
+                    setType('B2B');
+                  }
+                }}
+                inputValue={partySearch}
+                onInputChange={(_, val) => setPartySearch(val)}
+                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                renderInput={(params) => (
+                  <TextField {...params} label={partyLabel} placeholder={`Search ${partyLabel.toLowerCase()}...`} size="small" />
+                )}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+              {direction === 'SALE' && (
+                <IconButton size="small" onClick={() => setAddCustomerOpen(true)} title="Add new customer">
+                  <PersonAddIcon fontSize="small" />
+                </IconButton>
               )}
-              size="small"
-            />
+            </Box>
           </Grid>
           <Grid item xs={6} md={2}>
             <TextField
@@ -537,6 +584,44 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
           {saving ? <CircularProgress size={20} /> : isEdit ? 'Update' : 'Save Invoice'}
         </Button>
       </DialogActions>
+
+      <Dialog open={addCustomerOpen} onClose={() => setAddCustomerOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Quick Add Customer</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField label="Customer Name *" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} size="small" fullWidth />
+            <TextField label="Phone" value={newCustomer.phone} onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })} size="small" fullWidth />
+            <TextField
+              label="GSTIN"
+              value={newCustomer.gstin}
+              onChange={(e) => setNewCustomer({ ...newCustomer, gstin: e.target.value.toUpperCase() })}
+              size="small"
+              fullWidth
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={lookupNewCustomerGstin} disabled={customerGstinLoading || !newCustomer.gstin || newCustomer.gstin.length < 15}>
+                      {customerGstinLoading ? <CircularProgress size={16} /> : <SearchIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField label="Address" value={newCustomer.address} onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })} size="small" fullWidth />
+            <Grid container spacing={2}>
+              <Grid item xs={4}><TextField label="City" value={newCustomer.city} onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })} size="small" fullWidth /></Grid>
+              <Grid item xs={4}><TextField label="State" value={newCustomer.state} onChange={(e) => setNewCustomer({ ...newCustomer, state: e.target.value })} size="small" fullWidth /></Grid>
+              <Grid item xs={4}><TextField label="Pincode" value={newCustomer.pincode} onChange={(e) => setNewCustomer({ ...newCustomer, pincode: e.target.value })} size="small" fullWidth /></Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddCustomerOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleQuickAddCustomer} disabled={savingCustomer || !newCustomer.name.trim()}>
+            {savingCustomer ? <CircularProgress size={20} /> : 'Add & Select'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }

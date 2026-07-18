@@ -43,11 +43,11 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - Android: ExportDataScreen updated with suppliers + payments export
 - iOS: ExportDataView updated with suppliers + payments, real API calls
 
-### GSTIN Auto-fill (All 3 platforms)
+### GSTIN Auto-fill / Lookup (All 3 platforms)
 - Backend: `GET /businesses/:businessId/customers/gstin/:gstin` endpoint — external API (appyflow.in) + state code decode from GSTIN prefix
-- Admin Dashboard: Search button on GSTIN field in CustomersPage, auto-fills name/address/city/state/pincode
-- Android: Search icon button in AddCustomerScreen, `lookupGstin()` API call via Hilt-injected ApiService
-- iOS: Search button in AddCustomerView, `lookupGstin()` API call, `GSTINLookupResult` model
+- **Customer screen**: Search button on GSTIN field in CustomersPage/AddCustomerScreen/AddCustomerView, auto-fills name/address/city/state/pincode
+- **Business Profile**: Search icon button on GSTIN field in SettingsPage/BusinessProfileScreen/BusinessProfileView — auto-fills business name/address/city/state on all platforms
+- **Quick Add Customer during Invoice**: All platforms can create a new customer on-the-fly from the invoice creation screen, with full GSTIN lookup support. Admin dashboard: CreateInvoiceDialog fields. Android: ModalBottomSheet in CreateInvoiceScreen. iOS: .sheet in CreateInvoiceView with lookup + save.
 
 ### Auto-create Products on Invoice Save
 - Backend `billing.service.ts`: Modified `createInvoice()` to find-or-create products by name when `productId` is missing on line items
@@ -86,7 +86,7 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 | `admin-dashboard/src/components/ExportMenu.tsx` | Shared export dropdown |
 | `admin-dashboard/src/pages/SettingsPage.tsx` | Settings page (invoice/tax/notif tabs) |
 | `admin-dashboard/src/pages/CustomersPage.tsx` | Customer list + GSTIN lookup |
-| `admin-dashboard/src/pages/InvoicesPage.tsx` | Invoice CRUD + rate-total sync |
+| `admin-dashboard/src/pages/InvoicesPage.tsx` | Invoice CRUD + rate-total sync + quick add customer |
 | `backend/src/export/` | Backend export API |
 | `backend/src/import/` | Backend import API (CSV + XLSX) |
 | `backend/src/customer/customer.controller.ts` | GSTIN lookup endpoint |

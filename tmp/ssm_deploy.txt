@@ -1,0 +1,7 @@
+cd /home/ec2-user/wise-accounts
+aws s3 cp s3://wise-accounts-deploy/backend-update.zip /tmp/backend-update.zip --region us-east-1
+unzip -o /tmp/backend-update.zip -d .
+npx prisma generate
+pm2 restart wise-accounts-api
+echo "Deploy complete"
+pm2 status
