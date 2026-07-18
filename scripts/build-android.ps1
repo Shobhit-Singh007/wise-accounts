@@ -1,8 +1,6 @@
 # build-android.ps1 — Build release APK
 # Usage: .\scripts\build-android.ps1
 
-$ErrorActionPreference = "Stop"
-
 $JAVA_HOME = "C:\Users\LENOVO\.jdks\jdk-21.0.11+10"
 $ANDROID_HOME = "C:\Users\LENOVO\AppData\Local\Android\Sdk"
 
@@ -10,7 +8,7 @@ $env:JAVA_HOME = $JAVA_HOME
 $env:ANDROID_HOME = $ANDROID_HOME
 $env:PATH = "$JAVA_HOME\bin;$ANDROID_HOME\platform-tools;$env:PATH"
 
-Write-Host "Java: " -NoNewline; & "$JAVA_HOME\bin\java.exe" -version 2>&1 | Select-Object -First 1
+Write-Host "Using JDK at: $JAVA_HOME"
 Write-Host "ANDROID_HOME: $ANDROID_HOME"
 
 $apkDir = "app\build\outputs\apk\release"
