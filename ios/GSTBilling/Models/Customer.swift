@@ -124,3 +124,16 @@ struct LedgerImageUploadResponse: Codable {
     let size: Int
     let mimetype: String
 }
+
+struct GSTINLookupResult: Codable {
+    let gstin: String?
+    let tradeName: String?
+    let name: String?
+    let address: String?
+    let city: String?
+    let state: String?
+    let pincode: String?
+    let status: String?
+
+    var displayName: String { tradeName ?? name ?? "" }
+}

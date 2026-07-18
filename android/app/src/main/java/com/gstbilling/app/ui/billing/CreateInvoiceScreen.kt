@@ -44,7 +44,9 @@ data class LineItemState(
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
-    val totalPrice: Double = 0.0
+    val totalPrice: Double = 0.0,
+    val isAmountEditing: Boolean = false,
+    val amountEditValue: String = "0"
 )
 
 @HiltViewModel
@@ -175,6 +177,20 @@ class CreateInvoiceViewModel @Inject constructor(
 
     fun updateLineItem(index: Int, item: LineItemState) {
         lineItems[index] = item
+        recalculateItem(index)
+    }
+
+    fun onAmountChanged(index: Int, amountStr: String) {
+        val item = lineItems[index]
+        val amount = amountStr.toDoubleOrNull() ?: 0.0
+        val qty = item.quantity.toDoubleOrNull() ?: 1.0
+        val disc = item.discount.toDoubleOrNull() ?: 0.0
+        val gross = if (qty > 0) amount / (1 - disc / 100.0) else 0.0
+        val rate = if (qty > 0) gross / qty else 0.0
+        lineItems[index] = item.copy(
+            unitPrice = String.format("%.2f", rate),
+            amountEditValue = amountStr
+        )
         recalculateItem(index)
     }
 
@@ -433,6 +449,7 @@ fun CreateInvoiceScreen(
                     index = index,
                     item = item,
                     onUpdate = { viewModel.updateLineItem(index, it) },
+                    onAmountChanged = { viewModel.onAmountChanged(index, it) },
                     onRemove = { viewModel.removeLineItem(index) },
                     isLast = index == viewModel.lineItems.lastIndex,
                     productSearchResults = viewModel.productSearchResults,
@@ -514,6 +531,7 @@ fun LineItemCard(
     index: Int,
     item: LineItemState,
     onUpdate: (LineItemState) -> Unit,
+    onAmountChanged: (String) -> Unit,
     onRemove: () -> Unit,
     isLast: Boolean,
     productSearchResults: List<Product>,
@@ -639,11 +657,14 @@ fun LineItemCard(
                 )
             }
 
-            Text(
-                text = "Amount: ₹${String.format("%.2f", item.totalPrice)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 4.dp)
+            OutlinedTextField(
+                value = String.format("%.2f", item.totalPrice),
+                onValueChange = { onAmountChanged(it) },
+                label = { Text("Amount") },
+                leadingIcon = { Text("₹", style = MaterialTheme.typography.bodyLarge) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
         }
     }

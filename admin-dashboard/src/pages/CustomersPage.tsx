@@ -12,11 +12,14 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { Add as AddIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
+import { Add as AddIcon, Receipt as ReceiptIcon, Search as SearchIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import ExportMenu from '../components/ExportMenu';
 import { customersApi, type Customer, type CustomerCreate } from '../api/customers';
+import client from '../api/client';
 import { useBusiness } from '../context/BusinessContext';
 import { fetchAllPages } from '../utils/exportUtils';
 
@@ -46,6 +49,27 @@ export default function CustomersPage() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<CustomerCreate>(initialState);
   const [saving, setSaving] = useState(false);
+  const [gstLookupLoading, setGstLookupLoading] = useState(false);
+
+  const lookupGstin = async (gstin: string) => {
+    if (!currentBusinessId || !gstin || gstin.length < 15) return;
+    setGstLookupLoading(true);
+    try {
+      const { data } = await client.get(`/businesses/${currentBusinessId}/customers/gstin/${gstin}`);
+      if (data && data.name) {
+        setForm((prev) => ({
+          ...prev,
+          name: prev.name || data.tradeName || data.name || '',
+          address: prev.address || data.address || '',
+          city: prev.city || data.city || '',
+          state: prev.state || data.state || '',
+          pincode: prev.pincode || data.pincode || '',
+          gstin: data.gstin || gstin,
+        }));
+      }
+    } catch { /* silent */ }
+    setGstLookupLoading(false);
+  };
 
   const fetchCustomers = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -209,7 +233,25 @@ export default function CustomersPage() {
             <TextField label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             <TextField label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
             <TextField label="Email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <TextField label="GSTIN" value={form.gstin || ''} onChange={(e) => setForm({ ...form, gstin: e.target.value })} />
+            <TextField
+              label="GSTIN"
+              value={form.gstin || ''}
+              onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
+              onBlur={(e) => { if (e.target.value.length === 15) lookupGstin(e.target.value); }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => lookupGstin(form.gstin || '')}
+                      disabled={gstLookupLoading || !form.gstin || form.gstin.length < 15}
+                    >
+                      {gstLookupLoading ? <CircularProgress size={16} /> : <SearchIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
             <TextField label="City" value={form.city || ''} onChange={(e) => setForm({ ...form, city: e.target.value })} />
             <TextField label="State" value={form.state || ''} onChange={(e) => setForm({ ...form, state: e.target.value })} />
             <TextField label="Pincode" value={form.pincode || ''} onChange={(e) => setForm({ ...form, pincode: e.target.value })} />

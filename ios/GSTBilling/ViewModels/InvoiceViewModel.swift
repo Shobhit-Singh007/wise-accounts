@@ -306,4 +306,10 @@ struct InvoiceItemInput: Identifiable {
         let result = GSTCalculator.calculate(rate: rate, quantity: quantity, discount: discount, taxRate: taxRate, isIntraState: true)
         return result.taxableValue + result.cgst + result.sgst + result.igst
     }
+
+    mutating func updateFromAmount(_ amount: Double) {
+        let disc = discount / 100.0
+        let gross = quantity > 0 ? amount / (1 - disc) : 0
+        rate = quantity > 0 ? gross / quantity : 0
+    }
 }

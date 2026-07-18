@@ -12,6 +12,19 @@ import { CreateLedgerEntryDto } from './dto/create-ledger-entry.dto';
 import { SendLedgerSmsDto } from './dto/send-ledger-sms.dto';
 import { BusinessOwnershipGuard } from '../common/guards/business-ownership.guard';
 
+const GST_STATE_MAP: Record<string, string> = {
+  '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
+  '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan',
+  '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh',
+  '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura',
+  '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal', '20': 'Jharkhand',
+  '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+  '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli', '27': 'Maharashtra',
+  '28': 'Andhra Pradesh (Old)', '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep',
+  '32': 'Kerala', '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar Islands',
+  '36': 'Telangana', '37': 'Andhra Pradesh', '38': 'Ladakh', '97': 'Other Territory',
+};
+
 @ApiTags('Customers')
 @ApiBearerAuth()
 @UseGuards(BusinessOwnershipGuard)
@@ -182,5 +195,53 @@ export class CustomerController {
       size: file.size,
       mimetype: file.mimetype,
     };
+  }
+
+  @Get('gstin/:gstin')
+  @ApiOperation({ summary: 'Lookup GSTIN details from government API' })
+  async lookupGstin(@Param('gstin') gstin: string) {
+    const normalized = gstin.toUpperCase().trim();
+    if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9]Z[0-9A-Z]$/.test(normalized)) {
+      return { error: 'Invalid GSTIN format' };
+    }
+    try {
+      const resp = await fetch(`https://appyflow.in/api/verifyGST?gstin=${normalized}`);
+      const data = await resp.json() as any;
+      if (data.error || !data.gstData) {
+        const stateCode = normalized.substring(0, 2);
+        return {
+          gstin: normalized,
+          state: GST_STATE_MAP[stateCode] || '',
+          stateCode,
+          name: '',
+          address: '',
+        };
+      }
+      const d = data.gstData;
+      const stateCode = normalized.substring(0, 2);
+      return {
+        gstin: normalized,
+        name: d.tradeNam || d.legalNam || '',
+        tradeName: d.tradeNam || '',
+        legalName: d.legalNam || '',
+        address: [d.addr1, d.addr2, d.loc, d.dst].filter(Boolean).join(', '),
+        city: d.loc || '',
+        state: GST_STATE_MAP[stateCode] || d.stj || '',
+        stateCode,
+        pincode: d.pin || '',
+        status: d.sts || '',
+        registrationDate: d.rgdt || '',
+        businessType: d.dty || '',
+      };
+    } catch {
+      const stateCode = normalized.substring(0, 2);
+      return {
+        gstin: normalized,
+        state: GST_STATE_MAP[stateCode] || '',
+        stateCode,
+        name: '',
+        address: '',
+      };
+    }
   }
 }

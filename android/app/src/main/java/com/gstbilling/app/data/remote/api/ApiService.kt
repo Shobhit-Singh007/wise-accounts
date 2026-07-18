@@ -466,6 +466,13 @@ interface ApiService {
         @Query("entities") entities: String,
         @Query("format") format: String = "csv"
     ): Response<okhttp3.ResponseBody>
+
+    // ── GSTIN Lookup ──
+    @GET("businesses/{businessId}/customers/gstin/{gstin}")
+    suspend fun lookupGstin(
+        @Path("businessId") businessId: String,
+        @Path("gstin") gstin: String
+    ): Response<ApiResponse<Map<String, Any?>>>
 }
 
 // ── Auth Models ──

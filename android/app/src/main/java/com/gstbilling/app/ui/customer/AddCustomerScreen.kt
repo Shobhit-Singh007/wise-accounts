@@ -26,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AddCustomerViewModel @Inject constructor(
     private val customerRepository: CustomerRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val apiService: com.gstbilling.app.data.remote.api.ApiService
 ) : ViewModel() {
 
     var name by mutableStateOf("")
@@ -42,7 +43,30 @@ class AddCustomerViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var isEditMode by mutableStateOf(false)
+    var isLookupLoading by mutableStateOf(false)
     private var customerId: String = ""
+
+    fun lookupGstin(gstin: String) {
+        if (gstin.length < 15) return
+        isLookupLoading = true
+        viewModelScope.launch {
+            try {
+                val businessId = sessionManager.getBusinessId() ?: ""
+                val response = apiService.lookupGstin(businessId.toString(), gstin)
+                if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    if (data != null) {
+                        if (name.isBlank()) name = data["tradeName"] as? String ?: data["name"] as? String ?: ""
+                        if (address.isBlank()) address = data["address"] as? String ?: ""
+                        if (city.isBlank()) city = data["city"] as? String ?: ""
+                        if (state.isBlank()) state = data["state"] as? String ?: ""
+                        if (pincode.isBlank()) pincode = data["pincode"] as? String ?: ""
+                    }
+                }
+            } catch (_: Exception) { }
+            isLookupLoading = false
+        }
+    }
 
     fun loadCustomer(id: String) {
         viewModelScope.launch {
@@ -168,9 +192,21 @@ fun AddCustomerScreen(
 
             OutlinedTextField(
                 value = viewModel.gstin,
-                onValueChange = { viewModel.gstin = it },
+                onValueChange = { viewModel.gstin = it.uppercase() },
                 label = { Text("GSTIN") },
                 leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(
+                        onClick = { viewModel.lookupGstin(viewModel.gstin) },
+                        enabled = viewModel.gstin.length >= 15 && !viewModel.isLookupLoading
+                    ) {
+                        if (viewModel.isLookupLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Search, contentDescription = "Lookup GSTIN")
+                        }
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )

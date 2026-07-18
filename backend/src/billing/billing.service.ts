@@ -41,7 +41,35 @@ export class BillingService {
       ? await this.isInterState(business, dto.customerId)
       : await this.isInterStateSupplier(business, dto.supplierId);
 
-    const items = dto.items.map((item) => {
+    const itemsWithProducts = await Promise.all(
+      dto.items.map(async (item) => {
+        let productId = item.productId;
+        if (!productId && item.itemName) {
+          const existing = await this.prisma.product.findFirst({
+            where: { businessId, name: { equals: item.itemName, mode: 'insensitive' } },
+          });
+          if (existing) {
+            productId = existing.id;
+          } else {
+            const newProduct = await this.prisma.product.create({
+              data: {
+                businessId,
+                name: item.itemName,
+                sellingPrice: item.rate || 0,
+                purchasePrice: 0,
+                taxRate: item.taxRate || 0,
+                unit: item.unit || 'piece',
+                hsnCode: '',
+              },
+            });
+            productId = newProduct.id;
+          }
+        }
+        return { ...item, productId };
+      }),
+    );
+
+    const items = itemsWithProducts.map((item) => {
       const taxableValue = item.quantity * item.rate - (item.discount || 0);
       const taxRate = item.taxRate || 0;
 

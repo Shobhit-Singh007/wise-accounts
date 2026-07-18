@@ -17,6 +17,7 @@ struct AddCustomerView: View {
     @State private var creditLimit = ""
     @State private var openingBalance = ""
     @State private var isLoading = false
+    @State private var isGstLookupLoading = false
     @State private var errorMessage: String?
 
     private var isEditing: Bool { customer != nil }
@@ -34,15 +35,25 @@ struct AddCustomerView: View {
             }
 
             Section("GST Details") {
-                TextField("GSTIN", text: $gstin)
-                    .autocapitalization(.allCharacters)
-                    .onChange(of: gstin) { _, _ in
-                        if !gstin.isEmpty, let err = gstinError {
-                            errorMessage = err
-                        } else if errorMessage == "Invalid GSTIN format" {
-                            errorMessage = nil
+                HStack {
+                    TextField("GSTIN", text: $gstin)
+                        .autocapitalization(.allCharacters)
+                        .onChange(of: gstin) { _, _ in
+                            if !gstin.isEmpty, let err = gstinError {
+                                errorMessage = err
+                            } else if errorMessage == "Invalid GSTIN format" {
+                                errorMessage = nil
+                            }
                         }
+                    if isGstLookupLoading {
+                        ProgressView()
+                    } else {
+                        Button(action: { Task { await lookupGstin() } }) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .disabled(gstin.count < 15)
                     }
+                }
                 if !gstin.isEmpty, let err = gstinError {
                     Text(err).foregroundColor(.red).font(.caption)
                 }
@@ -103,6 +114,22 @@ struct AddCustomerView: View {
         let pattern = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$"
         let predicate = NSPredicate(format: "SELF MATCHES %@", pattern)
         return predicate.evaluate(with: gstin) ? nil : "Invalid GSTIN format"
+    }
+
+    private func lookupGstin() async {
+        guard gstin.count >= 15 else { return }
+        isGstLookupLoading = true
+        defer { isGstLookupLoading = false }
+        do {
+            let result = try await APIService.shared.lookupGstin(businessId: business.id, gstin: gstin.uppercased())
+            if name.isEmpty { name = result.displayName }
+            if address.isEmpty { address = result.address ?? "" }
+            if city.isEmpty { city = result.city ?? "" }
+            if state.isEmpty { state = result.state ?? "" }
+            if pincode.isEmpty { pincode = result.pincode ?? "" }
+        } catch {
+            errorMessage = "GSTIN lookup failed: \(error.localizedDescription)"
+        }
     }
 
     private func save() async {

@@ -205,8 +205,16 @@ struct InvoiceItemRow: View {
                 .frame(width: 80)
             }
             HStack {
+                Text("Total")
+                    .font(.callout).fontWeight(.semibold)
                 Spacer()
-                Text("Total: \(Helpers.formatCurrency(input.total))")
+                TextField("0.00", value: Binding(
+                    get: { input.total },
+                    set: { input.updateFromAmount($0) }
+                ), format: .number)
+                    .keyboardType(.decimalPad)
+                    .frame(width: 100)
+                    .multilineTextAlignment(.trailing)
                     .font(.callout).fontWeight(.semibold)
             }
         }

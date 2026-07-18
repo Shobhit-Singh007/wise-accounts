@@ -217,6 +217,16 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
   };
 
+  const updateAmount = (idx: number, amount: number) => {
+    setItems((prev) => prev.map((it, i) => {
+      if (i !== idx) return it;
+      const qty = it.quantity || 1;
+      const disc = it.discount || 0;
+      const rate = qty > 0 ? Number(((amount / qty) / (1 - disc / 100)).toFixed(2)) : 0;
+      return { ...it, rate };
+    }));
+  };
+
   const addItem = () => setItems((prev) => [...prev, { ...emptyItem }]);
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
@@ -451,7 +461,13 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                       </TextField>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2">₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Typography>
+                      <TextField
+                        type="number"
+                        value={total.toFixed(2)}
+                        onChange={(e) => updateAmount(idx, Number(e.target.value))}
+                        size="small"
+                        inputProps={{ min: 0, step: 0.01 }}
+                      />
                     </TableCell>
                     <TableCell align="center">
                       {items.length > 1 && (
