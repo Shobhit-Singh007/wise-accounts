@@ -19,7 +19,7 @@ WORKDIR /app
 ENV NODE_OPTIONS="--max-old-space-size=768"
 
 COPY admin-dashboard/package.json admin-dashboard/package-lock.json ./
-RUN npm ci
+RUN npm install --prefer-offline
 
 COPY admin-dashboard/ .
 RUN npm run build
