@@ -18,6 +18,8 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **AWS CLI --parameters**: Can't pass JSON arrays directly in PowerShell; write to file and use `file://path`
 - **AWS CLI profile**: Don't use `--profile wise-accounts` — it may not exist. Use default credentials.
 - **Android build**: JDK 21 at `C:\Users\LENOVO\.jdks\jdk-21.0.11+10`, Gradle 8.9, AGP 8.7.3, Kotlin 2.1.0, compileSdk 35. Must set `JAVA_HOME`. Use `.\scripts\build-android.ps1`.
+- **APK path**: `android\app\build\outputs\apk\release\app-release.apk` (latest build: ~45.5 MB)
+- **Build script gotcha**: Don't use `$ErrorActionPreference = "Stop"` — `java -version` writes to stderr, killing the script. Use explicit `$LASTEXITCODE` checks instead.
 - **iOS build**: Cannot build on Windows — requires macOS + Xcode
 - **Node versions**: Local npm 11.18, Docker npm 10.9.8
 
