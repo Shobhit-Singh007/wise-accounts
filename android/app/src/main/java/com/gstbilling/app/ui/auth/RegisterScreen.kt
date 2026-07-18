@@ -1,6 +1,7 @@
 package com.gstbilling.app.ui.auth
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import com.gstbilling.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -136,6 +139,12 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.splash_logo),
+                contentDescription = "Wise Accounts Logo",
+                modifier = Modifier.size(80.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Create Account",
                 style = MaterialTheme.typography.headlineLarge,
@@ -143,7 +152,7 @@ fun RegisterScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sign up for Wise Accounts",
+                text = "Create your account",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

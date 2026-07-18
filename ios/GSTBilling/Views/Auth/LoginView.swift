@@ -9,12 +9,10 @@ struct LoginView: View {
             VStack(spacing: 24) {
                 Spacer().frame(height: 60)
 
-                Image(systemName: "receipt")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-
-                Text("Wise Accounts")
-                    .font(.largeTitle).bold()
+                Image("splash_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
 
                 Text(viewModel.isRegistering ? "Create your account" : "Sign in to continue")
                     .foregroundColor(.secondary)
