@@ -172,7 +172,7 @@ describe('CreateInvoiceDialog', () => {
     });
   });
 
-  it('save button calls invoicesApi.create', async () => {
+  it('save button is disabled without items', async () => {
     render(<InvoicesPage />);
 
     fireEvent.click(screen.getByText('Create Invoice'));
@@ -185,7 +185,8 @@ describe('CreateInvoiceDialog', () => {
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalled();
+      expect(screen.getByText('Add at least one item')).toBeInTheDocument();
     });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

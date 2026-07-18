@@ -101,6 +101,41 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 | `scripts/deploy-ec2.ps1` | Automated EC2 deploy (build + S3 + SSM + migrate) |
 | `Dockerfile.nginx` | Admin dashboard + nginx build |
 
+## Test Suite
+
+### Backend (NestJS + Jest — 30 suites, 324 tests)
+- Run: `cd backend && npm test`
+- Coverage: `cd backend && npm run test:cov`
+- All services, controllers, and modules have spec files
+- E2E: `cd backend && npm run test:e2e`
+
+### Admin Dashboard (React + Vitest — 8 suites, ~110 tests)
+- Run: `cd admin-dashboard && npx vitest run`
+- Watch: `cd admin-dashboard && npx vitest`
+- Covers: exportUtils, ExportMenu, SettingsPage, CreateInvoiceDialog, LoginPage, DashboardPage, AuthContext, API client
+
+### Android (JUnit 4 — 2 suites)
+- `ApiServiceTest.kt` — API interface annotation validation
+- `ExportUtilsTest.kt` — CSV/JSON export formatting
+
+### iOS (XCTest — 2 suites)
+- `ExportFormatterTests.swift` — CSV/JSON formatting
+- `CustomerTests.swift` — Model decoding/equality/hashing
+
+### Test Files Created (recent additions)
+| File | What it tests |
+|------|---------------|
+| `backend/src/common/health.controller.spec.ts` | Health check endpoint |
+| `backend/src/common/guards/jwt-auth.guard.spec.ts` | JWT auth guard (public routes, handleRequest) |
+| `backend/src/common/guards/roles.guard.spec.ts` | Roles guard (required roles, ForbiddenException) |
+| `backend/src/subscriptions/subscriptions.service.spec.ts` | Razorpay order creation & payment verification |
+| `backend/src/subscriptions/subscriptions.controller.spec.ts` | Subscription endpoints (create-order, verify) |
+| `backend/src/aws/dynamo-db.service.spec.ts` | DynamoDB session/cache/notification operations |
+| `admin-dashboard/src/__tests__/LoginPage.test.tsx` | Login form validation, API call, navigation |
+| `admin-dashboard/src/__tests__/DashboardPage.test.tsx` | Dashboard stat cards, loading, error states |
+| `admin-dashboard/src/__tests__/AuthContext.test.tsx` | Auth context (login, register, logout, token mgmt) |
+| `admin-dashboard/src/__tests__/api.client.test.ts` | API client response unwrapping & 401 refresh |
+
 ## Deployment Commands
 ```powershell
 # Full deploy (build + S3 + SSM + prisma migrate)

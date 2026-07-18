@@ -32,6 +32,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  InputAdornment,
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -47,6 +48,7 @@ import {
   LocalShipping as EwayIcon,
   Receipt as EinvoiceIcon,
   PersonAdd as PersonAddIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import {
@@ -62,6 +64,7 @@ import { useBusiness } from '../context/BusinessContext';
 import { generateQrCodeSvg } from '../utils/barcodeUtils';
 import ExportMenu from '../components/ExportMenu';
 import { fetchAllPages } from '../utils/exportUtils';
+import client from '../api/client';
 
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
