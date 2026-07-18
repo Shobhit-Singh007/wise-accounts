@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CustomerImportDto,
@@ -438,16 +439,29 @@ export class ImportService {
     return result;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  parseCsv(fileBuffer: Buffer, _originalFilename: string): CsvParseResult {
-    const content = fileBuffer.toString('utf-8');
+  parseCsv(fileBuffer: Buffer, originalFilename: string): CsvParseResult {
+    const isExcel = /\.(xlsx|xls)$/i.test(originalFilename);
+    let records: Record<string, string>[];
 
-    const records: Record<string, string>[] = parse(content, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      relax_column_count: true,
-    });
+    if (isExcel) {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        throw new BadRequestException('Excel file has no sheets');
+      }
+      records = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        defval: '',
+        raw: false,
+      }) as Record<string, string>[];
+    } else {
+      const content = fileBuffer.toString('utf-8');
+      records = parse(content, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        relax_column_count: true,
+      });
+    }
 
     if (!records || records.length === 0) {
       throw new BadRequestException(

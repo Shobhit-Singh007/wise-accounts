@@ -51,6 +51,8 @@ $json = @{
         "sudo docker load -i nginx-image.tar",
         "sudo /usr/libexec/docker/cli-plugins/docker-compose -f docker-compose.prod.yml up -d",
         "sleep 5",
+        "cd /home/ec2-user/wise-accounts && sudo /usr/libexec/docker/cli-plugins/docker-compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy",
+        "sleep 2",
         "sudo docker ps",
         "curl -s http://localhost/api/v1/health"
     )
