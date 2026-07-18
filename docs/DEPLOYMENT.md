@@ -4,6 +4,80 @@
 
 ---
 
+## CRITICAL: EC2 Production Deployment (The one we actually use)
+
+> **EC2 instance is in `us-east-1` (NOT ap-south-1). The S3 bucket is also in `us-east-1`.**
+
+### Quick Deploy (one command)
+
+```powershell
+.\scripts\deploy-ec2.ps1
+```
+
+This script:
+1. Builds backend + nginx Docker images
+2. Saves as tar files
+3. Uploads to S3 (`wise-accounts-deploy` bucket in `us-east-1`)
+4. Finds EC2 instance (tag `Name=wise-accounts`) in `us-east-1`
+5. Uses SSM SendCommand to pull images, load, and restart containers on EC2
+6. Waits for completion and prints output
+
+### Manual Deploy (if script fails)
+
+```powershell
+# 1. Build
+docker build -t ghcr.io/shobhit-singh007/wise-accounts-backend:latest ./backend
+docker build -t ghcr.io/shobhit-singh007/wise-accounts-nginx:latest -f Dockerfile.nginx .
+
+# 2. Save & Upload to S3
+docker save ghcr.io/shobhit-singh007/wise-accounts-backend:latest -o backend-image.tar
+docker save ghcr.io/shobhit-singh007/wise-accounts-nginx:latest -o nginx-image.tar
+aws s3 cp backend-image.tar s3://wise-accounts-deploy/ --region us-east-1
+aws s3 cp nginx-image.tar s3://wise-accounts-deploy/ --region us-east-1
+
+# 3. Deploy on EC2 (via SSM — us-east-1)
+# Generate presigned URLs
+$BACKEND_URL = aws s3 presign s3://wise-accounts-deploy/backend-image.tar --expires-in 3600 --region us-east-1
+$NGINX_URL = aws s3 presign s3://wise-accounts-deploy/nginx-image.tar --expires-in 3600 --region us-east-1
+
+# Write SSM params to JSON file (PowerShell arrays don't work with AWS CLI --parameters)
+@{ commands = @("cd ~/wise-accounts", "curl -sSf -o backend-image.tar '$BACKEND_URL'", "curl -sSf -o nginx-image.tar '$NGINX_URL'", "sudo docker load -i backend-image.tar", "sudo docker load -i nginx-image.tar", "sudo /usr/libexec/docker/cli-plugins/docker-compose -f docker-compose.prod.yml up -d", "sleep 5", "sudo docker ps", "curl -s http://localhost/api/v1/health") } | ConvertTo-Json -Compress | Set-Content -Path tmp_ssm.json -Encoding UTF8
+
+aws ssm send-command --instance-id i-0b4277d47b7ccdbe2 --document-name "AWS-RunShellScript" --parameters "file://tmp_ssm.json" --region us-east-1
+```
+
+### Known Gotchas
+
+| Issue | Fix |
+|-------|-----|
+| **EC2 is in `us-east-1`** | Always use `--region us-east-1` for EC2/SSM operations |
+| **S3 bucket is in `us-east-1`** | Same region as EC2 |
+| **PowerShell `curl` = Invoke-WebRequest** | Use `Invoke-WebRequest` or `curl.exe` for actual curl |
+| **SSM `--parameters` with arrays** | AWS CLI on PowerShell can't parse arrays inline. Write JSON to a file and use `file://path` |
+| **PowerShell 5.1 `Out-File`** | Use `-Encoding UTF8` (not `utf8NoBOM`, only available in PS 7+) |
+| **GHCR push denied** | Not authenticated. Use S3 method instead of GHCR |
+| **`docker build` cache issues** | Use `--no-cache` if stale cache causes build failures |
+| **`csv-parse` not found in build** | Run `npm install csv-parse` in backend, then rebuild |
+
+### EC2 Instance Info
+
+| Field | Value |
+|-------|-------|
+| Instance ID | `i-0b4277d47b7ccdbe2` |
+| Region | `us-east-1` |
+| Public IP | `54.224.106.63` |
+| Tag | `Name=wise-accounts` |
+| Docker compose | `docker-compose.prod.yml` at `~/wise-accounts` |
+| Health check | `http://54.224.106.63/api/v1/health` |
+
+### Verify Deployment
+
+```powershell
+Invoke-WebRequest -Uri "http://54.224.106.63/api/v1/health" -UseBasicParsing
+```
+
+---
+
 ## Prerequisites
 
 | Requirement | Details |

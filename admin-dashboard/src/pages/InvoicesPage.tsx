@@ -56,6 +56,8 @@ import { customersApi, type Customer } from '../api/customers';
 import { productsApi, type Product } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
 import { generateQrCodeSvg } from '../utils/barcodeUtils';
+import ExportMenu from '../components/ExportMenu';
+import { fetchAllPages } from '../utils/exportUtils';
 
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
@@ -1536,6 +1538,75 @@ function InvoiceTab({ businessId, direction }: { businessId: string; direction: 
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <ExportMenu
+          headers={['Invoice #', partyLabel, 'Type', 'Date', 'Subtotal', 'Tax', 'Discount', 'Total', 'Paid', 'Balance', 'Status', 'Payment']}
+          rows={invoices.map(inv => [
+            inv.invoiceNo,
+            direction === 'SALE' ? (inv.customer?.name || '-') : (inv.supplier?.name || '-'),
+            inv.type,
+            new Date(inv.invoiceDate).toLocaleDateString('en-IN'),
+            inv.subtotal || 0,
+            inv.taxAmount || 0,
+            inv.discount || 0,
+            inv.grandTotal || 0,
+            inv.paidAmount || 0,
+            (inv.grandTotal || 0) - (inv.paidAmount || 0),
+            inv.status,
+            inv.paidAmount >= (inv.grandTotal || 0) ? 'Paid' : inv.paidAmount > 0 ? 'Partial' : 'Pending',
+          ])}
+          filename={`${direction.toLowerCase()}-invoices`}
+          title={`${direction === 'SALE' ? 'Sales' : 'Purchase'} Invoices Report`}
+          jsonData={invoices.map(inv => ({
+            'Invoice #': inv.invoiceNo,
+            [partyLabel]: direction === 'SALE' ? (inv.customer?.name || '-') : (inv.supplier?.name || '-'),
+            Type: inv.type,
+            Date: new Date(inv.invoiceDate).toLocaleDateString('en-IN'),
+            Subtotal: inv.subtotal || 0,
+            Tax: inv.taxAmount || 0,
+            Discount: inv.discount || 0,
+            Total: inv.grandTotal || 0,
+            Paid: inv.paidAmount || 0,
+            Balance: (inv.grandTotal || 0) - (inv.paidAmount || 0),
+            Status: inv.status,
+            Payment: inv.paidAmount >= (inv.grandTotal || 0) ? 'Paid' : inv.paidAmount > 0 ? 'Partial' : 'Pending',
+          }))}
+          fetchAllData={async () => {
+            const all = await fetchAllPages((params) => invoicesApi.list(businessId, { ...params, direction }));
+            return {
+              rows: all.map(inv => [
+                inv.invoiceNo,
+                direction === 'SALE' ? (inv.customer?.name || '-') : (inv.supplier?.name || '-'),
+                inv.type,
+                new Date(inv.invoiceDate).toLocaleDateString('en-IN'),
+                inv.subtotal || 0,
+                inv.taxAmount || 0,
+                inv.discount || 0,
+                inv.grandTotal || 0,
+                inv.paidAmount || 0,
+                (inv.grandTotal || 0) - (inv.paidAmount || 0),
+                inv.status,
+                inv.paidAmount >= (inv.grandTotal || 0) ? 'Paid' : inv.paidAmount > 0 ? 'Partial' : 'Pending',
+              ]),
+              jsonData: all.map(inv => ({
+                'Invoice #': inv.invoiceNo,
+                [partyLabel]: direction === 'SALE' ? (inv.customer?.name || '-') : (inv.supplier?.name || '-'),
+                Type: inv.type,
+                Date: new Date(inv.invoiceDate).toLocaleDateString('en-IN'),
+                Subtotal: inv.subtotal || 0,
+                Tax: inv.taxAmount || 0,
+                Discount: inv.discount || 0,
+                Total: inv.grandTotal || 0,
+                Paid: inv.paidAmount || 0,
+                Balance: (inv.grandTotal || 0) - (inv.paidAmount || 0),
+                Status: inv.status,
+                Payment: inv.paidAmount >= (inv.grandTotal || 0) ? 'Paid' : inv.paidAmount > 0 ? 'Partial' : 'Pending',
+              })),
+            };
+          }}
+        />
+      </Box>
 
       <DataTable
         columns={columns}

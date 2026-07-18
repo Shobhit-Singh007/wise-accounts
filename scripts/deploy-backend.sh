@@ -31,7 +31,7 @@ source "$ENV_FILE"
 
 # ── Configuration ──────────────────────────────────
 AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID not set}"
-AWS_REGION="${AWS_REGION:-ap-south-1}"
+AWS_REGION="${AWS_REGION:-us-east-1}"
 ECR_REPO_NAME="wise-accounts-api"
 ECR_TAG="${ENVIRONMENT}-$(date '+%Y%m%d-%H%M%S')"
 ECR_LATEST_TAG="${ENVIRONMENT}-latest"

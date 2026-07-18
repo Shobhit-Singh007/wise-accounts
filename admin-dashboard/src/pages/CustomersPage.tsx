@@ -13,11 +13,12 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Receipt as ReceiptIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { Add as AddIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
+import ExportMenu from '../components/ExportMenu';
 import { customersApi, type Customer, type CustomerCreate } from '../api/customers';
 import { useBusiness } from '../context/BusinessContext';
-import { exportToCsv } from '../utils/exportUtils';
+import { fetchAllPages } from '../utils/exportUtils';
 
 const initialState: CustomerCreate = {
   name: '',
@@ -162,13 +163,22 @@ export default function CustomersPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Customers</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={() => {
-            exportToCsv(
-              ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Balance', 'Credit Limit', 'Status'],
-              customers.map(c => [c.name, c.phone, c.email || '', c.gstin || '', c.address || '', c.city || '', c.state || '', c.pincode || '', c.balance || 0, c.creditLimit || 0, c.isActive ? 'Active' : 'Inactive']),
-              'customers'
-            );
-          }}>Export CSV</Button>
+          {currentBusinessId && (
+            <ExportMenu
+              headers={['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Balance', 'Credit Limit', 'Status']}
+              rows={customers.map(c => [c.name, c.phone, c.email || '', c.gstin || '', c.address || '', c.city || '', c.state || '', c.pincode || '', c.balance || 0, c.creditLimit || 0, c.isActive ? 'Active' : 'Inactive'])}
+              filename="customers"
+              title="Customers Report"
+              jsonData={customers.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email || '', GSTIN: c.gstin || '', Address: c.address || '', City: c.city || '', State: c.state || '', Pincode: c.pincode || '', Balance: c.balance || 0, 'Credit Limit': c.creditLimit || 0, Status: c.isActive ? 'Active' : 'Inactive' }))}
+              fetchAllData={async (signal) => {
+                const all = await fetchAllPages((params) => customersApi.list(currentBusinessId, params));
+                return {
+                  rows: all.map(c => [c.name, c.phone, c.email || '', c.gstin || '', c.address || '', c.city || '', c.state || '', c.pincode || '', c.balance || 0, c.creditLimit || 0, c.isActive ? 'Active' : 'Inactive']),
+                  jsonData: all.map(c => ({ Name: c.name, Phone: c.phone, Email: c.email || '', GSTIN: c.gstin || '', Address: c.address || '', City: c.city || '', State: c.state || '', Pincode: c.pincode || '', Balance: c.balance || 0, 'Credit Limit': c.creditLimit || 0, Status: c.isActive ? 'Active' : 'Inactive' })),
+                };
+              }}
+            />
+          )}
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
             Add Customer
           </Button>

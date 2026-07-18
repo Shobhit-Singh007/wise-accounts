@@ -26,6 +26,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+enum class ExportFormat(val label: String, val extension: String, val mimeType: String) {
+    CSV("CSV", "csv", "text/csv"),
+    JSON("JSON", "json", "application/json")
+}
+
 @HiltViewModel
 class ExportDataViewModel @Inject constructor(
     private val apiService: ApiService,
@@ -34,21 +39,19 @@ class ExportDataViewModel @Inject constructor(
 
     var isExporting by mutableStateOf(false)
     var exportMessage by mutableStateOf<String?>(null)
+    var selectedFormat by mutableStateOf(ExportFormat.CSV)
 
-    private fun buildCsv(headers: List<String>, rows: List<List<String>>): String {
-        val sb = StringBuilder()
-        sb.appendLine(headers.joinToString(","))
-        for (row in rows) {
-            sb.appendLine(row.joinToString(",") { cell ->
-                if (cell.contains(",") || cell.contains("\"") || cell.contains("\n")) {
-                    "\"${cell.replace("\"", "\"\"")}\""
-                } else cell
-            })
-        }
-        return sb.toString()
-    }
+    private fun sanitizeCsvValue(cell: String): String = ExportUtils.sanitizeCsvValue(cell)
 
-    fun exportCustomers(onShare: (String, String) -> Unit) {
+    private fun buildCsv(headers: List<String>, rows: List<List<String>>): String = ExportUtils.buildCsv(headers, rows)
+
+    private fun escapeJsonValue(value: String): String = ExportUtils.escapeJsonValue(value)
+
+    private fun escapeJsonKey(key: String): String = ExportUtils.escapeJsonKey(key)
+
+    private fun buildJsonString(headers: List<String>, rows: List<List<String>>): String = ExportUtils.buildJsonString(headers, rows)
+
+    fun exportCustomers(onShare: (String, String, String) -> Unit) {
         isExporting = true
         exportMessage = null
         viewModelScope.launch {
@@ -62,14 +65,18 @@ class ExportDataViewModel @Inject constructor(
                     apiService.getCustomers(businessId, perPage = 9999)
                 }
                 val customers = response.body()?.data ?: emptyList()
-                val csv = buildCsv(
-                    listOf("Name", "Phone", "Email", "GSTIN", "Address", "City", "State", "Pincode", "Opening Balance", "Credit Limit"),
-                    customers.map { c ->
-                        listOf(c.name, c.phone ?: "", c.email ?: "", c.gstin ?: "", c.address ?: "", c.city ?: "", c.state ?: "", c.pincode ?: "", "${c.openingBalance}", "${c.creditLimit}")
-                    }
-                )
-                onShare("customers.csv", csv)
-                exportMessage = "Exported ${customers.size} customers"
+                val headers = listOf("Name", "Phone", "Email", "GSTIN", "Address", "City", "State", "Pincode", "Opening Balance", "Credit Limit")
+                val rows = customers.map { c ->
+                    listOf(c.name, c.phone ?: "", c.email ?: "", c.gstin ?: "", c.address ?: "", c.city ?: "", c.state ?: "", c.pincode ?: "", "${c.openingBalance}", "${c.creditLimit}")
+                }
+                val content = when (selectedFormat) {
+                    ExportFormat.CSV -> buildCsv(headers, rows)
+                    ExportFormat.JSON -> buildJsonString(headers, rows)
+                }
+                withContext(Dispatchers.IO) {
+                    onShare("customers.${selectedFormat.extension}", content, selectedFormat.mimeType)
+                }
+                exportMessage = "Exported ${customers.size} customers as ${selectedFormat.label}"
             } catch (e: Exception) {
                 exportMessage = "Export failed: ${e.localizedMessage}"
             } finally {
@@ -78,7 +85,7 @@ class ExportDataViewModel @Inject constructor(
         }
     }
 
-    fun exportProducts(onShare: (String, String) -> Unit) {
+    fun exportProducts(onShare: (String, String, String) -> Unit) {
         isExporting = true
         exportMessage = null
         viewModelScope.launch {
@@ -92,14 +99,18 @@ class ExportDataViewModel @Inject constructor(
                     apiService.getProducts(businessId, perPage = 9999)
                 }
                 val products = response.body()?.data ?: emptyList()
-                val csv = buildCsv(
-                    listOf("Name", "SKU", "HSN", "Unit", "Selling Price", "Purchase Price", "GST Rate", "Stock"),
-                    products.map { p ->
-                        listOf(p.name, p.sku ?: "", p.hsnCode ?: "", p.unit ?: "", "${p.sellingPrice}", "${p.purchasePrice}", "${p.gstRate}%", "${p.stock}")
-                    }
-                )
-                onShare("products.csv", csv)
-                exportMessage = "Exported ${products.size} products"
+                val headers = listOf("Name", "SKU", "HSN", "Unit", "Selling Price", "Purchase Price", "GST Rate", "Stock")
+                val rows = products.map { p ->
+                    listOf(p.name, p.sku ?: "", p.hsnCode ?: "", p.unit ?: "", "${p.sellingPrice}", "${p.purchasePrice}", "${p.gstRate}%", "${p.stock}")
+                }
+                val content = when (selectedFormat) {
+                    ExportFormat.CSV -> buildCsv(headers, rows)
+                    ExportFormat.JSON -> buildJsonString(headers, rows)
+                }
+                withContext(Dispatchers.IO) {
+                    onShare("products.${selectedFormat.extension}", content, selectedFormat.mimeType)
+                }
+                exportMessage = "Exported ${products.size} products as ${selectedFormat.label}"
             } catch (e: Exception) {
                 exportMessage = "Export failed: ${e.localizedMessage}"
             } finally {
@@ -108,7 +119,7 @@ class ExportDataViewModel @Inject constructor(
         }
     }
 
-    fun exportInvoices(onShare: (String, String) -> Unit) {
+    fun exportInvoices(onShare: (String, String, String) -> Unit) {
         isExporting = true
         exportMessage = null
         viewModelScope.launch {
@@ -122,18 +133,22 @@ class ExportDataViewModel @Inject constructor(
                     apiService.getInvoices(businessId, perPage = 9999)
                 }
                 val invoices = response.body()?.data ?: emptyList()
-                val csv = buildCsv(
-                    listOf("Invoice No", "Date", "Customer", "Direction", "Subtotal", "Taxable Amount", "Total Amount", "Status"),
-                    invoices.map { inv ->
-                        listOf(
-                            inv.invoiceNumber, inv.invoiceDate.take(10),
-                            inv.customerName ?: "", inv.direction,
-                            "${inv.subtotal}", "${inv.taxableAmount}", "${inv.totalAmount}", inv.status
-                        )
-                    }
-                )
-                onShare("invoices.csv", csv)
-                exportMessage = "Exported ${invoices.size} invoices"
+                val headers = listOf("Invoice No", "Date", "Customer", "Direction", "Subtotal", "Taxable Amount", "Total Amount", "Status")
+                val rows = invoices.map { inv ->
+                    listOf(
+                        inv.invoiceNumber, inv.invoiceDate.take(10),
+                        inv.customerName ?: "", inv.direction,
+                        "${inv.subtotal}", "${inv.taxableAmount}", "${inv.totalAmount}", inv.status
+                    )
+                }
+                val content = when (selectedFormat) {
+                    ExportFormat.CSV -> buildCsv(headers, rows)
+                    ExportFormat.JSON -> buildJsonString(headers, rows)
+                }
+                withContext(Dispatchers.IO) {
+                    onShare("invoices.${selectedFormat.extension}", content, selectedFormat.mimeType)
+                }
+                exportMessage = "Exported ${invoices.size} invoices as ${selectedFormat.label}"
             } catch (e: Exception) {
                 exportMessage = "Export failed: ${e.localizedMessage}"
             } finally {
@@ -150,15 +165,16 @@ fun ExportDataScreen(
     viewModel: ExportDataViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    var formatMenuExpanded by remember { mutableStateOf(false) }
 
-    val shareCsv: (String, String) -> Unit = { fileName, content ->
-        val file = java.io.File(context.cacheDir, fileName)
+    val shareFile: (String, String, String) -> Unit = { fileName, content, mimeType ->
+        val file = java.io.File(context.cacheDir, "export_$fileName")
         file.writeText(content)
         val uri = androidx.core.content.FileProvider.getUriForFile(
             context, "${context.packageName}.fileprovider", file
         )
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/csv"
+            type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, "Wise Accounts - $fileName")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -185,31 +201,59 @@ fun ExportDataScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                "Export your data as CSV files",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Export format:",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box {
+                    OutlinedButton(onClick = { formatMenuExpanded = true }) {
+                        Text(viewModel.selectedFormat.label)
+                    }
+                    DropdownMenu(
+                        expanded = formatMenuExpanded,
+                        onDismissRequest = { formatMenuExpanded = false }
+                    ) {
+                        ExportFormat.entries.forEach { format ->
+                            DropdownMenuItem(
+                                text = { Text(format.label) },
+                                onClick = {
+                                    viewModel.selectedFormat = format
+                                    formatMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             ExportCard(
                 title = "Customers",
                 subtitle = "Export all customer contacts and details",
                 icon = Icons.Default.People,
-                onClick = { viewModel.exportCustomers(shareCsv) }
+                enabled = !viewModel.isExporting,
+                onClick = { viewModel.exportCustomers(shareFile) }
             )
 
             ExportCard(
                 title = "Products",
                 subtitle = "Export product catalog with prices",
                 icon = Icons.Default.Inventory2,
-                onClick = { viewModel.exportProducts(shareCsv) }
+                enabled = !viewModel.isExporting,
+                onClick = { viewModel.exportProducts(shareFile) }
             )
 
             ExportCard(
                 title = "Invoices",
                 subtitle = "Export all invoices and billing history",
                 icon = Icons.Default.Receipt,
-                onClick = { viewModel.exportInvoices(shareCsv) }
+                enabled = !viewModel.isExporting,
+                onClick = { viewModel.exportInvoices(shareFile) }
             )
 
             if (viewModel.isExporting) {
@@ -237,11 +281,13 @@ private fun ExportCard(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick,
+        onClick = { if (enabled) onClick() },
         modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -257,7 +303,7 @@ private fun ExportCard(
                 icon,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -274,7 +320,7 @@ private fun ExportCard(
             Icon(
                 Icons.Default.FileDownload,
                 contentDescription = "Export",
-                tint = MaterialTheme.colorScheme.primary
+                tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

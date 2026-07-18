@@ -25,13 +25,14 @@ import {
   Tab,
   Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
+import ExportMenu from '../components/ExportMenu';
 import { productsApi, type Product, type ProductCreate } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
 import client from '../api/client';
 import { generateBarcodeSvg } from '../utils/barcodeUtils';
-import { exportToCsv } from '../utils/exportUtils';
+import { fetchAllPages } from '../utils/exportUtils';
 
 interface Category {
   id: string;
@@ -339,13 +340,22 @@ export default function ProductsPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Products</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={() => {
-            exportToCsv(
-              ['Name', 'SKU', 'HSN', 'Unit', 'Selling Price', 'Purchase Price', 'Tax Rate', 'Stock', 'Status'],
-              products.map(p => [p.name, p.sku || '', p.hsnCode, p.unit, p.sellingPrice, p.purchasePrice || 0, `${p.taxRate}%`, p.stock ?? 0, p.isActive ? 'Active' : 'Inactive']),
-              'products'
-            );
-          }}>Export CSV</Button>
+          {currentBusinessId && (
+            <ExportMenu
+              headers={['Name', 'SKU', 'HSN', 'Unit', 'Selling Price', 'Purchase Price', 'Tax Rate', 'Stock', 'Status']}
+              rows={products.map(p => [p.name, p.sku || '', p.hsnCode, p.unit, p.sellingPrice, p.purchasePrice || 0, `${p.taxRate}%`, p.stock ?? 0, p.isActive ? 'Active' : 'Inactive'])}
+              filename="products"
+              title="Products Report"
+              jsonData={products.map(p => ({ Name: p.name, SKU: p.sku || '', HSN: p.hsnCode, Unit: p.unit, 'Selling Price': p.sellingPrice, 'Purchase Price': p.purchasePrice || 0, 'Tax Rate': `${p.taxRate}%`, Stock: p.stock ?? 0, Status: p.isActive ? 'Active' : 'Inactive' }))}
+              fetchAllData={async () => {
+                const all = await fetchAllPages((params) => productsApi.list(currentBusinessId, params));
+                return {
+                  rows: all.map(p => [p.name, p.sku || '', p.hsnCode, p.unit, p.sellingPrice, p.purchasePrice || 0, `${p.taxRate}%`, p.stock ?? 0, p.isActive ? 'Active' : 'Inactive']),
+                  jsonData: all.map(p => ({ Name: p.name, SKU: p.sku || '', HSN: p.hsnCode, Unit: p.unit, 'Selling Price': p.sellingPrice, 'Purchase Price': p.purchasePrice || 0, 'Tax Rate': `${p.taxRate}%`, Stock: p.stock ?? 0, Status: p.isActive ? 'Active' : 'Inactive' })),
+                };
+              }}
+            />
+          )}
           <Button variant="outlined" startIcon={<CategoryIcon />} onClick={() => setCategoriesOpen(true)}>
             Manage Categories
           </Button>
