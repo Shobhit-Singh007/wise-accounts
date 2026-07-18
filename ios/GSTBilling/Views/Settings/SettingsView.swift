@@ -108,6 +108,9 @@ struct SettingsView: View {
                 NavigationLink(value: AppRoute.exportData) {
                     Label("Export Data", systemImage: "square.and.arrow.up")
                 }
+                NavigationLink(value: AppRoute.dataImport) {
+                    Label("Import Data", systemImage: "square.and.arrow.down")
+                }
             }
 
             Section {

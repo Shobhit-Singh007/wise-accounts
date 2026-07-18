@@ -2,6 +2,7 @@ package com.gstbilling.app.ui.customer
 
 import android.content.Intent
 import android.net.Uri
+import com.gstbilling.app.BuildConfig
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -133,7 +134,7 @@ class CustomerLedgerViewModel @Inject constructor(
 
     fun openImageUrl(url: String, context: android.content.Context) {
         try {
-            val fullUrl = if (url.startsWith("http")) url else "http://10.0.2.2:3000$url"
+            val fullUrl = if (url.startsWith("http")) url else "${BuildConfig.API_BASE_URL.trimEnd('/')}$url"
             val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(fullUrl))
             context.startActivity(intent)
         } catch (e: Exception) {

@@ -3,6 +3,7 @@ package com.gstbilling.app.ui.billing
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import com.gstbilling.app.BuildConfig
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -421,7 +422,7 @@ fun InvoiceDetailScreen(
                     OutlinedButton(
                         onClick = {
                             val docTypeParam = if (selectedDocType == "INVOICE") "" else "?documentType=$selectedDocType"
-                            val baseUrl = "http://10.0.2.2:3000/api/v1"
+                            val baseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
                             val url = "$baseUrl/businesses/${invoice.businessId}/invoices/${invoice.id}/print$docTypeParam"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(intent)

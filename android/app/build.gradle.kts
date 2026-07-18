@@ -38,7 +38,7 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://wiseaccs.com/api/v1/\"")
         }
     }
 

@@ -361,13 +361,81 @@ struct DataImportView: View {
             parsedRows.append(row)
         }
 
+        autoMapColumns()
         errorMessage = nil
     }
 
+    private func autoMapColumns() {
+        guard let importType = selectedImportType else { return }
+        columnMappings = [:]
+        for field in importType.targetFields {
+            let normalizedField = field.lowercased().replacingOccurrences(of: "_", with: "")
+            for header in headers {
+                let normalizedHeader = header.lowercased().replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "_", with: "")
+                if normalizedHeader == normalizedField ||
+                   normalizedHeader.contains(normalizedField) ||
+                   normalizedField.contains(normalizedHeader) ||
+                   (field == "name" && (normalizedHeader == "fullname" || normalizedHeader == "productname" || normalizedHeader == "customername")) ||
+                   (field == "price" && (normalizedHeader == "sellingprice" || normalizedHeader == "rate" || normalizedHeader == "amount")) ||
+                   (field == "phone" && (normalizedHeader == "mobile" || normalizedHeader == "mobilenumber" || normalizedHeader == "contactno")) ||
+                   (field == "address" && (normalizedHeader == "addr" || normalizedHeader == "fulladdress")) ||
+                   (field == "stock_quantity" && (normalizedHeader == "stock" || normalizedHeader == "qty" || normalizedHeader == "quantity")) ||
+                   (field == "unit" && (normalizedHeader == "uom" || normalizedHeader == "unitofmeasure")) {
+                    columnMappings[field] = header
+                    break
+                }
+            }
+        }
+    }
+
     private func performImport() async {
+        guard let businessId = AuthManager.shared.currentBusiness?.id else {
+            errorMessage = "No business selected"
+            return
+        }
         isImporting = true
-        try? await Task.sleep(nanoseconds: 2_000_000_000)
-        importResult = ImportResult(totalRows: parsedRows.count, successCount: parsedRows.count, errorCount: 0)
-        isImporting = false
+        errorMessage = nil
+
+        do {
+            var records: [[String: Any]] = []
+            for row in parsedRows {
+                var mapped: [String: Any] = [:]
+                for (targetField, sourceHeader) in columnMappings {
+                    if !sourceHeader.isEmpty, let value = row[sourceHeader] {
+                        mapped[targetField] = value
+                    }
+                }
+                records.append(mapped)
+            }
+
+            let result: ImportResponse
+            switch selectedImportType {
+            case .customers:
+                result = try await APIService.shared.importCustomers(businessId: businessId, records: records)
+            case .products:
+                result = try await APIService.shared.importProducts(businessId: businessId, records: records)
+            case .invoices:
+                result = try await APIService.shared.importInvoices(businessId: businessId, records: records)
+            case .none:
+                fatalError("No import type selected")
+            }
+
+            await MainActor.run {
+                importResult = ImportResult(
+                    totalRows: parsedRows.count,
+                    successCount: result.imported,
+                    errorCount: result.errors.count
+                )
+                if !result.errors.isEmpty {
+                    errorMessage = result.errors.joined(separator: "\n")
+                }
+                isImporting = false
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Import failed: \(error.localizedDescription)"
+                isImporting = false
+            }
+        }
     }
 }

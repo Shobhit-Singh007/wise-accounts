@@ -43,6 +43,7 @@ enum AppRoute: Hashable {
     case inventoryDashboard
     case stockMovements
     case exportData
+    case dataImport
     case razorpayCheckout(amount: Double, invoiceNo: String?, customerName: String, razorpayKeyId: String)
 }
 
@@ -154,6 +155,8 @@ struct AppNavigation: View {
             StockMovementsView(business: business)
         case .exportData:
             ExportDataView()
+        case .dataImport:
+            DataImportView(business: business)
         case .razorpayCheckout(let amount, let invoiceNo, let customerName, let razorpayKeyId):
             RazorpayCheckoutView(
                 amount: amount,
