@@ -55,7 +55,7 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun createInvoice(request: CreateInvoiceRequest): AppResult<Invoice> {
+    suspend fun createInvoice(businessId: String, request: CreateInvoiceRequest): AppResult<Invoice> {
         if (!networkMonitor.isOnline()) {
             val gson = Gson()
             val itemsJson = gson.toJson(request.items)
@@ -83,7 +83,7 @@ class InvoiceRepository @Inject constructor(
             )
         }
         return safeApiCall {
-            val response = apiService.createInvoice(request)
+            val response = apiService.createInvoice(businessId, request)
             if (response.isSuccessful) {
                 val created = response.body()?.data ?: throw Exception("Failed to create invoice")
                 invoiceDao.insert(created.toEntity())
@@ -94,9 +94,9 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun cancelInvoice(invoiceId: String): AppResult<Invoice> {
+    suspend fun cancelInvoice(businessId: String, invoiceId: String): AppResult<Invoice> {
         return safeApiCall {
-            val response = apiService.cancelInvoice(invoiceId)
+            val response = apiService.cancelInvoice(businessId, invoiceId)
             if (response.isSuccessful) {
                 val cancelled = response.body()?.data ?: throw Exception("Failed to cancel invoice")
                 invoiceDao.insert(cancelled.toEntity())
@@ -107,9 +107,9 @@ class InvoiceRepository @Inject constructor(
         }
     }
 
-    suspend fun createCreditNote(invoiceId: String, reason: String, items: List<Long>?): AppResult<Invoice> {
+    suspend fun createCreditNote(businessId: String, invoiceId: String, reason: String, items: List<Long>?): AppResult<Invoice> {
         return safeApiCall {
-            val response = apiService.createCreditNote(invoiceId, CreditNoteRequest(reason, items))
+            val response = apiService.createCreditNote(businessId, invoiceId, CreditNoteRequest(reason, items))
             if (response.isSuccessful) {
                 val note = response.body()?.data ?: throw Exception("Failed to create credit note")
                 invoiceDao.insert(note.toEntity())
@@ -168,7 +168,8 @@ class InvoiceRepository @Inject constructor(
                     discount = invoice.discount,
                     notes = invoice.notes
                 )
-                val response = apiService.createInvoice(request)
+                val bizId = sessionManager.getBusinessId() ?: ""
+                val response = apiService.createInvoice(bizId, request)
                 if (response.isSuccessful) {
                     invoiceDao.deleteById(invoice.id)
                     response.body()?.data?.let { invoiceDao.insert(it.toEntity()) }

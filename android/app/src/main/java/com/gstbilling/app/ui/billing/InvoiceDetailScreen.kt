@@ -82,7 +82,8 @@ class InvoiceDetailViewModel @Inject constructor(
     fun cancelInvoice(invoiceId: String) {
         viewModelScope.launch {
             isLoading = true
-            val result = invoiceRepository.cancelInvoice(invoiceId)
+            val businessId = sessionManager.getBusinessId() ?: ""
+            val result = invoiceRepository.cancelInvoice(businessId, invoiceId)
             when (result) {
                 is AppResult.Success -> { invoice = result.data }
                 is AppResult.Error -> { errorMessage = result.message }

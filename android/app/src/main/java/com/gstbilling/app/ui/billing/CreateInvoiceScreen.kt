@@ -326,7 +326,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 discount = discountAmount,
                 notes = notes.ifBlank { null }
             )
-            when (val result = invoiceRepository.createInvoice(request)) {
+            val businessId = sessionManager.getBusinessId() ?: ""
+            when (val result = invoiceRepository.createInvoice(businessId, request)) {
                 is AppResult.Success -> {
                     isLoading = false
                     isSuccess = true

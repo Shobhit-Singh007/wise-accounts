@@ -141,32 +141,43 @@ interface ApiService {
     ): Response<ApiResponse<PurchaseOrder>>
 
     // ── Invoices ──
-    @GET("invoices")
+    @GET("businesses/{businessId}/invoices")
     suspend fun getInvoices(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("status") status: String? = null,
         @Query("direction") direction: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null
     ): Response<ApiResponse<List<Invoice>>>
 
-    @GET("invoices/{id}")
-    suspend fun getInvoice(@Path("id") id: String): Response<ApiResponse<Invoice>>
+    @GET("businesses/{businessId}/invoices/{id}")
+    suspend fun getInvoice(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Invoice>>
 
-    @POST("invoices")
-    suspend fun createInvoice(@Body request: CreateInvoiceRequest): Response<ApiResponse<Invoice>>
+    @POST("businesses/{businessId}/invoices")
+    suspend fun createInvoice(
+        @Path("businessId") businessId: String,
+        @Body request: CreateInvoiceRequest
+    ): Response<ApiResponse<Invoice>>
 
-    @PUT("invoices/{id}")
+    @PUT("businesses/{businessId}/invoices/{id}")
     suspend fun updateInvoice(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body request: CreateInvoiceRequest
     ): Response<ApiResponse<Invoice>>
 
-    @POST("invoices/{id}/cancel")
-    suspend fun cancelInvoice(@Path("id") id: String): Response<ApiResponse<Invoice>>
+    @POST("businesses/{businessId}/invoices/{id}/cancel")
+    suspend fun cancelInvoice(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Invoice>>
 
-    @POST("invoices/{id}/credit-note")
+    @POST("businesses/{businessId}/invoices/{id}/credit-note")
     suspend fun createCreditNote(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body request: CreditNoteRequest
     ): Response<ApiResponse<Invoice>>

@@ -53,7 +53,7 @@ class InvoiceShareViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             val businessId = sessionManager.getBusinessId() ?: return@launch
-            when (val result = safeApiCall { apiService.getInvoice(invoiceId) }) {
+            when (val result = safeApiCall { apiService.getInvoice(businessId, invoiceId) }) {
                 is AppResult.Success -> {
                     invoice = result.data?.body()?.data
                 }
