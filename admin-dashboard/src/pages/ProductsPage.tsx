@@ -25,7 +25,7 @@ import {
   Tab,
   Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon, Inventory as InventoryIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import ExportMenu from '../components/ExportMenu';
 import { productsApi, type Product, type ProductCreate } from '../api/products';
@@ -221,6 +221,49 @@ export default function ProductsPage() {
   const [form, setForm] = useState<ProductCreate>(initialState);
   const [saving, setSaving] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [stockProduct, setStockProduct] = useState<Product | null>(null);
+  const [stockQuantity, setStockQuantity] = useState(0);
+  const [stockType, setStockType] = useState('PURCHASE');
+  const [stockNotes, setStockNotes] = useState('');
+  const [stockSaving, setStockSaving] = useState(false);
+
+  const handleDelete = async (product: Product) => {
+    if (!currentBusinessId) return;
+    if (!confirm(`Delete product "${product.name}"? This will deactivate it.`)) return;
+    try {
+      await productsApi.delete(currentBusinessId, product.id);
+      fetchProducts();
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to delete product');
+    }
+  };
+
+  const handleOpenStock = (product: Product) => {
+    setStockProduct(product);
+    setStockQuantity(0);
+    setStockType('PURCHASE');
+    setStockNotes('');
+    setStockDialogOpen(true);
+  };
+
+  const handleStockAdjust = async () => {
+    if (!currentBusinessId || !stockProduct || stockQuantity <= 0) return;
+    setStockSaving(true);
+    try {
+      await client.post(`/businesses/${currentBusinessId}/products/${stockProduct.id}/stock-adjust`, {
+        type: stockType,
+        quantity: stockQuantity,
+        notes: stockNotes || undefined,
+      });
+      setStockDialogOpen(false);
+      fetchProducts();
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to adjust stock');
+    } finally {
+      setStockSaving(false);
+    }
+  };
 
   const fetchProducts = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -328,9 +371,11 @@ export default function ProductsPage() {
       id: 'actions',
       label: 'Actions',
       render: (r: Product) => (
-        <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenEdit(r)}>
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton size="small" color="primary" onClick={() => handleOpenEdit(r)} title="Edit"><EditIcon fontSize="small" /></IconButton>
+          <IconButton size="small" color="info" onClick={() => handleOpenStock(r)} title="Adjust Stock"><InventoryIcon fontSize="small" /></IconButton>
+          <IconButton size="small" color="error" onClick={() => handleDelete(r)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
+        </Box>
       ),
     },
   ];
@@ -418,6 +463,51 @@ export default function ProductsPage() {
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}>
             {saving ? <CircularProgress size={20} /> : editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={stockDialogOpen} onClose={() => setStockDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Adjust Stock — {stockProduct?.name}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Type"
+              select
+              value={stockType}
+              onChange={(e) => setStockType(e.target.value)}
+              size="small"
+            >
+              <MenuItem value="PURCHASE">Purchase (Add Stock)</MenuItem>
+              <MenuItem value="SALE">Sale (Remove Stock)</MenuItem>
+              <MenuItem value="ADJUSTMENT">Adjustment</MenuItem>
+              <MenuItem value="RETURN">Return (Add Stock)</MenuItem>
+            </TextField>
+            <TextField
+              label="Quantity"
+              type="number"
+              value={stockQuantity || ''}
+              onChange={(e) => setStockQuantity(Math.max(0, Number(e.target.value)))}
+              size="small"
+              required
+            />
+            <TextField
+              label="Notes"
+              value={stockNotes}
+              onChange={(e) => setStockNotes(e.target.value)}
+              size="small"
+              multiline
+              rows={2}
+            />
+            {stockType === 'SALE' && (
+              <Typography variant="caption" color="warning.main">Current stock: {stockProduct?.stock} {stockProduct?.unit}</Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStockDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleStockAdjust} disabled={stockSaving || stockQuantity <= 0}>
+            {stockSaving ? <CircularProgress size={20} /> : 'Adjust'}
           </Button>
         </DialogActions>
       </Dialog>

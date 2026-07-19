@@ -21,17 +21,18 @@ export class ImportService {
   }
 
   private getNormalized(record: any, key: string): any {
-    if (record[key] != null) return record[key];
     const normalizedKey = this.normalizeKey(key);
     const keys = Object.keys(record);
+    // First pass: exact key match
     for (const k of keys) {
-      if (this.normalizeKey(k) === normalizedKey) {
+      if (this.normalizeKey(k) === normalizedKey && record[k] != null && record[k] !== '') {
         return record[k];
       }
     }
+    // Second pass: includes match
     for (const k of keys) {
       const nk = this.normalizeKey(k);
-      if (nk.includes(normalizedKey) || normalizedKey.includes(nk)) {
+      if ((nk.includes(normalizedKey) || normalizedKey.includes(nk)) && record[k] != null && record[k] !== '') {
         return record[k];
       }
     }
