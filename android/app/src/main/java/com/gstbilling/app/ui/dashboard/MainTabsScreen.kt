@@ -46,19 +46,6 @@ fun MainTabsScreen(
     var selectedTab by remember { mutableStateOf(MainTab.INVOICES) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(selectedTab.label) },
-                actions = {
-                    IconButton(onClick = onNavigateToReports) {
-                        Icon(Icons.Default.BarChart, contentDescription = "Reports")
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
-        },
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(

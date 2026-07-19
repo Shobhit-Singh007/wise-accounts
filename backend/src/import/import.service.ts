@@ -399,9 +399,16 @@ export class ImportService {
     const customerTxns: Record<string, { record: any; normalized: any }[]> = {};
     for (let i = 0; i < records.length; i++) {
       const record = records[i];
+      // DEBUG: check if record has any name-related key
       const normalized = this.normalizeCustomerRecord(record);
       if (!normalized.name) {
-        result.errors.push(`Row ${i + 1}: Missing customer name`);
+        if (i < 3) {
+          const allKeys = Object.keys(record).slice(0, 15).join(',');
+          const nameVal = record['name'] ?? record['Name'] ?? record['Customer Name'] ?? '(none)';
+          result.errors.push(`Row ${i + 1}: Missing name. Keys=[${allKeys}], Name=${JSON.stringify(nameVal)}`);
+        } else {
+          result.errors.push(`Row ${i + 1}: Missing customer name`);
+        }
         continue;
       }
       if (!customerTxns[normalized.name]) customerTxns[normalized.name] = [];
