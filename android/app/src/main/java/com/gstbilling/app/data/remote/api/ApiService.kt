@@ -991,11 +991,11 @@ data class SalesSummary(
 data class CategorySale(val name: String, val count: Double, val total: Double)
 
 data class Gstr1Report(
-    val fromDate: String,
-    val toDate: String,
-    val summary: Gstr1Summary,
-    val b2b: List<Gstr1B2bEntry>,
-    val b2c: Gstr1B2cSummary,
+    val fromDate: String = "",
+    val toDate: String = "",
+    val summary: Gstr1Summary? = null,
+    val b2b: List<Gstr1B2bEntry>? = null,
+    val b2c: Gstr1B2cSummary? = null,
     val b2cLarge: List<Gstr1B2cLargeEntry> = emptyList(),
     val b2cSmall: List<Gstr1B2cSmallEntry> = emptyList(),
     val hsnSummary: List<Gstr1HsnEntry> = emptyList(),
@@ -1003,58 +1003,58 @@ data class Gstr1Report(
 )
 
 data class Gstr1Summary(
-    val totalInvoices: Int,
-    val totalTaxableValue: Double,
-    val totalTax: Double
+    val totalInvoices: Int = 0,
+    val totalTaxableValue: Double = 0.0,
+    val totalTax: Double = 0.0
 )
 
 data class Gstr1B2bEntry(
-    val invoiceNo: String,
-    val date: String,
-    val customerName: String?,
-    val customerGstin: String?,
+    val invoiceNo: String = "",
+    val date: String = "",
+    val customerName: String? = null,
+    val customerGstin: String? = null,
     val placeOfSupply: String? = null,
     val reverseCharge: Boolean = false,
     val invoiceValue: Double = 0.0,
-    val taxableValue: Double,
+    val taxableValue: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
-    val taxAmount: Double,
-    val grandTotal: Double
+    val taxAmount: Double = 0.0,
+    val grandTotal: Double = 0.0
 )
 
 data class Gstr1B2cSummary(
-    val count: Int,
-    val totalTaxableValue: Double,
-    val totalTax: Double
+    val count: Int = 0,
+    val totalTaxableValue: Double = 0.0,
+    val totalTax: Double = 0.0
 )
 
 data class Gstr1B2cLargeEntry(
-    val placeOfSupply: String,
-    val rate: Double,
-    val taxableValue: Double,
+    val placeOfSupply: String = "",
+    val rate: Double = 0.0,
+    val taxableValue: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0
 )
 
 data class Gstr1B2cSmallEntry(
-    val placeOfSupply: String,
-    val rate: Double,
-    val taxableValue: Double,
+    val placeOfSupply: String = "",
+    val rate: Double = 0.0,
+    val taxableValue: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0
 )
 
 data class Gstr1HsnEntry(
-    val hsnCode: String,
-    val description: String,
-    val uqc: String,
-    val quantity: Double,
-    val totalValue: Double,
-    val taxableValue: Double,
+    val hsnCode: String = "",
+    val description: String = "",
+    val uqc: String = "",
+    val quantity: Double = 0.0,
+    val totalValue: Double = 0.0,
+    val taxableValue: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0
@@ -1141,12 +1141,12 @@ data class Gstr3bPaymentRow(
 )
 
 data class CustomerReport(
-    val customerId: String,
-    val customerName: String,
+    @SerializedName("id") val customerId: String = "",
+    @SerializedName("name") val customerName: String = "",
     val phone: String? = null,
-    val totalPurchases: Int = 0,
+    @SerializedName("totalInvoices") val totalPurchases: Int = 0,
     val totalAmount: Double = 0.0,
-    val outstanding: Double = 0.0,
+    @SerializedName("balance") val outstanding: Double = 0.0,
     val lastPurchaseDate: String? = null
 )
 

@@ -539,19 +539,21 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        item {
-            ReportSummaryCard(
-                title = "GSTR-1 Summary",
-                items = listOf(
-                    "Total Invoices" to report.summary.totalInvoices.toString(),
-                    "Total Taxable Value" to "₹${String.format("%.2f", report.summary.totalTaxableValue)}",
-                    "Total Tax" to "₹${String.format("%.2f", report.summary.totalTax)}"
+        report.summary?.let { summary ->
+            item {
+                ReportSummaryCard(
+                    title = "GSTR-1 Summary",
+                    items = listOf(
+                        "Total Invoices" to summary.totalInvoices.toString(),
+                        "Total Taxable Value" to "₹${String.format("%.2f", summary.totalTaxableValue)}",
+                        "Total Tax" to "₹${String.format("%.2f", summary.totalTax)}"
+                    )
                 )
-            )
+            }
         }
 
         // Table 4: B2B Invoices
-        if (report.b2b.isNotEmpty()) {
+        if (!report.b2b.isNullOrEmpty()) {
             item {
                 SectionHeader("Table 4: B2B Invoices")
             }
@@ -653,15 +655,17 @@ fun Gstr1ReportDetail(report: Gstr1Report?) {
         }
 
         // B2C Summary (fallback if detailed data not available)
-        item {
-            ReportSummaryCard(
-                title = "B2C Summary",
-                items = listOf(
-                    "Count" to report.b2c.count.toString(),
-                    "Total Taxable Value" to "₹${String.format("%.2f", report.b2c.totalTaxableValue)}",
-                    "Total Tax" to "₹${String.format("%.2f", report.b2c.totalTax)}"
+        report.b2c?.let { b2c ->
+            item {
+                ReportSummaryCard(
+                    title = "B2C Summary",
+                    items = listOf(
+                        "Count" to b2c.count.toString(),
+                        "Total Taxable Value" to "₹${String.format("%.2f", b2c.totalTaxableValue)}",
+                        "Total Tax" to "₹${String.format("%.2f", b2c.totalTax)}"
+                    )
                 )
-            )
+            }
         }
 
         // Table 7: HSN Summary
