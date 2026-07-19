@@ -144,11 +144,11 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val totalSales = viewModel.dashboardData?.totalSales ?: 0.0
+                        val totalBilled = viewModel.dashboardData?.totalBilled ?: 0.0
                         val totalCustomers = viewModel.dashboardData?.totalCustomers ?: 0
                         DashboardCard(
                             title = "Sales",
-                            value = "₹${String.format("%.0f", totalSales)}",
+                            value = "₹${String.format("%.0f", totalBilled)}",
                             icon = Icons.Default.TrendingUp,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
@@ -169,7 +169,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         val totalProducts = viewModel.dashboardData?.totalProducts ?: 0
-                        val pendingAmount = viewModel.dashboardData?.pendingAmount ?: 0.0
+                        val outstanding = viewModel.dashboardData?.outstanding ?: 0.0
                         DashboardCard(
                             title = "Products",
                             value = "$totalProducts",
@@ -179,7 +179,7 @@ fun DashboardScreen(
                         )
                         DashboardCard(
                             title = "Pending",
-                            value = "₹${String.format("%.0f", pendingAmount)}",
+                            value = "₹${String.format("%.0f", outstanding)}",
                             icon = Icons.Default.PendingActions,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
@@ -285,7 +285,7 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                val recentInvoices = viewModel.dashboardData?.recentInvoices ?: emptyList()
+                val recentInvoices = viewModel.invoices.take(10)
                 if (recentInvoices.isEmpty()) {
                     item {
                         Text(
@@ -300,7 +300,7 @@ fun DashboardScreen(
                         val invoice = recentInvoices[index]
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { onInvoiceClick(invoice.id) }
+                            onClick = { onInvoiceClick(invoice.id.toString()) }
                         ) {
                             Row(
                                 modifier = Modifier

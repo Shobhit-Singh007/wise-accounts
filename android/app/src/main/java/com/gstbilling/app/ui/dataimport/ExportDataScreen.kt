@@ -64,7 +64,7 @@ class ExportDataViewModel @Inject constructor(
             }
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getCustomers(businessId, perPage = 9999)
+                    apiService.getCustomers(businessId, limit = 9999)
                 }
                 val customers = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Name", "Phone", "Email", "GSTIN", "Address", "City", "State", "Pincode", "Opening Balance", "Credit Limit")
@@ -98,7 +98,7 @@ class ExportDataViewModel @Inject constructor(
             }
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getProducts(businessId, perPage = 9999)
+                    apiService.getProducts(businessId, limit = 9999)
                 }
                 val products = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Name", "SKU", "HSN", "Unit", "Selling Price", "Purchase Price", "GST Rate", "Stock")
@@ -132,7 +132,7 @@ class ExportDataViewModel @Inject constructor(
             }
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getInvoices(businessId, perPage = 9999)
+                    apiService.getInvoices(businessId, limit = 9999)
                 }
                 val invoices = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Invoice No", "Date", "Customer", "Direction", "Subtotal", "Taxable Amount", "Total Amount", "Status")
@@ -204,7 +204,7 @@ class ExportDataViewModel @Inject constructor(
             }
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getBusinessPayments(businessId, perPage = 9999)
+                    apiService.getBusinessPayments(businessId, limit = 9999)
                 }
                 val payments = response.body()?.data ?: emptyList()
                 val headers = listOf("Invoice ID", "Date", "Amount", "Mode", "Reference", "Notes")

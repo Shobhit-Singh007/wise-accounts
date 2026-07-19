@@ -51,7 +51,7 @@ interface ApiService {
         @Path("businessId") businessId: String,
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
-        @Query("per_page") perPage: Int? = null
+        @Query("limit") limit: Int? = null
     ): Response<ApiResponse<PaginatedData<Customer>>>
 
     @GET("customers/{id}")
@@ -81,7 +81,7 @@ interface ApiService {
         @Path("businessId") businessId: String,
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
-        @Query("per_page") perPage: Int? = null
+        @Query("limit") limit: Int? = null
     ): Response<ApiResponse<PaginatedData<Product>>>
 
     @GET("products/{id}")
@@ -147,7 +147,7 @@ interface ApiService {
         @Query("status") status: String? = null,
         @Query("direction") direction: String? = null,
         @Query("page") page: Int? = null,
-        @Query("per_page") perPage: Int? = null
+        @Query("limit") limit: Int? = null
     ): Response<ApiResponse<PaginatedData<Invoice>>>
 
     @GET("businesses/{businessId}/invoices/{id}")
@@ -255,7 +255,7 @@ interface ApiService {
         @Query("from_date") fromDate: String? = null,
         @Query("to_date") toDate: String? = null,
         @Query("page") page: Int? = null,
-        @Query("per_page") perPage: Int? = null
+        @Query("limit") limit: Int? = null
     ): Response<ApiResponse<List<Payment>>>
 
     @GET("payments")
@@ -338,20 +338,16 @@ interface ApiService {
         @Query("to") to: String? = null
     ): Response<ApiResponse<SalesReport>>
 
-    @GET("businesses/{businessId}/reports/gstr1")
+    @GET("businesses/{businessId}/reports/gstr-1")
     suspend fun getGstr1Report(
         @Path("businessId") businessId: String,
-        @Query("period") period: String? = null,
-        @Query("month") month: Int? = null,
-        @Query("year") year: Int? = null,
-        @Query("from_date") fromDate: String? = null,
-        @Query("to_date") toDate: String? = null
+        @Query("fromDate") fromDate: String? = null,
+        @Query("toDate") toDate: String? = null
     ): Response<ApiResponse<Gstr1Report>>
 
-    @GET("businesses/{businessId}/reports/gstr3b")
+    @GET("businesses/{businessId}/reports/gstr-3b")
     suspend fun getGstr3bReport(
         @Path("businessId") businessId: String,
-        @Query("period") period: String? = null,
         @Query("month") month: Int? = null,
         @Query("year") year: Int? = null
     ): Response<ApiResponse<Gstr3bReport>>
@@ -389,7 +385,7 @@ interface ApiService {
     suspend fun getNotifications(
         @Query("business_id") businessId: String,
         @Query("page") page: Int? = null,
-        @Query("per_page") perPage: Int? = null
+        @Query("limit") limit: Int? = null
     ): Response<ApiResponse<List<AppNotification>>>
 
     @GET("notifications")
@@ -552,12 +548,23 @@ data class Business(
 )
 
 data class DashboardData(
-    val totalSales: Double = 0.0,
     val totalCustomers: Int = 0,
     val totalProducts: Int = 0,
-    val pendingAmount: Double = 0.0,
     val totalInvoices: Int = 0,
-    val recentInvoices: List<Invoice> = emptyList()
+    val totalRevenue: Double = 0.0,
+    val totalBilled: Double = 0.0,
+    val outstanding: Double = 0.0,
+    val pendingInvoices: Int = 0,
+    val overdueInvoices: Int = 0,
+    val monthlySales: List<MonthlySales> = emptyList(),
+    val paymentMethodBreakdown: List<Any> = emptyList(),
+    val topCustomers: List<Any> = emptyList(),
+    val topProducts: List<Any> = emptyList()
+)
+
+data class MonthlySales(
+    val month: String = "",
+    val amount: Double = 0.0
 )
 
 data class Warehouse(
@@ -710,7 +717,7 @@ data class PurchaseOrderItem(
 data class Invoice(
     val id: String = "",
     val invoiceNumber: String = "",
-    val customerId: String,
+    val customerId: String? = null,
     val customerName: String? = null,
     val customerGstin: String? = null,
     val customerAddress: String? = null,
@@ -767,7 +774,7 @@ data class Invoice(
 
 data class InvoiceItem(
     val id: String? = null,
-    val productId: String,
+    val productId: String? = null,
     val productName: String? = null,
     val hsnCode: String? = null,
     val quantity: Double = 1.0,
@@ -799,7 +806,7 @@ data class CreateInvoiceRequest(
 )
 
 data class InvoiceItemRequest(
-    val productId: String,
+    val productId: String = "",
     val quantity: Double = 1.0,
     val unitPrice: Double = 0.0,
     val discount: Double = 0.0,

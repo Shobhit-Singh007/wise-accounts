@@ -88,8 +88,6 @@ class ReportsViewModel @Inject constructor(
                 try {
                     val response = apiService.getGstr1Report(
                         businessId,
-                        month = month,
-                        year = year,
                         fromDate = fromDate,
                         toDate = toDate
                     )

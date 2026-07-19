@@ -136,7 +136,7 @@ class ApiServiceTest {
         val queryAnnotations = params.flatten().filterIsInstance<Query>()
 
         assertTrue("Should accept page param", queryAnnotations.any { it.value == "page" })
-        assertTrue("Should accept per_page param", queryAnnotations.any { it.value == "per_page" })
+        assertTrue("Should accept limit param", queryAnnotations.any { it.value == "limit" })
         assertTrue("Should accept status param", queryAnnotations.any { it.value == "status" })
     }
 }

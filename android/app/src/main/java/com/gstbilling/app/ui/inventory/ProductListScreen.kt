@@ -38,7 +38,8 @@ class ProductListViewModel @Inject constructor(
         viewModelScope.launch {
             businessId = sessionManager.getBusinessId() ?: ""
             if (businessId.isNotEmpty()) {
-                productRepository.getProducts(businessId).collect { products = it }
+                launch { productRepository.getProducts(businessId).collect { products = it } }
+                productRepository.refreshProducts(businessId)
             }
         }
     }

@@ -29,7 +29,7 @@ class ProductRepository @Inject constructor(
 
     suspend fun refreshProducts(businessId: String): AppResult<List<Product>> {
         return safeApiCall {
-            val response = apiService.getProducts(businessId, perPage = 9999)
+            val response = apiService.getProducts(businessId, limit = 9999)
             if (response.isSuccessful) {
                 val paginated = response.body()?.data
                 val products = paginated?.data ?: emptyList()

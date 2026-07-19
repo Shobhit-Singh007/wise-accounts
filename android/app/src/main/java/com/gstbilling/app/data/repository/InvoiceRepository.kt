@@ -43,7 +43,7 @@ class InvoiceRepository @Inject constructor(
             return AppResult.Error("No internet connection")
         }
         return safeApiCall {
-            val response = apiService.getInvoices(businessId, direction = direction, perPage = 9999)
+            val response = apiService.getInvoices(businessId, direction = direction, limit = 9999)
             if (response.isSuccessful) {
                 val paginated = response.body()?.data
                 val invoices = paginated?.data ?: emptyList()
@@ -134,7 +134,7 @@ class InvoiceRepository @Inject constructor(
 
     suspend fun searchCustomers(businessId: String, query: String): AppResult<List<Customer>> {
         return safeApiCall {
-            val response = apiService.getCustomers(businessId, search = query, perPage = 20)
+            val response = apiService.getCustomers(businessId, search = query, limit = 20)
             if (response.isSuccessful) {
                 response.body()?.data?.data ?: emptyList()
             } else {
@@ -145,7 +145,7 @@ class InvoiceRepository @Inject constructor(
 
     suspend fun searchProducts(businessId: String, query: String): AppResult<List<Product>> {
         return safeApiCall {
-            val response = apiService.getProducts(businessId, search = query, perPage = 20)
+            val response = apiService.getProducts(businessId, search = query, limit = 20)
             if (response.isSuccessful) {
                 response.body()?.data?.data ?: emptyList()
             } else {
@@ -182,7 +182,7 @@ class InvoiceRepository @Inject constructor(
     private fun Invoice.toEntity() = InvoiceEntity(
         id = id.hashCode().toLong(),
         invoiceNumber = invoiceNumber,
-        customerId = customerId.hashCode().toLong(),
+        customerId = customerId?.hashCode()?.toLong() ?: 0L,
         customerName = customerName,
         customerGstin = customerGstin,
         customerAddress = customerAddress,
@@ -213,7 +213,7 @@ class InvoiceRepository @Inject constructor(
         cessTotal = cessTotal,
         totalInWords = totalInWords,
         totalQuantity = totalQuantity,
-        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.productId, item.quantity, item.unitPrice, item.discount, item.gstRate) }) } ?: "[]",
+        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.productId ?: "", item.quantity, item.unitPrice, item.discount, item.gstRate) }) } ?: "[]",
         createdAt = createdAt,
         updatedAt = updatedAt,
         syncStatus = "synced"
