@@ -210,6 +210,7 @@ class InvoiceRepository @Inject constructor(
         paymentNote = paymentNote,
         cessTotal = cessTotal,
         totalInWords = totalInWords,
+        totalQuantity = totalQuantity,
         itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.productId, item.quantity, item.unitPrice, item.discount, item.gstRate) }) } ?: "[]",
         createdAt = createdAt,
         updatedAt = updatedAt,
@@ -249,6 +250,7 @@ class InvoiceRepository @Inject constructor(
         paymentNote = paymentNote,
         cessTotal = cessTotal,
         totalInWords = totalInWords,
+        totalQuantity = totalQuantity,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

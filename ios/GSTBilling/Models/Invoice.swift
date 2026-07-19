@@ -54,6 +54,7 @@ struct Invoice: Codable, Identifiable, Hashable {
     let paymentNote: String?
     let cessTotal: Double?
     let totalInWords: String?
+    let totalQuantity: Int?
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)

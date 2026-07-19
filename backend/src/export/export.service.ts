@@ -65,7 +65,7 @@ export class ExportService {
 
     const invoices = await this.prisma.invoice.findMany({
       where,
-      include: { customer: { select: { name: true } }, supplier: { select: { name: true } } },
+      include: { customer: { select: { name: true, gstin: true } }, supplier: { select: { name: true } } },
       orderBy: { invoiceDate: 'desc' },
     });
 
@@ -74,7 +74,7 @@ export class ExportService {
       'Subtotal', 'Tax Amount', 'Discount', 'Grand Total', 'Paid Amount', 'Balance', 'Status',
       'Customer GSTIN', 'Customer Phone', 'Customer State', 'Place of Supply',
       'PO No', 'Challan No', 'LR No', 'Payment Type', 'CESS Total', 'Total in Words',
-      'Due Date', 'E-Way Bill No', 'Transporter', 'Vehicle No',
+      'Total Quantity', 'Due Date', 'E-Way Bill No', 'Transporter', 'Vehicle No',
       'IRN', 'ACK No', 'ACK Date', 'Notes',
     ];
     const rows: string[][] = invoices.map((inv) => {
@@ -95,7 +95,7 @@ export class ExportService {
         String(inv.paidAmount ?? 0),
         String(balance),
         inv.status,
-        inv.customerGstin ?? '',
+        inv.customer?.gstin ?? '',
         inv.customerPhone ?? '',
         inv.customerState ?? '',
         inv.placeOfSupply ?? '',
@@ -105,6 +105,7 @@ export class ExportService {
         inv.paymentType ?? '',
         String(inv.cessTotal ?? 0),
         inv.totalInWords ?? '',
+        String(inv.totalQuantity ?? 0),
         inv.dueDate ? inv.dueDate.toISOString().slice(0, 10) : '',
         inv.ewayBillNo ?? '',
         inv.transporterName ?? '',

@@ -103,6 +103,7 @@ export class ImportService {
     paymentNote: string | null;
     cessTotal: number;
     totalInWords: string | null;
+    totalQuantity: number;
     ewayBillNo: string | null;
     ewayBillDate: Date | null;
     transporterId: string | null;
@@ -138,6 +139,7 @@ export class ImportService {
       const paymentType = get('Payment Type') || get('paymentType') || get('payment_type');
       const cessTotal = this.parseIndianNumber(get('CESS Total') || get('cessTotal') || get('cess_total') || get('CESS Amount'));
       const totalInWords = get('Total in Words') || get('totalInWords') || get('total_in_words');
+      const totalQuantity = this.parseIndianNumber(get('Quantity Total') || get('totalQuantity') || get('total_qty'));
       const ewayBillNo = get('EWay No') || get('EWay Bill No') || get('ewayBillNo') || get('eway_bill_no');
       const ewayBillDate = get('EWay Bill Date') || get('ewayBillDate') || get('eway_bill_date');
       const transporterId = get('Transport Id') || get('transporterId') || get('transport_id');
@@ -198,6 +200,7 @@ export class ImportService {
         paymentNote: get('Payment Note') || get('paymentNote'),
         cessTotal,
         totalInWords,
+        totalQuantity,
         ewayBillNo,
         ewayBillDate: ewayBillDate ? new Date(ewayBillDate) : null,
         transporterId,
@@ -259,6 +262,7 @@ export class ImportService {
       paymentNote: get('paymentNote'),
       cessTotal: this.parseIndianNumber(get('cessTotal')),
       totalInWords: get('totalInWords'),
+      totalQuantity: this.parseIndianNumber(get('totalQuantity')),
       ewayBillNo: get('ewayBillNo'),
       ewayBillDate: get('ewayBillDate') ? new Date(get('ewayBillDate')) : null,
       transporterId: get('transporterId'),
@@ -560,6 +564,7 @@ export class ImportService {
 
         const subtotal = invoiceData.subtotal || parseFloat(invoiceItems.reduce((s, i) => s + i.taxableValue, 0).toFixed(2));
         const taxAmount = invoiceData.taxAmount || parseFloat(invoiceItems.reduce((s, i) => s + i.cgst + i.sgst + i.igst, 0).toFixed(2));
+        const totalQuantity = invoiceData.totalQuantity || invoiceItems.reduce((s, i) => s + i.quantity, 0);
         const grandTotal = invoiceData.grandTotal || parseFloat((subtotal + taxAmount).toFixed(2));
 
         const type = invoiceData.customerGstin ? 'B2B' as const : 'B2C' as const;
@@ -592,6 +597,7 @@ export class ImportService {
             paymentNote: invoiceData.paymentNote,
             cessTotal: invoiceData.cessTotal,
             totalInWords: invoiceData.totalInWords,
+            totalQuantity,
             ewayBillNo: invoiceData.ewayBillNo,
             ewayBillDate: invoiceData.ewayBillDate,
             transporterId: invoiceData.transporterId,
@@ -601,9 +607,6 @@ export class ImportService {
             irnDate: invoiceData.irnDate,
             ackNo: invoiceData.ackNo,
             ackDate: invoiceData.ackDate,
-            paymentType: invoiceData.paymentType,
-            cessTotal: invoiceData.cessTotal,
-            totalInWords: invoiceData.totalInWords,
             createdById: userId,
             items: { create: invoiceItems },
           },

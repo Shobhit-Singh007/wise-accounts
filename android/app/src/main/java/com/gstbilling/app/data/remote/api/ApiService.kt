@@ -749,6 +749,7 @@ data class Invoice(
     val paymentNote: String? = null,
     val cessTotal: Double = 0.0,
     val totalInWords: String? = null,
+    val totalQuantity: Int = 0,
     val createdAt: String? = null,
     val updatedAt: String? = null
 )

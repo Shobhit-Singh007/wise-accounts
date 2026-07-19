@@ -84,7 +84,7 @@ object AppModule {
             AppDatabase::class.java,
             "wise_accounts_db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -124,5 +124,9 @@ object AppModule {
         db.execSQL("ALTER TABLE invoices ADD COLUMN paymentNote TEXT DEFAULT NULL")
         db.execSQL("ALTER TABLE invoices ADD COLUMN cessTotal REAL NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE invoices ADD COLUMN totalInWords TEXT DEFAULT NULL")
+    }
+
+    private val MIGRATION_3_4 = Migration(3, 4) { db ->
+        db.execSQL("ALTER TABLE invoices ADD COLUMN totalQuantity INTEGER NOT NULL DEFAULT 0")
     }
 }

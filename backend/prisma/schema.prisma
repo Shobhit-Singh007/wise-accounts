@@ -388,6 +388,7 @@ model Invoice {
   docType        String?   @default("Tax Invoice")
   documentType   DocumentType @default(INVOICE)
   valueOfGoods   Float?
+  totalQuantity  Int      @default(0)
 
   irn            String?
   irnDate        DateTime?

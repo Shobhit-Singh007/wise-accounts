@@ -42,6 +42,7 @@ export interface Invoice {
   paymentNote?: string | null;
   cessTotal?: number;
   totalInWords?: string | null;
+  totalQuantity?: number;
   customerAddress?: string | null;
   customerPhone?: string | null;
   customerState?: string | null;
@@ -123,6 +124,8 @@ export interface CreateInvoiceRequest {
   paymentType?: string;
   cessTotal?: number;
   totalInWords?: string;
+  totalQuantity?: number;
+  transporterId?: string;
   customerAddress?: string;
   customerPhone?: string;
   customerState?: string;
