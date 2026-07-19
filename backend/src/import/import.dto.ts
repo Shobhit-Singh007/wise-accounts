@@ -430,6 +430,7 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   errors: string[];
+  warnings?: string[];
 }
 
 export interface CsvParseResult {

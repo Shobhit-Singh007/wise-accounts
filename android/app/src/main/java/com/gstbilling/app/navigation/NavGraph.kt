@@ -32,6 +32,7 @@ import com.gstbilling.app.ui.customer.CustomerLedgerScreen
 import com.gstbilling.app.ui.customer.CustomerGroupsScreen
 import com.gstbilling.app.ui.customer.CustomerListScreen
 import com.gstbilling.app.ui.dashboard.DashboardScreen
+import com.gstbilling.app.ui.dashboard.MainTabsScreen
 import com.gstbilling.app.ui.inventory.AddProductScreen
 import com.gstbilling.app.ui.inventory.LowStockAlertsScreen
 import com.gstbilling.app.ui.inventory.ProductDetailScreen
@@ -127,23 +128,27 @@ fun NavGraph(
         }
 
         composable(Routes.DASHBOARD) {
-            DashboardScreen(
-                onNavigateToCustomers = { navController.navigate(Routes.CUSTOMERS) },
-                onNavigateToProducts = { navController.navigate(Routes.PRODUCTS) },
+            MainTabsScreen(
                 onNavigateToCreateInvoice = { navController.navigate(Routes.CREATE_INVOICE) },
-                onNavigateToInvoices = { navController.navigate(Routes.INVOICES) },
+                onNavigateToAddCustomer = { navController.navigate(Routes.ADD_CUSTOMER) },
+                onNavigateToAddProduct = { navController.navigate(Routes.ADD_PRODUCT) },
                 onNavigateToReports = { navController.navigate(Routes.REPORTS) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
                 onNavigateToStaff = { navController.navigate(Routes.STAFF) },
-                onNavigateToAddCustomer = { navController.navigate(Routes.ADD_CUSTOMER) },
-                onNavigateToAddProduct = { navController.navigate(Routes.ADD_PRODUCT) },
-                onNavigateToNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                onNavigateToCustomerGroups = { navController.navigate(Routes.CUSTOMER_GROUPS) },
                 onNavigateToBarcodeScanner = { navController.navigate(Routes.BARCODE_SCANNER) },
                 onNavigateToStockTransfer = { navController.navigate(Routes.STOCK_TRANSFER) },
                 onNavigateToBatchExpiry = { navController.navigate(Routes.BATCH_EXPIRY) },
-                onNavigateToCustomerGroups = { navController.navigate(Routes.CUSTOMER_GROUPS) },
-                onNavigateToInventoryDashboard = { navController.navigate(Routes.INVENTORY_DASHBOARD) },
-                onInvoiceClick = { invoiceId -> navController.navigate(Routes.invoiceDetail(invoiceId)) }
+                onNavigateToLowStock = { navController.navigate(Routes.LOW_STOCK_ALERTS) },
+                onNavigateToPurchaseOrders = { navController.navigate(Routes.PURCHASE_ORDERS) },
+                onNavigateToSuppliers = { navController.navigate(Routes.SUPPLIERS) },
+                onNavigateToWarehouses = { navController.navigate(Routes.WAREHOUSES) },
+                onNavigateToStockMovements = { navController.navigate(Routes.STOCK_MOVEMENTS) },
+                onInvoiceClick = { invoiceId -> navController.navigate(Routes.invoiceDetail(invoiceId)) },
+                onEditProduct = { productId -> navController.navigate(Routes.editProduct(productId)) },
+                onEditCustomer = { customerId -> navController.navigate(Routes.editCustomer(customerId)) },
+                onCustomerClick = { customerId -> navController.navigate(Routes.createInvoice(customerId)) },
+                onOpenLedger = { customerId -> navController.navigate(Routes.customerLedger(customerId)) },
             )
         }
 

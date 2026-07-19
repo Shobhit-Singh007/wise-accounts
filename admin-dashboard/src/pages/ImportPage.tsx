@@ -121,6 +121,7 @@ export default function ImportPage() {
     imported: number;
     skipped: number;
     errors: string[];
+    warnings?: string[];
   } | null>(null);
 
   const handleSelectType = (type: ImportType) => {
@@ -232,11 +233,12 @@ export default function ImportPage() {
       clearInterval(progressInterval);
       setImportProgress(100);
 
-      const res = response?.data as { imported?: number; skipped?: number; errors?: string[] };
+      const res = response?.data as { imported?: number; skipped?: number; errors?: string[]; warnings?: string[] };
       setResult({
         imported: res?.imported ?? 0,
         skipped: res?.skipped ?? 0,
         errors: res?.errors ?? [],
+        warnings: res?.warnings ?? [],
       });
       setActiveStep(2);
     } catch (err: unknown) {
@@ -454,6 +456,15 @@ export default function ImportPage() {
               </Box>
             </Box>
           </Paper>
+
+          {result.warnings && result.warnings.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Debug Info</Typography>
+              {result.warnings.map((w, i) => (
+                <Alert key={i} severity="info" sx={{ mb: 1 }}>{w}</Alert>
+              ))}
+            </Box>
+          )}
 
           {result.errors.length > 0 && (
             <Box sx={{ mb: 3 }}>
