@@ -342,17 +342,7 @@ export class InvoiceImportDto {
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
-  customerPhone?: string;
-
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
   customerState?: string;
-
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
-  placeOfSupply?: string;
 
   @ApiProperty({ required: false })
   @IsString()

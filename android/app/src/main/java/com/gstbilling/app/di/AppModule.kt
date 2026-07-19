@@ -84,7 +84,7 @@ object AppModule {
             AppDatabase::class.java,
             "wise_accounts_db"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -107,5 +107,22 @@ object AppModule {
     private val MIGRATION_1_2 = Migration(1, 2) { db ->
         db.execSQL("ALTER TABLE invoices ADD COLUMN itemsJson TEXT NOT NULL DEFAULT '[]'")
         db.execSQL("ALTER TABLE customers ADD COLUMN syncOperation TEXT DEFAULT NULL")
+    }
+
+    private val MIGRATION_2_3 = Migration(2, 3) { db ->
+        db.execSQL("ALTER TABLE invoices ADD COLUMN customerAddress TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN customerPhone TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN customerState TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN placeOfSupply TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN reverseCharge INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN poNo TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN poDate TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN challanNo TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN challanDate TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN lrNo TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN paymentType TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN paymentNote TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN cessTotal REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE invoices ADD COLUMN totalInWords TEXT DEFAULT NULL")
     }
 }

@@ -102,7 +102,7 @@ export class ImportService {
     paymentType: string | null;
     cessTotal: number;
     totalInWords: string | null;
-    items: { name: string; productNote?: string; quantity: number; rate: number; taxRate: number; taxableValue: number; cgstRate: number; sgstRate: number; igstRate: number; total: number; serialNo?: number }[];
+    items: { name: string; productNote?: string; hsnCode?: string; quantity: number; rate: number; taxRate: number; taxableValue: number; cgstRate: number; sgstRate: number; igstRate: number; total: number; serialNo?: number }[];
     subtotal: number;
     taxAmount: number;
     grandTotal: number;
@@ -146,6 +146,7 @@ export class ImportService {
         items.push({
           name: itemName,
           productNote: get('Product Note') || get('productNote'),
+          hsnCode: get('HSN/SAC Code') || get('hsnCode') || get('hsn'),
           quantity: this.parseIndianNumber(get('Quantity') || get('quantity') || 1),
           rate: this.parseIndianNumber(get('Rate') || get('rate')),
           taxableValue: this.parseIndianNumber(get('Taxable Value') || get('taxableValue') || taxableValue || 0),
@@ -192,6 +193,7 @@ export class ImportService {
       ? rawItems.map((item: any) => ({
           name: item.name || item.Name || '',
           productNote: item.productNote,
+          hsnCode: item.hsnCode,
           quantity: this.parseIndianNumber(item.quantity),
           rate: this.parseIndianNumber(item.rate),
           taxableValue: this.parseIndianNumber(item.taxableValue || (item.quantity * item.rate)),
