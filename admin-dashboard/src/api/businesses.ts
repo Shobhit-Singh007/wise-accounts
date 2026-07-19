@@ -8,6 +8,7 @@ export interface Business {
   city: string;
   state: string;
   pincode: string;
+  logoUrl?: string;
   isActive: boolean;
   createdAt: string;
 }

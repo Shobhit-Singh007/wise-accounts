@@ -667,6 +667,7 @@ interface InvoiceDetailDialogProps {
 }
 
 function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: InvoiceDetailDialogProps) {
+  const { currentBusiness } = useBusiness();
   const [editOpen, setEditOpen] = useState(false);
   const [ewayOpen, setEwayOpen] = useState(false);
   const [einvoiceOpen, setEinvoiceOpen] = useState(false);
@@ -776,7 +777,28 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>From</Typography>
-              <Typography fontWeight={600}>{invoice.direction === 'SALE' ? 'Your Business' : (party?.name || '-')}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {invoice.direction === 'SALE' && currentBusiness?.logoUrl && (
+                  <Box
+                    component="img"
+                    src={currentBusiness.logoUrl.startsWith('http') ? currentBusiness.logoUrl : `/api/v1${currentBusiness.logoUrl}`}
+                    alt={currentBusiness.name}
+                    sx={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 1 }}
+                  />
+                )}
+                <Typography fontWeight={600}>
+                  {invoice.direction === 'SALE' ? (currentBusiness?.name || 'Your Business') : (party?.name || '-')}
+                </Typography>
+              </Box>
+              {invoice.direction === 'SALE' && currentBusiness?.gstin && (
+                <Typography variant="body2">GSTIN: {currentBusiness.gstin}</Typography>
+              )}
+              {invoice.direction === 'SALE' && currentBusiness?.phone && (
+                <Typography variant="body2">{currentBusiness.phone}</Typography>
+              )}
+              {invoice.direction === 'SALE' && currentBusiness?.address && (
+                <Typography variant="body2">{currentBusiness.address}{currentBusiness.city ? `, ${currentBusiness.city}` : ''}{currentBusiness.pincode ? ` - ${currentBusiness.pincode}` : ''}</Typography>
+              )}
               {invoice.direction === 'PURCHASE' && party?.gstin && (
                 <Typography variant="body2">GSTIN: {party.gstin}</Typography>
               )}
