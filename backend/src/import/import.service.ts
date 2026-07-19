@@ -17,7 +17,7 @@ export class ImportService {
   constructor(private prisma: PrismaService) {}
 
   private normalizeKey(key: string): string {
-    return key.toLowerCase().replace(/[\s_\-%\/.?#()]/g, '');
+    return key.toLowerCase().replace(/[\s_\-%\/.?#()\+]/g, '');
   }
 
   private getNormalized(record: any, key: string): any {
@@ -393,116 +393,92 @@ export class ImportService {
   async importCustomers(businessId: string, records: CustomerImportDto[]): Promise<ImportResult> {
     const result: ImportResult = { imported: 0, skipped: 0, errors: [] };
 
-    // Check if records contain transaction data (Date or Debit/Credit columns)
-    const hasTransactionData = records.some((r: any) => {
-      const keys = Object.keys(r).map(k => this.normalizeKey(k));
-      return keys.some(k => k === 'date' || k === 'debit' || k === 'credit');
-    });
-
-    if (hasTransactionData) {
-      // Group by customer name for transaction import
-      const customerTxns: Record<string, any[]> = {};
-      for (const record of records) {
-        const get = (key: string) => this.getNormalized(record, key);
-        const name = get('name') || '';
-        if (!name) continue;
-        if (!customerTxns[name]) customerTxns[name] = [];
-        customerTxns[name].push(record);
+    // Process all records grouped by customer name
+    // For records with transaction data (debit/credit columns), also create ledger entries
+    const customerTxns: Record<string, { record: any; normalized: any }[]> = {};
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const normalized = this.normalizeCustomerRecord(record);
+      if (!normalized.name) {
+        result.errors.push(`Row ${i + 1}: Missing customer name`);
+        continue;
       }
+      if (!customerTxns[normalized.name]) customerTxns[normalized.name] = [];
+      customerTxns[normalized.name].push({ record, normalized });
+    }
 
-      for (const [name, txns] of Object.entries(customerTxns)) {
-        try {
-          // Find or create customer by name
-          let customer = await this.prisma.customer.findFirst({
-            where: { businessId, name },
-          });
+    for (const [name, entries] of Object.entries(customerTxns)) {
+      try {
+        // Find or create customer
+        let customer = await this.prisma.customer.findFirst({
+          where: { businessId, name },
+        });
+        if (customer) {
+          result.skipped++;
+        } else {
+          if (entries[0]?.normalized?.phone) {
+            customer = await this.prisma.customer.findFirst({
+              where: { businessId, phone: entries[0].normalized.phone },
+            });
+          }
           if (!customer) {
-            const firstRecord = txns[0];
-            const get = (key: string) => this.getNormalized(firstRecord, key);
+            const first = entries[0];
             customer = await this.prisma.customer.create({
               data: {
                 businessId,
                 name,
-                phone: get('phone') ? String(get('phone')).replace(/[^0-9+]/g, '') : null,
-                gstin: get('gstin'),
-                address: get('address'),
+                phone: first.normalized.phone,
+                email: first.normalized.email,
+                gstin: first.normalized.gstin,
+                address: first.normalized.address,
+                city: first.normalized.city,
+                state: first.normalized.state,
+                pincode: first.normalized.pincode,
+                openingBalance: first.normalized.openingBalance,
+                balance: first.normalized.openingBalance,
               },
             });
             result.imported++;
+          } else {
+            result.skipped++;
           }
-
-          // Create ledger entries for each transaction
-          for (const txn of txns) {
-            const get = (key: string) => this.getNormalized(txn, key);
-            const rawDate = get('date');
-            const txnDate = rawDate ? new Date(rawDate) : new Date();
-            const description = get('details') || '';
-            const debit = this.parseIndianNumber(get('debit'));
-            const credit = this.parseIndianNumber(get('credit'));
-
-            if (debit > 0 || credit > 0) {
-              const amount = debit > 0 ? debit : credit;
-              const txType = debit > 0 ? 'LEDGER_GAVE' : 'LEDGER_RECEIVED';
-              const currentBalance = customer.balance || 0;
-              const newBalance = debit > 0
-                ? currentBalance + amount
-                : currentBalance - amount;
-
-              await this.prisma.customerTransaction.create({
-                data: {
-                  customerId: customer.id,
-                  type: txType,
-                  amount,
-                  balanceAfter: newBalance,
-                  description: description || (debit > 0 ? 'You Gave' : 'You Got'),
-                  referenceId: null,
-                  imageUrl: null,
-                },
-              });
-
-              await this.prisma.customer.update({
-                where: { id: customer.id },
-                data: { balance: newBalance },
-              });
-            }
-          }
-        } catch (error) {
-          result.errors.push(`${name}: ${(error as Error).message}`);
         }
-      }
-    } else {
-      for (let i = 0; i < records.length; i++) {
-        try {
-          const normalized = this.normalizeCustomerRecord(records[i]);
-          if (!normalized.name) {
-            result.errors.push(`Row ${i + 1}: Missing customer name`);
-            continue;
-          }
-          if (normalized.phone) {
-            const existing = await this.prisma.customer.findFirst({
-              where: { businessId, phone: normalized.phone },
+
+        // Create ledger entries for records with debit/credit data
+        for (const entry of entries) {
+          const rawRecord = entry.record;
+          const debit = this.parseIndianNumber(this.getNormalized(rawRecord, 'debit'));
+          const credit = this.parseIndianNumber(this.getNormalized(rawRecord, 'credit'));
+
+          if (debit > 0 || credit > 0) {
+            const amount = debit > 0 ? debit : credit;
+            const txType = debit > 0 ? 'LEDGER_GAVE' : 'LEDGER_RECEIVED';
+            const currentBalance = customer.balance || 0;
+            const newBalance = debit > 0
+              ? currentBalance + amount
+              : currentBalance - amount;
+            const description = String(this.getNormalized(rawRecord, 'details') || (debit > 0 ? 'You Gave' : 'You Got'));
+
+            await this.prisma.customerTransaction.create({
+              data: {
+                customerId: customer.id,
+                type: txType,
+                amount,
+                balanceAfter: newBalance,
+                description,
+                referenceId: null,
+                imageUrl: null,
+              },
             });
-            if (existing) { result.skipped++; continue; }
+
+            await this.prisma.customer.update({
+              where: { id: customer.id },
+              data: { balance: newBalance },
+            });
           }
-          await this.prisma.customer.create({
-            data: {
-              businessId,
-              name: normalized.name,
-              phone: normalized.phone,
-              email: normalized.email,
-              gstin: normalized.gstin,
-              address: normalized.address,
-              city: normalized.city,
-              state: normalized.state,
-              pincode: normalized.pincode,
-              openingBalance: normalized.openingBalance,
-              balance: normalized.openingBalance,
-            },
-          });
-          result.imported++;
-        } catch (error) {
-          result.errors.push(`Row ${i + 1}: ${(error as Error).message}`);
         }
+      } catch (error) {
+        result.errors.push(`${name}: ${(error as Error).message}`);
       }
     }
     return result;
