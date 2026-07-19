@@ -464,6 +464,9 @@ export class ImportService {
               : currentBalance - amount;
             const description = String(this.getNormalized(rawRecord, 'details') || (debit > 0 ? 'You Gave' : 'You Got'));
 
+            const rawDate = this.getNormalized(rawRecord, 'date');
+            const txnDate = rawDate ? new Date(rawDate) : null;
+
             await this.prisma.customerTransaction.create({
               data: {
                 customerId: customer.id,
@@ -473,6 +476,7 @@ export class ImportService {
                 description,
                 referenceId: null,
                 imageUrl: null,
+                transactionDate: txnDate,
               },
             });
 

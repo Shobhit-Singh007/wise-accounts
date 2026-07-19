@@ -327,6 +327,7 @@ export class CustomerService {
         description: `${description}${dto.paymentMode ? ' (' + dto.paymentMode + ')' : ''}${dto.reference ? ' - ' + dto.reference : ''}`,
         referenceId: dto.reference || null,
         imageUrl: dto.imageUrl || null,
+        transactionDate: dto.date ? new Date(dto.date) : null,
       },
     });
 

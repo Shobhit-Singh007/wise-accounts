@@ -208,15 +208,16 @@ model Customer {
 }
 
 model CustomerTransaction {
-  id          String   @id @default(uuid())
-  customerId  String
-  type        String
-  amount      Float
-  balanceAfter Float
-  description String?
-  referenceId String?
-  imageUrl    String?
-  createdAt   DateTime @default(now())
+  id              String   @id @default(uuid())
+  customerId      String
+  type            String
+  amount          Float
+  balanceAfter    Float
+  description     String?
+  referenceId     String?
+  imageUrl        String?
+  transactionDate DateTime?
+  createdAt       DateTime @default(now())
 
   customer Customer @relation(fields: [customerId], references: [id])
 }
