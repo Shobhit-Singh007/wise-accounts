@@ -226,22 +226,24 @@ export class CustomerController {
 
     try {
       const resp = await fetch(
-        `https://appyflow.in/api/verifyGST?gstin=${normalized}&key_secret=${process.env.APPYFLOW_KEY || ''}`,
-        { signal: AbortSignal.timeout(5000) },
+        `https://appyflow.in/api/verifyGST?gstNo=${normalized}&key_secret=${process.env.APPYFLOW_KEY || ''}`,
+        { signal: AbortSignal.timeout(8000) },
       );
       const data = await resp.json() as any;
-      if (!data.error && data.gstData) {
-        const d = data.gstData;
-        result.name = d.tradeNam || d.legalNam || '';
+      if (!data.error && data.taxpayerInfo) {
+        const d = data.taxpayerInfo;
+        const addr = d.pradr?.addr || {};
+        result.name = d.tradeNam || d.lgnm || '';
         result.tradeName = d.tradeNam || '';
-        result.legalName = d.legalNam || '';
-        result.address = [d.addr1, d.addr2, d.loc, d.dst].filter(Boolean).join(', ');
-        result.city = d.loc || '';
-        result.state = GST_STATE_MAP[stateCode] || d.stj || stateName;
-        result.pincode = d.pin || '';
+        result.legalName = d.lgnm || '';
+        result.address = [addr.bno, addr.st, addr.loc, addr.dst].filter(Boolean).join(', ');
+        result.city = addr.loc || addr.city || '';
+        result.state = GST_STATE_MAP[stateCode] || addr.stcd || stateName;
+        result.pincode = addr.pncd || '';
+        result.pan = d.panNo || pan;
         result.status = d.sts || '';
         result.registrationDate = d.rgdt || '';
-        result.businessType = d.dty || '';
+        result.businessType = d.dty || d.ctb || '';
       }
     } catch { /* AppyFlow unavailable — use GSTIN-decoded fallback */ }
 

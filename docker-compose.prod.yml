@@ -44,6 +44,7 @@ services:
       CORS_ORIGIN: "*"
       AWS_REGION: ap-south-1
       REDIS_URL: redis://redis:6379
+      APPYFLOW_KEY: 8UPSAswHGghDpIwYppVVfGA3fZt2
     depends_on:
       postgres:
         condition: service_healthy
