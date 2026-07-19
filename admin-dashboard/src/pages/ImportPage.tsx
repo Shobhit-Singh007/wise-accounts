@@ -83,7 +83,7 @@ const columnMappings: Record<ImportType, string[]> = {
     'Tax Amount', 'Grand Total',
     'Total in Words', 'Notes',
     'EWay Bill No', 'Transporter Name', 'Vehicle No',
-    'IRN', 'ACK No',
+    'IRN', 'IRN Date', 'ACK No', 'ACK Date',
   ],
 };
 

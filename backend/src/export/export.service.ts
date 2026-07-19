@@ -72,8 +72,13 @@ export class ExportService {
     const headers = [
       'Invoice No', 'Date', 'Type', 'Direction', 'Customer/Supplier', 'Document Type',
       'Subtotal', 'Tax Amount', 'Discount', 'Grand Total', 'Paid Amount', 'Balance', 'Status',
+      'Customer GSTIN', 'Customer Phone', 'Customer State', 'Place of Supply',
+      'PO No', 'Challan No', 'LR No', 'Payment Type', 'CESS Total', 'Total in Words',
+      'Due Date', 'E-Way Bill No', 'Transporter', 'Vehicle No',
+      'IRN', 'ACK No', 'ACK Date', 'Notes',
     ];
     const rows: string[][] = invoices.map((inv) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const party = inv.direction === 'SALE' ? inv.customer?.name ?? '' : inv.supplier?.name ?? '';
       const balance = (inv.grandTotal ?? 0) - (inv.paidAmount ?? 0);
       return [
@@ -90,6 +95,24 @@ export class ExportService {
         String(inv.paidAmount ?? 0),
         String(balance),
         inv.status,
+        inv.customerGstin ?? '',
+        inv.customerPhone ?? '',
+        inv.customerState ?? '',
+        inv.placeOfSupply ?? '',
+        inv.poNo ?? '',
+        inv.challanNo ?? '',
+        inv.lrNo ?? '',
+        inv.paymentType ?? '',
+        String(inv.cessTotal ?? 0),
+        inv.totalInWords ?? '',
+        inv.dueDate ? inv.dueDate.toISOString().slice(0, 10) : '',
+        inv.ewayBillNo ?? '',
+        inv.transporterName ?? '',
+        inv.vehicleNo ?? '',
+        inv.irn ?? '',
+        inv.ackNo ?? '',
+        inv.ackDate ? inv.ackDate.toISOString().slice(0, 10) : '',
+        inv.notes ?? '',
       ];
     });
 

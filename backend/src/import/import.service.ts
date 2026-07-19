@@ -100,8 +100,19 @@ export class ImportService {
     challanNo: string | null;
     lrNo: string | null;
     paymentType: string | null;
+    paymentNote: string | null;
     cessTotal: number;
     totalInWords: string | null;
+    ewayBillNo: string | null;
+    ewayBillDate: Date | null;
+    transporterId: string | null;
+    transporterName: string | null;
+    vehicleNo: string | null;
+    irn: string | null;
+    irnDate: Date | null;
+    ackNo: string | null;
+    ackDate: Date | null;
+    notes: string | null;
     items: { name: string; productNote?: string; hsnCode?: string; quantity: number; rate: number; taxRate: number; taxableValue: number; cgstRate: number; sgstRate: number; igstRate: number; total: number; serialNo?: number }[];
     subtotal: number;
     taxAmount: number;
@@ -127,6 +138,16 @@ export class ImportService {
       const paymentType = get('Payment Type') || get('paymentType') || get('payment_type');
       const cessTotal = this.parseIndianNumber(get('CESS Total') || get('cessTotal') || get('cess_total') || get('CESS Amount'));
       const totalInWords = get('Total in Words') || get('totalInWords') || get('total_in_words');
+      const ewayBillNo = get('EWay No') || get('EWay Bill No') || get('ewayBillNo') || get('eway_bill_no');
+      const ewayBillDate = get('EWay Bill Date') || get('ewayBillDate') || get('eway_bill_date');
+      const transporterId = get('Transport Id') || get('transporterId') || get('transport_id');
+      const transporterName = get('Transport Name') || get('transporterName') || get('transport_name');
+      const vehicleNo = get('Vehicle No') || get('vehicleNo') || get('vehicle_no');
+      const irn = get('IRN No') || get('irn') || get('irn_no');
+      const irnDate = get('IRN Date') || get('irnDate') || get('irn_date');
+      const ackNo = get('ACK No') || get('ackNo') || get('ack_no');
+      const ackDate = get('ACK Date') || get('ackDate') || get('ack_date');
+      const notes = get('Document Note') || get('notes') || get('document_note');
 
       const invoiceValue = this.parseIndianNumber(get('invoice_value') || get('Invoice Value') || get('Total') || get('total'));
       const rate = this.parseIndianNumber(get('rate') || get('Rate'));
@@ -174,8 +195,19 @@ export class ImportService {
         challanNo,
         lrNo,
         paymentType,
+        paymentNote: get('Payment Note') || get('paymentNote'),
         cessTotal,
         totalInWords,
+        ewayBillNo,
+        ewayBillDate: ewayBillDate ? new Date(ewayBillDate) : null,
+        transporterId,
+        transporterName,
+        vehicleNo,
+        irn,
+        irnDate: irnDate ? new Date(irnDate) : null,
+        ackNo,
+        ackDate: ackDate ? new Date(ackDate) : null,
+        notes,
         items,
         subtotal,
         taxAmount,
@@ -224,8 +256,19 @@ export class ImportService {
       challanNo: get('challanNo'),
       lrNo: get('lrNo'),
       paymentType: get('paymentType'),
+      paymentNote: get('paymentNote'),
       cessTotal: this.parseIndianNumber(get('cessTotal')),
       totalInWords: get('totalInWords'),
+      ewayBillNo: get('ewayBillNo'),
+      ewayBillDate: get('ewayBillDate') ? new Date(get('ewayBillDate')) : null,
+      transporterId: get('transporterId'),
+      transporterName: get('transporterName'),
+      vehicleNo: get('vehicleNo'),
+      irn: get('irn'),
+      irnDate: get('irnDate') ? new Date(get('irnDate')) : null,
+      ackNo: get('ackNo'),
+      ackDate: get('ackDate') ? new Date(get('ackDate')) : null,
+      notes: get('notes'),
       items,
       subtotal,
       taxAmount,
@@ -536,7 +579,7 @@ export class ImportService {
             grandTotal,
             paidAmount: 0,
             status: 'CONFIRMED',
-            notes: invoiceData.totalInWords,
+            notes: invoiceData.notes,
             customerAddress: invoiceData.customerAddress,
             customerPhone: invoiceData.customerPhone,
             customerState: invoiceData.customerState,
@@ -545,6 +588,19 @@ export class ImportService {
             poNo: invoiceData.poNo,
             challanNo: invoiceData.challanNo,
             lrNo: invoiceData.lrNo,
+            paymentType: invoiceData.paymentType,
+            paymentNote: invoiceData.paymentNote,
+            cessTotal: invoiceData.cessTotal,
+            totalInWords: invoiceData.totalInWords,
+            ewayBillNo: invoiceData.ewayBillNo,
+            ewayBillDate: invoiceData.ewayBillDate,
+            transporterId: invoiceData.transporterId,
+            transporterName: invoiceData.transporterName,
+            vehicleNo: invoiceData.vehicleNo,
+            irn: invoiceData.irn,
+            irnDate: invoiceData.irnDate,
+            ackNo: invoiceData.ackNo,
+            ackDate: invoiceData.ackDate,
             paymentType: invoiceData.paymentType,
             cessTotal: invoiceData.cessTotal,
             totalInWords: invoiceData.totalInWords,

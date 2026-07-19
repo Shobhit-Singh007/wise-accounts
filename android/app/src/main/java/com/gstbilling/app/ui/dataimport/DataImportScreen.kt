@@ -74,7 +74,7 @@ class DataImportViewModel @Inject constructor(
         return when (type) {
             ImportType.CUSTOMERS -> listOf("name", "phone", "email", "gstin", "address", "city", "state", "pincode", "openingBalance", "creditLimit")
             ImportType.PRODUCTS -> listOf("name", "sku", "hsnCode", "unit", "sellingPrice", "purchasePrice", "gstRate", "stock", "lowStockAlert")
-            ImportType.INVOICES -> listOf("invoiceNumber", "customerName", "customerPhone", "customerGstin", "customerAddress", "customerState", "invoiceDate", "dueDate", "subtotal", "discount", "cgst", "sgst", "igst", "cgstRate", "sgstRate", "igstRate", "cessTotal", "cessRate", "cessAmount", "taxAmount", "totalAmount", "grandTotal", "status", "placeOfSupply", "reverseCharge", "poNo", "challanNo", "lrNo", "paymentType", "totalInWords", "ewayBillNo", "transporterName", "vehicleNo", "irn", "ackNo", "notes")
+            ImportType.INVOICES -> listOf("invoiceNumber", "customerName", "customerPhone", "customerGstin", "customerAddress", "customerState", "invoiceDate", "dueDate", "subtotal", "discount", "cgst", "sgst", "igst", "cgstRate", "sgstRate", "igstRate", "cessTotal", "cessRate", "cessAmount", "taxAmount", "totalAmount", "grandTotal", "status", "placeOfSupply", "reverseCharge", "poNo", "challanNo", "lrNo", "paymentType", "totalInWords", "ewayBillNo", "ewayBillDate", "transporterId", "transporterName", "vehicleNo", "distanceKm", "supplyType", "docType", "irn", "irnDate", "ackNo", "ackDate", "notes")
         }
     }
 
