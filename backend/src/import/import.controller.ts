@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -154,6 +155,12 @@ export class ImportController {
     const rawRecords = this.importService.getAllRecords(file.buffer, file.originalname);
     const result = await this.importService.importInvoices(businessId, user.sub, rawRecords);
     return result;
+  }
+
+  @Delete('customers')
+  @ApiOperation({ summary: 'Delete all imported customers and their ledger entries' })
+  async clearCustomers(@Param('businessId') businessId: string) {
+    return this.importService.clearCustomers(businessId);
   }
 
   @Post('products/upload')

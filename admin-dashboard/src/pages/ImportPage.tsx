@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useBusiness } from '../context/BusinessContext';
 import { importApi } from '../api/import';
+import client from '../api/client';
 
 type ImportType = 'customers' | 'products' | 'invoices';
 
@@ -477,7 +478,27 @@ export default function ImportPage() {
             </Box>
           )}
 
-          <Button variant="contained" onClick={handleReset}>Import More Data</Button>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button variant="contained" onClick={handleReset}>Import More Data</Button>
+            {currentBusinessId && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={async () => {
+                  if (!confirm('Delete ALL customers and their ledger entries for this business? This cannot be undone.')) return;
+                  try {
+                    await client.delete(`/businesses/${currentBusinessId}/import/customers`);
+                    alert('All customers deleted. You can now re-import.');
+                    handleReset();
+                  } catch (err: unknown) {
+                    alert('Failed to delete: ' + ((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Unknown error'));
+                  }
+                }}
+              >
+                Clear All Customers
+              </Button>
+            )}
+          </Box>
         </Box>
       )}
     </Box>

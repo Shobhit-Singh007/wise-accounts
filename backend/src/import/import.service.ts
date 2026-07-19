@@ -493,6 +493,15 @@ export class ImportService {
     return result;
   }
 
+  async clearCustomers(businessId: string): Promise<{ deleted: number }> {
+    const customers = await this.prisma.customer.findMany({ where: { businessId } });
+    for (const c of customers) {
+      await this.prisma.customerTransaction.deleteMany({ where: { customerId: c.id } });
+      await this.prisma.customer.delete({ where: { id: c.id } });
+    }
+    return { deleted: customers.length };
+  }
+
   async importProducts(businessId: string, records: ProductImportDto[]): Promise<ImportResult> {
     const result: ImportResult = { imported: 0, skipped: 0, errors: [] };
 
