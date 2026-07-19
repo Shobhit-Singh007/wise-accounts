@@ -46,9 +46,9 @@ interface ApiService {
     suspend fun createWarehouse(@Path("id") id: String, @Body warehouse: Warehouse): Response<ApiResponse<Warehouse>>
 
     // ── Customers ──
-    @GET("customers")
+    @GET("businesses/{businessId}/customers")
     suspend fun getCustomers(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null
@@ -76,9 +76,9 @@ interface ApiService {
     ): Response<ApiResponse<Payment>>
 
     // ── Products ──
-    @GET("products")
+    @GET("businesses/{businessId}/products")
     suspend fun getProducts(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null

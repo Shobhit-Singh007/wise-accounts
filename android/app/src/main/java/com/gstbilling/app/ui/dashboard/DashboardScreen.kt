@@ -92,6 +92,9 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 actions = {
+                    IconButton(onClick = onNavigateToReports) {
+                        Icon(Icons.Default.BarChart, contentDescription = "Reports")
+                    }
                     IconButton(onClick = onNavigateToNotifications) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                     }

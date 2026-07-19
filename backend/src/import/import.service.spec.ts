@@ -19,6 +19,10 @@ const mockPrisma = {
   customer: {
     findFirst: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
+  },
+  customerTransaction: {
+    create: jest.fn(),
   },
   product: {
     findFirst: jest.fn(),
@@ -454,6 +458,149 @@ describe('ImportService', () => {
       expect(item.cgst).toBe(900);
       expect(item.sgst).toBe(900);
       expect(item.total).toBe(11800);
+    });
+  });
+
+  describe('importCustomers with transactions', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('creates customer and ledger entries from Khatabook-style data', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'new-cust-1', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrisma.customer.update.mockResolvedValue({});
+
+      const records = [
+        { 'Name': 'Manoj Katauli 2', 'Date': '19 Jul 2026', 'Details': '-', 'Debit': '0', 'Credit': '14000' },
+        { 'Name': 'Aslam Babaganj', 'Date': '19 Jul 2026', 'Details': '-', 'Debit': '0', 'Credit': '20000' },
+        { 'Name': 'Shiva', 'Date': '18 Jul 2026', 'Details': 'Nagad liya', 'Debit': '5000', 'Credit': '0' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.imported).toBe(3);
+      expect(result.skipped).toBe(0);
+      expect(result.errors).toHaveLength(0);
+      // Should create 3 ledger entries (one per record with debit/credit)
+      expect(mockPrisma.customerTransaction.create).toHaveBeenCalledTimes(3);
+      expect(mockPrisma.customer.update).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles original Khatabook column names (Customer Name, Debit(-), Credit(+))', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'new-cust-2', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+
+      const records = [
+        { 'Customer Name': 'ABC Corp', 'Date': '01 Jan 2026', 'Debit(-)': '0', 'Credit(+)': '50000' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.imported).toBe(1);
+      expect(result.errors).toHaveLength(0);
+      // Ledger entry should be created for credit
+      expect(mockPrisma.customerTransaction.create).toHaveBeenCalledTimes(1);
+      const txCall = mockPrisma.customerTransaction.create.mock.calls[0][0];
+      expect(txCall.data.type).toBe('LEDGER_RECEIVED');
+      expect(txCall.data.amount).toBe(50000);
+    });
+
+    it('creates multiple ledger entries for same customer grouped by name', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust-multi', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrisma.customer.update.mockResolvedValue({});
+
+      const records = [
+        { 'Name': 'Same Customer', 'Date': '01 Jan 2026', 'Debit': '0', 'Credit': '10000' },
+        { 'Name': 'Same Customer', 'Date': '02 Jan 2026', 'Debit': '5000', 'Credit': '0' },
+        { 'Name': 'Same Customer', 'Date': '03 Jan 2026', 'Debit': '0', 'Credit': '2000' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      // All same name -> one group -> one customer created, 3 ledger entries
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(0);
+      expect(mockPrisma.customerTransaction.create).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles mixed column naming (Name + Customer Name)', async () => {
+      // First call findFirst returns null (no existing), second also null
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust-3', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+
+      const records = [
+        { 'Name': 'Via Name', 'Debit': '1000', 'Credit': '0' },
+        { 'Customer Name': 'Via CustomerName', 'Debit': '0', 'Credit': '2000' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.imported).toBe(2);
+      expect(result.errors).toHaveLength(0);
+      expect(mockPrisma.customerTransaction.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('updates running balance correctly for debit and credit', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust-bal', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrisma.customer.update.mockResolvedValue({});
+
+      const records = [
+        { 'Name': 'Balance Test', 'Date': '01 Jan 2026', 'Debit': '0', 'Credit': '50000' },
+        { 'Name': 'Balance Test', 'Date': '02 Jan 2026', 'Debit': '10000', 'Credit': '0' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.errors).toHaveLength(0);
+      expect(mockPrisma.customerTransaction.create).toHaveBeenCalledTimes(2);
+
+      // First tx: credit 50000 -> balanceAfter = -50000
+      expect(mockPrisma.customerTransaction.create.mock.calls[0][0].data.type).toBe('LEDGER_RECEIVED');
+      expect(mockPrisma.customerTransaction.create.mock.calls[0][0].data.amount).toBe(50000);
+
+      // Second tx: debit 10000 -> balanceAfter = -50000 + 10000 = -40000
+      expect(mockPrisma.customerTransaction.create.mock.calls[1][0].data.type).toBe('LEDGER_GAVE');
+      expect(mockPrisma.customerTransaction.create.mock.calls[1][0].data.amount).toBe(10000);
+    });
+
+    it('skips records without customer name', async () => {
+      const records = [
+        { 'Debit': '1000', 'Credit': '0' },
+        { 'Name': 'Valid Customer', 'Debit': '0', 'Credit': '2000' },
+      ];
+
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust-skip', balance: 0 });
+      mockPrisma.customerTransaction.create.mockResolvedValue({ id: 'tx-1' });
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('Missing customer name');
+      expect(result.imported).toBe(1);
+    });
+
+    it('does not create ledger entries when no debit/credit columns present', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust-4', balance: 0 });
+
+      const records = [
+        { 'Name': 'Simple Customer', 'Phone': '1234567890' },
+      ];
+
+      const result = await service.importCustomers('biz1', records);
+
+      expect(result.imported).toBe(1);
+      expect(result.errors).toHaveLength(0);
+      expect(mockPrisma.customerTransaction.create).not.toHaveBeenCalled();
     });
   });
 });

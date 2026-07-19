@@ -84,6 +84,7 @@ fun MainTabsScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            key(selectedTab) {
             when (selectedTab) {
                 MainTab.DASHBOARD -> DashboardScreen(
                     onNavigateToCustomers = { selectedTab = MainTab.CUSTOMERS },
@@ -128,6 +129,7 @@ fun MainTabsScreen(
                     onNavigateToStockMovements = onNavigateToStockMovements,
                     onNavigateToLowStock = onNavigateToLowStock
                 )
+            }
             }
         }
     }

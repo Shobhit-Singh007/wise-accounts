@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UploadedFile,
   ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -26,6 +27,7 @@ import { memoryStorage } from 'multer';
 @ApiTags('Import')
 @ApiBearerAuth()
 @UseGuards(BusinessOwnershipGuard)
+@UsePipes(new ValidationPipe({ whitelist: false, transform: false }))
 @Controller('businesses/:businessId/import')
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
@@ -36,7 +38,7 @@ export class ImportController {
   })
   async importCustomers(
     @Param('businessId') businessId: string,
-    @Body() body: Record<string, any>,
+    @Body() body: any,
   ) {
     const records = Array.isArray(body?.records) ? body.records : [];
     return this.importService.importCustomers(businessId, records);
@@ -46,7 +48,7 @@ export class ImportController {
   @ApiOperation({ summary: 'Import products from Khatabook or similar format' })
   async importProducts(
     @Param('businessId') businessId: string,
-    @Body() body: Record<string, any>,
+    @Body() body: any,
   ) {
     const records = Array.isArray(body?.records) ? body.records : [];
     return this.importService.importProducts(businessId, records);
@@ -57,7 +59,7 @@ export class ImportController {
   async importInvoices(
     @Param('businessId') businessId: string,
     @CurrentUser() user: JwtPayload,
-    @Body() body: Record<string, any>,
+    @Body() body: any,
   ) {
     const records = Array.isArray(body?.records) ? body.records : [];
     return this.importService.importInvoices(businessId, user.sub, records);
