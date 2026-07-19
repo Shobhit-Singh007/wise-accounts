@@ -342,56 +342,6 @@ fun DashboardScreen(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Navigate",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        NavCard(
-                            title = "Invoices",
-                            icon = Icons.Default.Receipt,
-                            onClick = onNavigateToInvoices,
-                            modifier = Modifier.weight(1f)
-                        )
-                        NavCard(
-                            title = "Customers",
-                            icon = Icons.Default.People,
-                            onClick = onNavigateToCustomers,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        NavCard(
-                            title = "Products",
-                            icon = Icons.Default.Inventory2,
-                            onClick = onNavigateToProducts,
-                            modifier = Modifier.weight(1f)
-                        )
-                        NavCard(
-                            title = "Inventory",
-                            icon = Icons.Default.Storefront,
-                            onClick = onNavigateToInventoryDashboard,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }

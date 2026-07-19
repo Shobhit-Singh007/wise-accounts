@@ -284,6 +284,28 @@ export default function ImportPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
+      {currentBusinessId && activeStep <= 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={async () => {
+              if (!confirm('Delete ALL customers and their ledger entries for this business? This cannot be undone.')) return;
+              try {
+                await client.delete(`/businesses/${currentBusinessId}/import/customers`);
+                alert('All customers deleted. You can now re-import.');
+                handleReset();
+              } catch (err: unknown) {
+                alert('Failed to delete: ' + ((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Unknown error'));
+              }
+            }}
+          >
+            Clear All Customers
+          </Button>
+        </Box>
+      )}
+
       {activeStep === 0 && (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
           {importTypes.map((option) => (
@@ -478,27 +500,7 @@ export default function ImportPage() {
             </Box>
           )}
 
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button variant="contained" onClick={handleReset}>Import More Data</Button>
-            {currentBusinessId && (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={async () => {
-                  if (!confirm('Delete ALL customers and their ledger entries for this business? This cannot be undone.')) return;
-                  try {
-                    await client.delete(`/businesses/${currentBusinessId}/import/customers`);
-                    alert('All customers deleted. You can now re-import.');
-                    handleReset();
-                  } catch (err: unknown) {
-                    alert('Failed to delete: ' + ((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Unknown error'));
-                  }
-                }}
-              >
-                Clear All Customers
-              </Button>
-            )}
-          </Box>
+          <Button variant="contained" onClick={handleReset}>Import More Data</Button>
         </Box>
       )}
     </Box>

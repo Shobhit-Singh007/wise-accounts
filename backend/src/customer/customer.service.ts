@@ -232,7 +232,7 @@ export class CustomerService {
         runningBalance += tx.amount;
         entries.push({
           id: `tx_${tx.id}`,
-          date: tx.createdAt.toISOString(),
+          date: (tx.transactionDate || tx.createdAt).toISOString(),
           type: 'LEDGER_GAVE',
           description: tx.description || 'You Gave',
           debit: tx.amount,
@@ -244,7 +244,7 @@ export class CustomerService {
         runningBalance -= tx.amount;
         entries.push({
           id: `tx_${tx.id}`,
-          date: tx.createdAt.toISOString(),
+          date: (tx.transactionDate || tx.createdAt).toISOString(),
           type: 'LEDGER_RECEIVED',
           description: tx.description || 'You Got',
           debit: 0,

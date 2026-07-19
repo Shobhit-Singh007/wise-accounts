@@ -41,7 +41,7 @@ class CustomerListViewModel @Inject constructor(
         viewModelScope.launch {
             businessId = sessionManager.getBusinessId() ?: ""
             if (businessId.isNotEmpty()) {
-                customerRepository.getCustomers(businessId).collect { customers = it }
+                launch { customerRepository.getCustomers(businessId).collect { customers = it } }
                 customerRepository.refreshCustomers(businessId)
             }
         }
