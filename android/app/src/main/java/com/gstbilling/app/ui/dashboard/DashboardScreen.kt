@@ -340,26 +340,56 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Navigate",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedButton(
+                        NavCard(
+                            title = "Invoices",
+                            icon = Icons.Default.Receipt,
                             onClick = onNavigateToInvoices,
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text("View All Invoices")
-                        }
-                        OutlinedButton(
-                            onClick = onNavigateToReports,
+                        )
+                        NavCard(
+                            title = "Customers",
+                            icon = Icons.Default.People,
+                            onClick = onNavigateToCustomers,
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Reports")
-                        }
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        NavCard(
+                            title = "Products",
+                            icon = Icons.Default.Inventory2,
+                            onClick = onNavigateToProducts,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavCard(
+                            title = "Inventory",
+                            icon = Icons.Default.Storefront,
+                            onClick = onNavigateToInventoryDashboard,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
@@ -394,6 +424,43 @@ fun DashboardCard(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun NavCard(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
