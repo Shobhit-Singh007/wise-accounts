@@ -1,0 +1,24 @@
+-- AlterTable
+ALTER TABLE "Invoice" ADD COLUMN     "cessTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "challanDate" TIMESTAMP(3),
+ADD COLUMN     "challanNo" TEXT,
+ADD COLUMN     "customerAddress" TEXT,
+ADD COLUMN     "customerPhone" TEXT,
+ADD COLUMN     "customerState" TEXT,
+ADD COLUMN     "lrNo" TEXT,
+ADD COLUMN     "paymentNote" TEXT,
+ADD COLUMN     "paymentType" TEXT,
+ADD COLUMN     "placeOfSupply" TEXT,
+ADD COLUMN     "poDate" TIMESTAMP(3),
+ADD COLUMN     "poNo" TEXT,
+ADD COLUMN     "reverseCharge" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "totalInWords" TEXT;
+
+-- AlterTable
+ALTER TABLE "InvoiceItem" ADD COLUMN     "cessAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "cessRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "cgstRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "igstRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "productNote" TEXT,
+ADD COLUMN     "serialNo" INTEGER,
+ADD COLUMN     "sgstRate" DOUBLE PRECISION NOT NULL DEFAULT 0;

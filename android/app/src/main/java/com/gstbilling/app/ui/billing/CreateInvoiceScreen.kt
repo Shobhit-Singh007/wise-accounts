@@ -153,8 +153,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 val businessId = sessionManager.getBusinessId() ?: ""
                 val response = apiService.lookupGstin(businessId, newCustomerGstin)
                 if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    if (data != null) {
+                    val data = response.body()
+                    if (data != null && data["error"] == null) {
                         if (newCustomerName.isBlank()) newCustomerName = data["tradeName"] as? String ?: data["name"] as? String ?: ""
                         if (newCustomerAddress.isBlank()) newCustomerAddress = data["address"] as? String ?: ""
                         if (newCustomerCity.isBlank()) newCustomerCity = data["city"] as? String ?: ""

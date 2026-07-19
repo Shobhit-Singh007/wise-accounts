@@ -144,6 +144,13 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   );
   const [notes, setNotes] = useState(editInvoice?.notes || '');
   const [terms, setTerms] = useState(editInvoice?.terms || '');
+  const [poNo, setPoNo] = useState('');
+  const [challanNo, setChallanNo] = useState('');
+  const [lrNo, setLrNo] = useState('');
+  const [paymentType, setPaymentType] = useState('');
+  const [placeOfSupply, setPlaceOfSupply] = useState('');
+  const [cessTotal, setCessTotal] = useState(0);
+  const [totalInWords, setTotalInWords] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -316,6 +323,13 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
             batchNo: undefined,
           })),
       };
+      if (poNo) payload.poNo = poNo;
+      if (challanNo) payload.challanNo = challanNo;
+      if (lrNo) payload.lrNo = lrNo;
+      if (paymentType) payload.paymentType = paymentType;
+      if (placeOfSupply) payload.placeOfSupply = placeOfSupply;
+      if (cessTotal > 0) payload.cessTotal = cessTotal;
+      if (totalInWords) payload.totalInWords = totalInWords;
       if (direction === 'SALE' && selectedParty) payload.customerId = selectedParty.id;
       if (direction === 'PURCHASE' && selectedParty) payload.supplierId = selectedParty.id;
 
@@ -402,6 +416,21 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
               fullWidth
               InputLabelProps={{ shrink: true }}
             />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField label="PO No" value={poNo} onChange={(e) => setPoNo(e.target.value)} size="small" fullWidth />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField label="Challan No" value={challanNo} onChange={(e) => setChallanNo(e.target.value)} size="small" fullWidth />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField label="LR No" value={lrNo} onChange={(e) => setLrNo(e.target.value)} size="small" fullWidth />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField label="Place of Supply" value={placeOfSupply} onChange={(e) => setPlaceOfSupply(e.target.value)} size="small" fullWidth />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField label="Payment Type" value={paymentType} onChange={(e) => setPaymentType(e.target.value)} size="small" fullWidth />
           </Grid>
         </Grid>
 
@@ -767,6 +796,11 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
               <Typography variant="caption" color="text.secondary">Due Date</Typography>
               <Typography variant="body2">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-IN') : '-'}</Typography>
             </Grid>
+            {invoice.poNo && <Grid item xs={6} sm={3}><Typography variant="caption" color="text.secondary">PO No</Typography><Typography variant="body2">{invoice.poNo}</Typography></Grid>}
+            {invoice.challanNo && <Grid item xs={6} sm={3}><Typography variant="caption" color="text.secondary">Challan No</Typography><Typography variant="body2">{invoice.challanNo}</Typography></Grid>}
+            {invoice.lrNo && <Grid item xs={6} sm={3}><Typography variant="caption" color="text.secondary">LR No</Typography><Typography variant="body2">{invoice.lrNo}</Typography></Grid>}
+            {invoice.placeOfSupply && <Grid item xs={6} sm={3}><Typography variant="caption" color="text.secondary">Place of Supply</Typography><Typography variant="body2">{invoice.placeOfSupply}</Typography></Grid>}
+            {invoice.paymentType && <Grid item xs={6} sm={3}><Typography variant="caption" color="text.secondary">Payment Type</Typography><Typography variant="body2">{invoice.paymentType}</Typography></Grid>}
           </Grid>
 
           <Divider sx={{ mb: 2 }} />
@@ -848,6 +882,17 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
                   <Typography variant="body2" color="success.main">Paid</Typography>
                   <Typography variant="body2" color="success.main">₹{invoice.paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Typography>
+                </Box>
+              )}
+              {invoice.cessTotal ? (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">CESS</Typography>
+                  <Typography variant="body2">₹{invoice.cessTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Typography>
+                </Box>
+              ) : null}
+              {invoice.totalInWords && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ maxWidth: '80%', fontStyle: 'italic' }}>{invoice.totalInWords}</Typography>
                 </Box>
               )}
             </Box>

@@ -109,6 +109,23 @@ fun DashboardScreen(
             ) {
                 CircularProgressIndicator()
             }
+        } else if (viewModel.errorMessage != null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = viewModel.errorMessage ?: "Failed to load dashboard",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(onClick = { viewModel.loadDashboard() }) {
+                        Text("Retry")
+                    }
+                }
+            }
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -124,16 +141,18 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        val totalSales = viewModel.dashboardData?.totalSales ?: 0.0
+                        val totalCustomers = viewModel.dashboardData?.totalCustomers ?: 0
                         DashboardCard(
                             title = "Sales",
-                            value = "₹${String.format("%.0f", viewModel.dashboardData?.totalSales ?: 0)}",
+                            value = "₹${String.format("%.0f", totalSales)}",
                             icon = Icons.Default.TrendingUp,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                         DashboardCard(
                             title = "Customers",
-                            value = "${viewModel.dashboardData?.totalCustomers ?: 0}",
+                            value = "$totalCustomers",
                             icon = Icons.Default.People,
                             color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.weight(1f)
@@ -146,16 +165,18 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        val totalProducts = viewModel.dashboardData?.totalProducts ?: 0
+                        val pendingAmount = viewModel.dashboardData?.pendingAmount ?: 0.0
                         DashboardCard(
                             title = "Products",
-                            value = "${viewModel.dashboardData?.totalProducts ?: 0}",
+                            value = "$totalProducts",
                             icon = Icons.Default.Inventory2,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f)
                         )
                         DashboardCard(
                             title = "Pending",
-                            value = "₹${String.format("%.0f", viewModel.dashboardData?.pendingAmount ?: 0)}",
+                            value = "₹${String.format("%.0f", pendingAmount)}",
                             icon = Icons.Default.PendingActions,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)

@@ -40,6 +40,20 @@ struct Invoice: Codable, Identifiable, Hashable {
     let direction: String
     let supplierId: String?
     let supplier: Supplier?
+    let customerAddress: String?
+    let customerPhone: String?
+    let customerState: String?
+    let placeOfSupply: String?
+    let reverseCharge: Bool?
+    let poNo: String?
+    let poDate: String?
+    let challanNo: String?
+    let challanDate: String?
+    let lrNo: String?
+    let paymentType: String?
+    let paymentNote: String?
+    let cessTotal: Double?
+    let totalInWords: String?
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -79,6 +93,13 @@ struct InvoiceItem: Codable, Identifiable, Hashable {
     let total: Double?
     let batchNo: String?
     let expiryDate: String?
+    let productNote: String?
+    let cgstRate: Double?
+    let sgstRate: Double?
+    let igstRate: Double?
+    let cessRate: Double?
+    let cessAmount: Double?
+    let serialNo: Int?
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id ?? UUID().uuidString)

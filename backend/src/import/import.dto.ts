@@ -305,7 +305,7 @@ export class InvoiceImportDto {
   InvoiceNumber?: string;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   InvoiceDate?: string;
 
@@ -333,6 +333,81 @@ export class InvoiceImportDto {
   @IsNumber()
   @IsOptional()
   CessAmount?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  customerAddress?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  customerPhone?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  customerState?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  placeOfSupply?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  reverseCharge?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  poNo?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  challanNo?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  lrNo?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  paymentType?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  paymentNote?: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  cessTotal?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  totalInWords?: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  cgstTotal?: number;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  sgstTotal?: number;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  igstTotal?: number;
 
   [key: string]: any;
 }

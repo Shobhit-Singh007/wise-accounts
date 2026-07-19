@@ -138,6 +138,19 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 | `admin-dashboard/src/__tests__/AuthContext.test.tsx` | Auth context (login, register, logout, token mgmt) |
 | `admin-dashboard/src/__tests__/api.client.test.ts` | API client response unwrapping & 401 refresh |
 
+## Bug Fixes
+- **2026-07-19**: Dashboard crash on API error — `String.format("%.0f", ...)` with `?: 0` (Int) instead of `?: 0.0` (Double) caused `IllegalFormatConversionException` when `dashboardData` was null. Added error state UI with Retry button. See `DashboardScreen.kt:129,158`.
+- **2026-07-19**: GSTIN lookup always returned blank — Backend returns flat `{gstin, name, ...}` JSON but Android expected `ApiResponse<T>` wrapper (`response.body()?.data` was always null). Fixed `ApiService.lookupGstin` return type + 3 ViewModels. See `ApiService.kt:475`, `AddCustomerScreen.kt`, `SubSettingsViewModel.kt`, `CreateInvoiceScreen.kt`.
+- **2026-07-19**: XLSX import from GoGST showed blank fields — Android file picker only accepted `text/*` (no XLSX MIME). XLSX binary read as garbled text. Added Apache POI based XLSX parser + updated file picker. See `DataImportScreen.kt`.
+- **2026-07-19**: Added 15 new fields for GoGST import compatibility across all layers:
+  - **Prisma**: `Invoice.{customerAddress,customerPhone,customerState,placeOfSupply,reverseCharge,poNo,poDate,challanNo,challanDate,lrNo,paymentType,paymentNote,cessTotal,totalInWords}` + `InvoiceItem.{productNote,cgstRate,sgstRate,igstRate,cessRate,cessAmount,serialNo}`
+  - **Backend import**: Rewrote `normalizeInvoiceRecord` with fuzzy column matching + `groupGoGSTRecords()` to handle GoGST merged format (invoice rows + line item rows with "--------" separators). Auto-creates customers/products by GSTIN/name.
+  - **Android**: Updated `Invoice` API model, `InvoiceEntity` Room entity, `InvoiceRepository.toEntity/toApiModel`, and import screen target fields.
+  - **iOS**: Updated `Invoice` + `InvoiceItem` models.
+  - **Admin dashboard**: Updated `Invoice`/`InvoiceItem` types, `CreateInvoiceRequest`, `CreateInvoiceDialog` (added PO/Challan/LR/PlaceOfSupply/PaymentType fields), and `InvoiceDetailDialog` (displays new fields).
+  - Migration: `20260719004005_add_gogst_import_fields`
+  See: `schema.prisma`, `import.service.ts`, `import.dto.ts`, `ApiService.kt`, `InvoiceEntity.kt`, `InvoiceRepository.kt`, `DataImportScreen.kt`, `Invoice.swift`, `invoices.ts`, `InvoicesPage.tsx`.
+
 ## Deployment Commands
 ```powershell
 # Full deploy (build + S3 + SSM + prisma migrate)

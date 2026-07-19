@@ -133,8 +133,8 @@ class SubSettingsViewModel @Inject constructor(
                 val apiService = businessRepository.getApiService()
                 val response = apiService.lookupGstin(businessId, gstin)
                 if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    if (data != null) {
+                    val data = response.body()
+                    if (data != null && data["error"] == null) {
                         if (businessName.isBlank()) businessName = data["tradeName"] as? String ?: data["name"] as? String ?: ""
                         if (address.isBlank()) address = data["address"] as? String ?: ""
                         if (city.isBlank()) city = data["city"] as? String ?: ""

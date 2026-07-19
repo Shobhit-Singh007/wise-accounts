@@ -472,7 +472,7 @@ interface ApiService {
     suspend fun lookupGstin(
         @Path("businessId") businessId: String,
         @Path("gstin") gstin: String
-    ): Response<ApiResponse<Map<String, Any?>>>
+    ): Response<Map<String, Any?>>
 }
 
 // ── Auth Models ──
@@ -702,6 +702,9 @@ data class Invoice(
     val customerId: String,
     val customerName: String? = null,
     val customerGstin: String? = null,
+    val customerAddress: String? = null,
+    val customerPhone: String? = null,
+    val customerState: String? = null,
     val businessId: String = "",
     val invoiceDate: String,
     val dueDate: String? = null,
@@ -735,6 +738,17 @@ data class Invoice(
     val ackNo: String? = null,
     val ackDate: String? = null,
     val qrCode: String? = null,
+    val placeOfSupply: String? = null,
+    val reverseCharge: Boolean = false,
+    val poNo: String? = null,
+    val poDate: String? = null,
+    val challanNo: String? = null,
+    val challanDate: String? = null,
+    val lrNo: String? = null,
+    val paymentType: String? = null,
+    val paymentNote: String? = null,
+    val cessTotal: Double = 0.0,
+    val totalInWords: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null
 )
@@ -753,7 +767,14 @@ data class InvoiceItem(
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
-    val totalPrice: Double = 0.0
+    val totalPrice: Double = 0.0,
+    val productNote: String? = null,
+    val cgstRate: Double = 0.0,
+    val sgstRate: Double = 0.0,
+    val igstRate: Double = 0.0,
+    val cessRate: Double = 0.0,
+    val cessAmount: Double = 0.0,
+    val serialNo: Int? = null
 )
 
 data class CreateInvoiceRequest(

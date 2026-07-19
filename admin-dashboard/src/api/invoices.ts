@@ -31,6 +31,20 @@ export interface Invoice {
   ackNo?: string | null;
   ackDate?: string | null;
   qrCode?: string | null;
+  placeOfSupply?: string | null;
+  reverseCharge?: boolean;
+  poNo?: string | null;
+  poDate?: string | null;
+  challanNo?: string | null;
+  challanDate?: string | null;
+  lrNo?: string | null;
+  paymentType?: string | null;
+  paymentNote?: string | null;
+  cessTotal?: number;
+  totalInWords?: string | null;
+  customerAddress?: string | null;
+  customerPhone?: string | null;
+  customerState?: string | null;
   customer?: { id: string; name: string; phone: string; gstin?: string | null; state?: string; address?: string; city?: string; pincode?: string };
   supplier?: { id: string; name: string; phone: string; gstin?: string | null; state?: string; address?: string; city?: string; pincode?: string };
   createdBy?: { id: string; name: string };
@@ -56,6 +70,13 @@ export interface InvoiceItem {
   igst: number;
   total: number;
   batchNo?: string | null;
+  productNote?: string | null;
+  cgstRate?: number;
+  sgstRate?: number;
+  igstRate?: number;
+  cessRate?: number;
+  cessAmount?: number;
+  serialNo?: number | null;
 }
 
 export interface InvoicePayment {
@@ -95,6 +116,16 @@ export interface CreateInvoiceRequest {
   discount?: number;
   notes?: string;
   terms?: string;
+  placeOfSupply?: string;
+  poNo?: string;
+  challanNo?: string;
+  lrNo?: string;
+  paymentType?: string;
+  cessTotal?: number;
+  totalInWords?: string;
+  customerAddress?: string;
+  customerPhone?: string;
+  customerState?: string;
   items: Array<{
     productId?: string;
     itemName: string;
@@ -104,6 +135,12 @@ export interface CreateInvoiceRequest {
     discount?: number;
     taxRate?: number;
     batchNo?: string;
+    productNote?: string;
+    cgstRate?: number;
+    sgstRate?: number;
+    igstRate?: number;
+    cessRate?: number;
+    serialNo?: number;
   }>;
   referenceId?: string;
 }

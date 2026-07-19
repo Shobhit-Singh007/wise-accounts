@@ -1,7 +1,9 @@
 package com.gstbilling.app.ui.dataimport
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -30,6 +32,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.ss.usermodel.Workbook
+import java.io.ByteArrayInputStream
 import javax.inject.Inject
 
 enum class ImportType(val label: String, val description: String, val source: String) {
@@ -69,7 +74,7 @@ class DataImportViewModel @Inject constructor(
         return when (type) {
             ImportType.CUSTOMERS -> listOf("name", "phone", "email", "gstin", "address", "city", "state", "pincode", "openingBalance", "creditLimit")
             ImportType.PRODUCTS -> listOf("name", "sku", "hsnCode", "unit", "sellingPrice", "purchasePrice", "gstRate", "stock", "lowStockAlert")
-            ImportType.INVOICES -> listOf("invoiceNumber", "customerName", "invoiceDate", "dueDate", "subtotal", "cgst", "sgst", "igst", "totalAmount", "status")
+            ImportType.INVOICES -> listOf("invoiceNumber", "customerName", "customerPhone", "customerGstin", "customerAddress", "customerState", "invoiceDate", "dueDate", "subtotal", "discount", "cgst", "sgst", "igst", "cessTotal", "taxAmount", "totalAmount", "grandTotal", "status", "placeOfSupply", "reverseCharge", "poNo", "challanNo", "lrNo", "paymentType", "totalInWords", "ewayBillNo", "transporterName", "vehicleNo", "irn", "ackNo", "notes")
         }
     }
 
@@ -256,6 +261,83 @@ class DataImportViewModel @Inject constructor(
         }
     }
 
+    fun parseXlsxLocally(bytes: ByteArray, name: String) {
+        fileName = name
+        try {
+            val workbook: Workbook = WorkbookFactory.create(ByteArrayInputStream(bytes))
+            val sheet = workbook.getSheetAt(0)
+            if (sheet.physicalNumberOfRows < 1) {
+                errorMessage = "Excel file is empty"
+                workbook.close()
+                return
+            }
+
+            val headerRow = sheet.getRow(0)
+            val headers = mutableListOf<String>()
+            for (cell in headerRow) {
+                headers.add(cell.stringCellValue.trim())
+            }
+            val targetFields = getTargetFields(selectedType!!)
+
+            val autoMapping = mutableMapOf<String, String>()
+            for (header in headers) {
+                val lower = header.lowercase().replace(" ", "").replace("_", "")
+                val matched = targetFields.find { target ->
+                    target.lowercase().replace("_", "") == lower ||
+                            lower.contains(target.lowercase().replace("_", "")) ||
+                            target.lowercase().replace("_", "").contains(lower)
+                }
+                if (matched != null) {
+                    autoMapping[header] = matched
+                }
+            }
+
+            val rows = mutableListOf<ParsedRow>()
+            for (i in 1..sheet.lastRowNum) {
+                val row = sheet.getRow(i) ?: continue
+                val data = mutableMapOf<String, String>()
+                for (j in headers.indices) {
+                    val cell = row.getCell(j)
+                    data[headers[j]] = when {
+                        cell == null -> ""
+                        else -> {
+                            val v = when (cell.cellType) {
+                                org.apache.poi.ss.usermodel.CellType.NUMERIC -> {
+                                    val dv = cell.numericCellValue
+                                    if (dv == dv.toLong().toDouble()) dv.toLong().toString() else dv.toString()
+                                }
+                                org.apache.poi.ss.usermodel.CellType.BOOLEAN -> cell.booleanCellValue.toString()
+                                org.apache.poi.ss.usermodel.CellType.FORMULA -> {
+                                    try { cell.stringCellValue } catch (_: Exception) { cell.numericCellValue.toString() }
+                                }
+                                else -> cell.stringCellValue
+                            }
+                            v.trim()
+                        }
+                    }
+                }
+                rows.add(ParsedRow(index = i - 1, data = data))
+            }
+            workbook.close()
+
+            parsedData = ParseCsvResponse(
+                fileName = name,
+                totalRows = rows.size,
+                headers = headers,
+                suggestedMapping = autoMapping,
+                rows = rows
+            )
+
+            columnMappings = headers.map { header ->
+                ColumnMapping(header, autoMapping[header] ?: "")
+            }
+
+            currentStep = ImportStep.IMPORTING
+        } catch (e: Exception) {
+            errorMessage = "Failed to parse Excel file: ${e.localizedMessage}"
+        }
+    }
+
     fun reset() {
         currentStep = ImportStep.SELECT_TYPE
         selectedType = null
@@ -282,24 +364,33 @@ fun DataImportScreen(
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
                 try {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val content = inputStream?.bufferedReader()?.use { it.readText() }
-                    if (content != null) {
-                        val cursor = context.contentResolver.query(uri, null, null, null, null)
-                        val name = cursor?.use {
-                            val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                            it.moveToFirst()
-                            it.getString(nameIndex)
-                        } ?: "import.csv"
-                        cursor?.close()
+                    val cursor = context.contentResolver.query(uri, null, null, null, null)
+                    val name = cursor?.use {
+                        val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        it.moveToFirst()
+                        it.getString(nameIndex)
+                    } ?: "import.csv"
+                    cursor?.close()
 
-                        if (name.endsWith(".csv", ignoreCase = true)) {
+                    if (name.endsWith(".csv", ignoreCase = true)) {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val content = inputStream?.bufferedReader()?.use { it.readText() }
+                        if (content != null) {
                             viewModel.parseCsvLocally(content, name)
-                        } else {
-                            viewModel.errorMessage = "Please select a CSV file"
                         }
+                        inputStream?.close()
+                    } else if (name.endsWith(".xlsx", ignoreCase = true) || name.endsWith(".xls", ignoreCase = true)) {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val bytes = inputStream?.readBytes()
+                        inputStream?.close()
+                        if (bytes != null) {
+                            viewModel.parseXlsxLocally(bytes, name)
+                        } else {
+                            viewModel.errorMessage = "Failed to read Excel file"
+                        }
+                    } else {
+                        viewModel.errorMessage = "Please select a CSV or Excel (.xlsx/.xls) file"
                     }
-                    inputStream?.close()
                 } catch (e: Exception) {
                     viewModel.errorMessage = "Failed to read file: ${e.localizedMessage}"
                 }
@@ -350,8 +441,14 @@ fun DataImportScreen(
                         onPickFile = {
                             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                                 addCategory(Intent.CATEGORY_OPENABLE)
-                                type = "text/*"
-                                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+                                type = "*/*"
+                                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
+                                    "text/csv",
+                                    "text/comma-separated-values",
+                                    "text/plain",
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    "application/vnd.ms-excel"
+                                ))
                             }
                             filePickerLauncher.launch(intent)
                         },

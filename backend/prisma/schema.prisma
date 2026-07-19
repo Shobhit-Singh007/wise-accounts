@@ -395,6 +395,21 @@ model Invoice {
   ackDate        DateTime?
   qrCode         String?
 
+  customerAddress  String?
+  customerPhone    String?
+  customerState    String?
+  placeOfSupply    String?
+  reverseCharge    Boolean  @default(false)
+  poNo             String?
+  poDate           DateTime?
+  challanNo        String?
+  challanDate      DateTime?
+  lrNo             String?
+  paymentType      String?
+  paymentNote      String?
+  cessTotal        Float    @default(0)
+  totalInWords     String?
+
   referenceId String?
   recurringInvoiceId String?
   createdById String
@@ -431,6 +446,13 @@ model InvoiceItem {
   total     Float  @default(0)
   batchNo   String?
   expiryDate DateTime?
+  productNote  String?
+  cgstRate     Float  @default(0)
+  sgstRate     Float  @default(0)
+  igstRate     Float  @default(0)
+  cessRate     Float  @default(0)
+  cessAmount   Float  @default(0)
+  serialNo     Int?
 
   invoice         Invoice         @relation(fields: [invoiceId], references: [id])
   product         Product?        @relation(fields: [productId], references: [id])
