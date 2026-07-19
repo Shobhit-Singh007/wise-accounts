@@ -144,6 +144,7 @@ fun NavGraph(
                 onNavigateToSuppliers = { navController.navigate(Routes.SUPPLIERS) },
                 onNavigateToWarehouses = { navController.navigate(Routes.WAREHOUSES) },
                 onNavigateToStockMovements = { navController.navigate(Routes.STOCK_MOVEMENTS) },
+                onNavigateToNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 onInvoiceClick = { invoiceId -> navController.navigate(Routes.invoiceDetail(invoiceId)) },
                 onEditProduct = { productId -> navController.navigate(Routes.editProduct(productId)) },
                 onEditCustomer = { customerId -> navController.navigate(Routes.editCustomer(customerId)) },

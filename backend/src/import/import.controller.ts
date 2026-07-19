@@ -17,11 +17,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ImportService } from './import.service';
-import {
-  ImportCustomersDto,
-  ImportProductsDto,
-  ImportInvoicesDto,
-} from './import.dto';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/decorators/current-user.decorator';
 import { BusinessOwnershipGuard } from '../common/guards/business-ownership.guard';
@@ -40,18 +36,20 @@ export class ImportController {
   })
   async importCustomers(
     @Param('businessId') businessId: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportCustomersDto,
+    @Body() body: Record<string, any>,
   ) {
-    return this.importService.importCustomers(businessId, dto.records);
+    const records = Array.isArray(body?.records) ? body.records : [];
+    return this.importService.importCustomers(businessId, records);
   }
 
   @Post('products')
   @ApiOperation({ summary: 'Import products from Khatabook or similar format' })
   async importProducts(
     @Param('businessId') businessId: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportProductsDto,
+    @Body() body: Record<string, any>,
   ) {
-    return this.importService.importProducts(businessId, dto.records);
+    const records = Array.isArray(body?.records) ? body.records : [];
+    return this.importService.importProducts(businessId, records);
   }
 
   @Post('invoices')
@@ -59,9 +57,10 @@ export class ImportController {
   async importInvoices(
     @Param('businessId') businessId: string,
     @CurrentUser() user: JwtPayload,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportInvoicesDto,
+    @Body() body: Record<string, any>,
   ) {
-    return this.importService.importInvoices(businessId, user.sub, dto.records);
+    const records = Array.isArray(body?.records) ? body.records : [];
+    return this.importService.importInvoices(businessId, user.sub, records);
   }
 
   @Post('parse-csv')

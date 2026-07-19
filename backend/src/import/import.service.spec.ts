@@ -322,7 +322,7 @@ describe('ImportService', () => {
       ]);
 
       expect(result.imported).toBe(0);
-      expect(result.errors[0]).toContain('Missing name');
+      expect(result.errors[0]).toContain('Missing customer name');
     });
 
     it('handles empty records array', async () => {

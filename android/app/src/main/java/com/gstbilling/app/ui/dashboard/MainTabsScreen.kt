@@ -13,6 +13,7 @@ import com.gstbilling.app.ui.inventory.InventoryDashboardScreen
 import com.gstbilling.app.ui.inventory.ProductListScreen
 
 enum class MainTab(val label: String) {
+    DASHBOARD("Dashboard"),
     INVOICES("Invoices"),
     CUSTOMERS("Customers"),
     PRODUCTS("Products"),
@@ -37,17 +38,24 @@ fun MainTabsScreen(
     onNavigateToSuppliers: () -> Unit,
     onNavigateToWarehouses: () -> Unit,
     onNavigateToStockMovements: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
     onInvoiceClick: (String) -> Unit,
     onEditProduct: (String) -> Unit,
     onEditCustomer: (String) -> Unit,
     onCustomerClick: (String) -> Unit,
     onOpenLedger: (String) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(MainTab.INVOICES) }
+    var selectedTab by remember { mutableStateOf(MainTab.DASHBOARD) }
 
     Scaffold(
         bottomBar = {
             NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == MainTab.DASHBOARD,
+                    onClick = { selectedTab = MainTab.DASHBOARD },
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    label = { Text("Dashboard") }
+                )
                 NavigationBarItem(
                     selected = selectedTab == MainTab.INVOICES,
                     onClick = { selectedTab = MainTab.INVOICES },
@@ -77,8 +85,26 @@ fun MainTabsScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (selectedTab) {
+                MainTab.DASHBOARD -> DashboardScreen(
+                    onNavigateToCustomers = { selectedTab = MainTab.CUSTOMERS },
+                    onNavigateToProducts = { selectedTab = MainTab.PRODUCTS },
+                    onNavigateToCreateInvoice = onNavigateToCreateInvoice,
+                    onNavigateToInvoices = { selectedTab = MainTab.INVOICES },
+                    onNavigateToReports = onNavigateToReports,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToStaff = onNavigateToStaff,
+                    onNavigateToAddCustomer = onNavigateToAddCustomer,
+                    onNavigateToAddProduct = onNavigateToAddProduct,
+                    onNavigateToNotifications = onNavigateToNotifications,
+                    onNavigateToBarcodeScanner = onNavigateToBarcodeScanner,
+                    onNavigateToStockTransfer = onNavigateToStockTransfer,
+                    onNavigateToBatchExpiry = onNavigateToBatchExpiry,
+                    onNavigateToCustomerGroups = onNavigateToCustomerGroups,
+                    onNavigateToInventoryDashboard = { selectedTab = MainTab.INVENTORY },
+                    onInvoiceClick = onInvoiceClick
+                )
                 MainTab.INVOICES -> InvoiceListScreen(
-                    onBack = {},
+                    onBack = { selectedTab = MainTab.DASHBOARD },
                     onInvoiceClick = onInvoiceClick,
                     onBulkInvoices = onNavigateToCreateInvoice
                 )
@@ -87,18 +113,18 @@ fun MainTabsScreen(
                     onEditCustomer = onEditCustomer,
                     onCustomerClick = onCustomerClick,
                     onOpenLedger = onOpenLedger,
-                    onBack = {},
+                    onBack = { selectedTab = MainTab.DASHBOARD },
                     onCustomerGroups = onNavigateToCustomerGroups
                 )
                 MainTab.PRODUCTS -> ProductListScreen(
                     onAddProduct = onNavigateToAddProduct,
                     onEditProduct = onEditProduct,
-                    onBack = {},
+                    onBack = { selectedTab = MainTab.DASHBOARD },
                     onBarcodeScanner = onNavigateToBarcodeScanner,
                     onStockTransfer = onNavigateToStockTransfer
                 )
                 MainTab.INVENTORY -> InventoryDashboardScreen(
-                    onBack = {},
+                    onBack = { selectedTab = MainTab.DASHBOARD },
                     onNavigateToStockMovements = onNavigateToStockMovements,
                     onNavigateToLowStock = onNavigateToLowStock
                 )
