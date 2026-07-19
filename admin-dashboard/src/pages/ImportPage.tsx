@@ -157,9 +157,11 @@ export default function ImportPage() {
       const autoMap: Record<string, string> = {};
       const targets = columnMappings[importType];
       for (const target of targets) {
-        const match = parsed.headers.find(
-          (h: string) => h.toLowerCase().replace(/[\s_-]/g, '') === target.toLowerCase().replace(/[\s_-]/g, ''),
-        );
+        const targetNorm = target.toLowerCase().replace(/[\s_\/-]/g, '');
+        const match = parsed.headers.find((h: string) => {
+          const headerNorm = h.toLowerCase().replace(/[\s_\/-]/g, '');
+          return headerNorm === targetNorm || headerNorm.includes(targetNorm) || targetNorm.includes(headerNorm);
+        });
         if (match) autoMap[target] = match;
       }
       setColumnMap(autoMap);

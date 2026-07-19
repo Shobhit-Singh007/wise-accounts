@@ -677,7 +677,41 @@ export class ImportService {
       if (!sheetName) throw new BadRequestException('Excel file has no sheets');
       const sheet = workbook.Sheets ? workbook.Sheets[sheetName] : null;
       if (!sheet) throw new BadRequestException('Excel sheet not found');
-      return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) as Record<string, string>[];
+
+      // Read all rows as arrays to detect actual header row
+      const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { defval: '', raw: false, header: 1 });
+      if (!rows || rows.length === 0) return [];
+
+      // Find the actual header row: skip leading rows that look like titles/merged headers
+      let headerIdx = 0;
+      for (let i = 0; i < Math.min(5, rows.length); i++) {
+        const row = rows[i];
+        const nonEmpty = row.filter((v: any) => String(v).trim()).length;
+        // A title row typically has 1-2 filled cells (business name + date range)
+        // while a real header row has 3+ filled cells with short column names
+        if (nonEmpty >= 3) {
+          headerIdx = i;
+          break;
+        }
+      }
+
+      const headers = rows[headerIdx];
+      // Build records from data rows after header
+      const result: Record<string, string>[] = [];
+      const summaryKeywords = ['grand total', 'balance', 'total'];
+      for (let i = headerIdx + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.every((v: any) => !String(v).trim())) continue;
+        const firstVal = String(row[0] || '').trim().toLowerCase();
+        if (summaryKeywords.some(k => firstVal.includes(k))) continue;
+        const record: Record<string, string> = {};
+        headers.forEach((h: string, idx: number) => {
+          const key = h || `col_${idx}`;
+          record[key] = String(row[idx] ?? '');
+        });
+        result.push(record);
+      }
+      return result;
     }
     const content = fileBuffer.toString('utf-8');
     return parse(content, { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true });

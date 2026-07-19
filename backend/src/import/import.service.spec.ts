@@ -272,7 +272,8 @@ describe('ImportService', () => {
       const mockWorkbook = { SheetNames: ['Sheet1'], Sheets: { Sheet1: {} } };
       (XLSX.read as jest.Mock).mockReturnValue(mockWorkbook);
       (XLSX.utils.sheet_to_json as jest.Mock).mockReturnValue([
-        { name: 'Product A', sku: 'P001', mrp: '100' },
+        ['name', 'sku', 'mrp'],
+        ['Product A', 'P001', '100'],
       ]);
 
       const result = service.parseCsv(Buffer.from('fake'), 'data.xlsx');
