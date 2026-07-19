@@ -445,15 +445,6 @@ export class ImportService {
           }
         }
 
-        // Debug: log first record's keys and values
-        if (!result.warnings) result.warnings = [];
-        const firstRaw = entries[0].record;
-        const firstKeys = Object.keys(firstRaw);
-        const debitTest = this.getNormalized(firstRaw, 'debit');
-        const creditTest = this.getNormalized(firstRaw, 'credit');
-        result.warnings.push(`Sample keys: ${firstKeys.slice(0, 8).join(', ')}`);
-        result.warnings.push(`Found debit='${debitTest}', credit='${creditTest}'`);
-
         // Create ledger entries for records with debit/credit data
         for (const entry of entries) {
           const rawRecord = entry.record;

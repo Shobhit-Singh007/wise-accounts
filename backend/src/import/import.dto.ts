@@ -403,27 +403,21 @@ export class InvoiceImportDto {
 }
 
 export class ImportCustomersDto {
-  @ApiProperty({ type: [CustomerImportDto] })
+  @ApiProperty({ type: [Object] })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CustomerImportDto)
-  records: CustomerImportDto[];
+  records: Record<string, any>[];
 }
 
 export class ImportProductsDto {
-  @ApiProperty({ type: [ProductImportDto] })
+  @ApiProperty({ type: [Object] })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProductImportDto)
-  records: ProductImportDto[];
+  records: Record<string, any>[];
 }
 
 export class ImportInvoicesDto {
-  @ApiProperty({ type: [InvoiceImportDto] })
+  @ApiProperty({ type: [Object] })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => InvoiceImportDto)
-  records: InvoiceImportDto[];
+  records: Record<string, any>[];
 }
 
 export interface ImportResult {

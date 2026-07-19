@@ -40,7 +40,7 @@ export class ImportController {
   })
   async importCustomers(
     @Param('businessId') businessId: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true, transformOptions: { enableImplicitConversion: true } })) dto: ImportCustomersDto,
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportCustomersDto,
   ) {
     return this.importService.importCustomers(businessId, dto.records);
   }
@@ -49,7 +49,7 @@ export class ImportController {
   @ApiOperation({ summary: 'Import products from Khatabook or similar format' })
   async importProducts(
     @Param('businessId') businessId: string,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true, transformOptions: { enableImplicitConversion: true } })) dto: ImportProductsDto,
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportProductsDto,
   ) {
     return this.importService.importProducts(businessId, dto.records);
   }
@@ -59,7 +59,7 @@ export class ImportController {
   async importInvoices(
     @Param('businessId') businessId: string,
     @CurrentUser() user: JwtPayload,
-    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true, transformOptions: { enableImplicitConversion: true } })) dto: ImportInvoicesDto,
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false })) dto: ImportInvoicesDto,
   ) {
     return this.importService.importInvoices(businessId, user.sub, dto.records);
   }
