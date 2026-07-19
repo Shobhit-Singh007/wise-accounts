@@ -72,7 +72,7 @@ class DataImportViewModel @Inject constructor(
 
     fun getTargetFields(type: ImportType): List<String> {
         return when (type) {
-            ImportType.CUSTOMERS -> listOf("name", "phone", "email", "gstin", "address", "city", "state", "pincode", "openingBalance", "creditLimit")
+            ImportType.CUSTOMERS -> listOf("name", "phone", "email", "gstin", "address", "city", "state", "pincode", "openingBalance", "creditLimit", "date", "details", "debit", "credit")
             ImportType.PRODUCTS -> listOf("name", "productName", "sku", "barcode", "hsnCode", "hsn", "unit", "unitOfMeasurement", "sellingPrice", "sellPrice", "purchasePrice", "mrp", "gstRate", "taxRate", "cgst", "sgst", "igst", "stock", "stockAvailable", "lowStockAlert", "isService", "productNote", "productType")
             ImportType.INVOICES -> listOf("invoiceNumber", "customerName", "customerPhone", "customerGstin", "customerAddress", "customerState", "invoiceDate", "dueDate", "subtotal", "taxableValue", "discount", "totalQuantity", "cgst", "sgst", "igst", "cgstRate", "sgstRate", "igstRate", "cessTotal", "cessRate", "cessAmount", "taxAmount", "totalTax", "totalAmount", "grandTotal", "status", "placeOfSupply", "reverseCharge", "poNo", "challanNo", "lrNo", "paymentType", "totalInWords", "ewayBillNo", "ewayBillDate", "transporterId", "transporterName", "vehicleNo", "distanceKm", "supplyType", "docType", "irn", "irnDate", "ackNo", "ackDate", "notes")
         }

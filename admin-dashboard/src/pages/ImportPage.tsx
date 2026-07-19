@@ -71,7 +71,7 @@ const importTypes: ImportTypeOption[] = [
 ];
 
 const columnMappings: Record<ImportType, string[]> = {
-  customers: ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Opening Balance', 'Credit Limit'],
+  customers: ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Opening Balance', 'Credit Limit', 'Date', 'Details', 'Debit', 'Credit'],
   products: ['Name', 'Product Name', 'SKU', 'Barcode', 'Barcode no',
     'HSN Code', 'HSN/SAC Code', 'Unit', 'Unit of Measurement',
     'Selling Price', 'Sell Price', 'Purchase Price', 'MRP',
