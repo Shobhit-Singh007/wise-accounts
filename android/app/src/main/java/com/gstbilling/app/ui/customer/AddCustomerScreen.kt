@@ -54,7 +54,7 @@ class AddCustomerViewModel @Inject constructor(
                 val businessId = sessionManager.getBusinessId() ?: ""
                 val response = apiService.lookupGstin(businessId.toString(), gstin)
                 if (response.isSuccessful) {
-                    val data = response.body()
+                    val data = response.body()?.data
                     if (data != null && data["error"] == null) {
                         if (name.isBlank()) name = data["tradeName"] as? String ?: data["name"] as? String ?: ""
                         if (address.isBlank()) address = data["address"] as? String ?: ""

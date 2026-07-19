@@ -198,50 +198,53 @@ export class CustomerController {
   }
 
   @Get('gstin/:gstin')
-  @ApiOperation({ summary: 'Lookup GSTIN details from government API' })
+  @ApiOperation({ summary: 'Lookup GSTIN details' })
   async lookupGstin(@Param('gstin') gstin: string) {
     const normalized = gstin.toUpperCase().trim();
     if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9]Z[0-9A-Z]$/.test(normalized)) {
       return { error: 'Invalid GSTIN format' };
     }
+    const stateCode = normalized.substring(0, 2);
+    const pan = normalized.substring(2, 12);
+    const stateName = GST_STATE_MAP[stateCode] || '';
+
+    const result: Record<string, string> = {
+      gstin: normalized,
+      stateCode,
+      state: stateName,
+      pan,
+      name: '',
+      tradeName: '',
+      legalName: '',
+      address: '',
+      city: '',
+      pincode: '',
+      status: '',
+      registrationDate: '',
+      businessType: '',
+    };
+
     try {
-      const resp = await fetch(`https://appyflow.in/api/verifyGST?gstin=${normalized}`);
+      const resp = await fetch(
+        `https://appyflow.in/api/verifyGST?gstin=${normalized}&key_secret=${process.env.APPYFLOW_KEY || ''}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
       const data = await resp.json() as any;
-      if (data.error || !data.gstData) {
-        const stateCode = normalized.substring(0, 2);
-        return {
-          gstin: normalized,
-          state: GST_STATE_MAP[stateCode] || '',
-          stateCode,
-          name: '',
-          address: '',
-        };
+      if (!data.error && data.gstData) {
+        const d = data.gstData;
+        result.name = d.tradeNam || d.legalNam || '';
+        result.tradeName = d.tradeNam || '';
+        result.legalName = d.legalNam || '';
+        result.address = [d.addr1, d.addr2, d.loc, d.dst].filter(Boolean).join(', ');
+        result.city = d.loc || '';
+        result.state = GST_STATE_MAP[stateCode] || d.stj || stateName;
+        result.pincode = d.pin || '';
+        result.status = d.sts || '';
+        result.registrationDate = d.rgdt || '';
+        result.businessType = d.dty || '';
       }
-      const d = data.gstData;
-      const stateCode = normalized.substring(0, 2);
-      return {
-        gstin: normalized,
-        name: d.tradeNam || d.legalNam || '',
-        tradeName: d.tradeNam || '',
-        legalName: d.legalNam || '',
-        address: [d.addr1, d.addr2, d.loc, d.dst].filter(Boolean).join(', '),
-        city: d.loc || '',
-        state: GST_STATE_MAP[stateCode] || d.stj || '',
-        stateCode,
-        pincode: d.pin || '',
-        status: d.sts || '',
-        registrationDate: d.rgdt || '',
-        businessType: d.dty || '',
-      };
-    } catch {
-      const stateCode = normalized.substring(0, 2);
-      return {
-        gstin: normalized,
-        state: GST_STATE_MAP[stateCode] || '',
-        stateCode,
-        name: '',
-        address: '',
-      };
-    }
+    } catch { /* AppyFlow unavailable — use GSTIN-decoded fallback */ }
+
+    return result;
   }
 }

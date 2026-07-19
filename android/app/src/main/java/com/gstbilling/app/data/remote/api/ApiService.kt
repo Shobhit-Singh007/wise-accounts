@@ -472,7 +472,7 @@ interface ApiService {
     suspend fun lookupGstin(
         @Path("businessId") businessId: String,
         @Path("gstin") gstin: String
-    ): Response<Map<String, Any?>>
+    ): Response<ApiResponse<Map<String, Any?>>>
 }
 
 // ── Auth Models ──
