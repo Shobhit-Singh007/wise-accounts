@@ -303,6 +303,24 @@ export default function ImportPage() {
           >
             Clear All Customers
           </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            sx={{ ml: 1 }}
+            onClick={async () => {
+              if (!confirm('Delete ALL data (customers, invoices, products) for this business? This cannot be undone.')) return;
+              try {
+                await client.delete(`/businesses/${currentBusinessId}/import/all`);
+                alert('All data deleted. You can now re-import from scratch.');
+                handleReset();
+              } catch (err: unknown) {
+                alert('Failed to delete: ' + ((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Unknown error'));
+              }
+            }}
+          >
+            Clear All Data
+          </Button>
         </Box>
       )}
 

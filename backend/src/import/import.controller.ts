@@ -163,6 +163,12 @@ export class ImportController {
     return this.importService.clearCustomers(businessId);
   }
 
+  @Delete('all')
+  @ApiOperation({ summary: 'Delete ALL data (customers, invoices, products) for this business' })
+  async clearAllData(@Param('businessId') businessId: string) {
+    return this.importService.clearAllData(businessId);
+  }
+
   @Post('products/upload')
   @UseInterceptors(
     FileInterceptor('file', {

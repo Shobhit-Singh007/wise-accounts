@@ -170,6 +170,11 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-19**: Fixed Android CustomerListViewModel — `collect {}` was blocking the coroutine, preventing `refreshCustomers()` from ever executing. Moved to `launch { collect {} }` so refresh runs in parallel. See `CustomerListScreen.kt`.
 - **2026-07-19**: Fixed Android customers/products API routes — changed from flat `@GET("customers")?business_id=` to `@GET("businesses/{businessId}/customers")` with `@Path`. See `ApiService.kt`.
 - **2026-07-19**: Removed redundant "Navigate" cards from Android Dashboard (now handled by bottom nav bar). See `DashboardScreen.kt`.
+- **2026-07-19**: Fixed Android data not displaying — root cause was backend returns paginated `{ data: [...], meta: {...} }` but Android expected flat list. Added `PaginatedData<T>` wrapper, updated `ApiService` endpoints for customers/products/invoices to return `ApiResponse<PaginatedData<T>>`, and updated all repositories/screens to access `.data?.data`. See `ApiService.kt`, `CustomerRepository.kt`, `ProductRepository.kt`, `InvoiceRepository.kt`, `ExportDataScreen.kt`, `StockMovementsScreen.kt`.
+- **2026-07-19**: Fixed inventory dashboard/stock-movements routes — changed from flat `@GET("inventory/dashboard")?business_id=` to `@GET("businesses/{businessId}/reports/inventory-dashboard")` with `@Path`. See `ApiService.kt`.
+- **2026-07-19**: Refactored Android bottom navigation — replaced embedded tab content with nested `NavHost` for proper lifecycle/ViewModel per tab. See `MainTabsScreen.kt`.
+- **2026-07-19**: Fixed CustomerListViewModel `collect` blocking refresh — moved to `launch { collect {} }`. See `CustomerListScreen.kt`.
+- **2026-07-19**: Fixed ledger date display — backend `getLedger` now uses `transactionDate` instead of `createdAt`. See `customer.service.ts`.
 
 ## Deployment Commands
 ```powershell

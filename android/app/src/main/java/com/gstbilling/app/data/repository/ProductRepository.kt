@@ -31,7 +31,8 @@ class ProductRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.getProducts(businessId)
             if (response.isSuccessful) {
-                val products = response.body()?.data ?: emptyList()
+                val paginated = response.body()?.data
+                val products = paginated?.data ?: emptyList()
                 val entities = products.map { it.toEntity() }
                 productDao.insertAll(entities)
                 products

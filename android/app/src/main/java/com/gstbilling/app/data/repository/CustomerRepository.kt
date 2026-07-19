@@ -42,7 +42,8 @@ class CustomerRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.getCustomers(businessId)
             if (response.isSuccessful) {
-                val customers = response.body()?.data ?: emptyList()
+                val paginated = response.body()?.data
+                val customers = paginated?.data ?: emptyList()
                 val entities = customers.map { it.toEntity() }
                 customerDao.insertAll(entities)
                 customers

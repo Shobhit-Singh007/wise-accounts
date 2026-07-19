@@ -52,7 +52,7 @@ interface ApiService {
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null
-    ): Response<ApiResponse<List<Customer>>>
+    ): Response<ApiResponse<PaginatedData<Customer>>>
 
     @GET("customers/{id}")
     suspend fun getCustomer(@Path("id") id: String): Response<ApiResponse<Customer>>
@@ -82,7 +82,7 @@ interface ApiService {
         @Query("search") search: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null
-    ): Response<ApiResponse<List<Product>>>
+    ): Response<ApiResponse<PaginatedData<Product>>>
 
     @GET("products/{id}")
     suspend fun getProduct(@Path("id") id: String): Response<ApiResponse<Product>>
@@ -148,7 +148,7 @@ interface ApiService {
         @Query("direction") direction: String? = null,
         @Query("page") page: Int? = null,
         @Query("per_page") perPage: Int? = null
-    ): Response<ApiResponse<List<Invoice>>>
+    ): Response<ApiResponse<PaginatedData<Invoice>>>
 
     @GET("businesses/{businessId}/invoices/{id}")
     suspend fun getInvoice(
@@ -1299,6 +1299,18 @@ data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,
     val data: T? = null
+)
+
+data class PaginatedData<T>(
+    val data: List<T>,
+    val meta: PaginationMeta? = null
+)
+
+data class PaginationMeta(
+    val total: Int = 0,
+    val page: Int = 1,
+    val limit: Int = 20,
+    val totalPages: Int = 1
 )
 
 data class LedgerImageUploadResponse(

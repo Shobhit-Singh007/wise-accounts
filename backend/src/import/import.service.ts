@@ -493,6 +493,17 @@ export class ImportService {
     return result;
   }
 
+  async clearAllData(businessId: string): Promise<{ customers: number; invoices: number; products: number }> {
+    const customers = await this.prisma.customer.findMany({ where: { businessId } });
+    for (const c of customers) {
+      await this.prisma.customerTransaction.deleteMany({ where: { customerId: c.id } });
+    }
+    await this.prisma.customer.deleteMany({ where: { businessId } });
+    const invoices = await this.prisma.invoice.deleteMany({ where: { businessId } });
+    const products = await this.prisma.product.deleteMany({ where: { businessId } });
+    return { customers: customers.length, invoices: invoices.count, products: products.count };
+  }
+
   async clearCustomers(businessId: string): Promise<{ deleted: number }> {
     const customers = await this.prisma.customer.findMany({ where: { businessId } });
     for (const c of customers) {

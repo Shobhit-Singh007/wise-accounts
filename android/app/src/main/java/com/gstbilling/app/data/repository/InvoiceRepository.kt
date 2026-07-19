@@ -45,7 +45,8 @@ class InvoiceRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.getInvoices(businessId, direction = direction)
             if (response.isSuccessful) {
-                val invoices = response.body()?.data ?: emptyList()
+                val paginated = response.body()?.data
+                val invoices = paginated?.data ?: emptyList()
                 val entities = invoices.map { it.toEntity() }
                 invoiceDao.insertAll(entities)
                 invoices
@@ -135,7 +136,7 @@ class InvoiceRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.getCustomers(businessId, search = query, perPage = 20)
             if (response.isSuccessful) {
-                response.body()?.data ?: emptyList()
+                response.body()?.data?.data ?: emptyList()
             } else {
                 throw Exception(response.errorBody()?.string() ?: "Failed to search customers")
             }
@@ -146,7 +147,7 @@ class InvoiceRepository @Inject constructor(
         return safeApiCall {
             val response = apiService.getProducts(businessId, search = query, perPage = 20)
             if (response.isSuccessful) {
-                response.body()?.data ?: emptyList()
+                response.body()?.data?.data ?: emptyList()
             } else {
                 throw Exception(response.errorBody()?.string() ?: "Failed to search products")
             }

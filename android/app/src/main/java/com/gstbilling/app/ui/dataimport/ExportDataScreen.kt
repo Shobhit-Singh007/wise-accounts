@@ -66,7 +66,7 @@ class ExportDataViewModel @Inject constructor(
                 val response = withContext(Dispatchers.IO) {
                     apiService.getCustomers(businessId, perPage = 9999)
                 }
-                val customers = response.body()?.data ?: emptyList()
+                val customers = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Name", "Phone", "Email", "GSTIN", "Address", "City", "State", "Pincode", "Opening Balance", "Credit Limit")
                 val rows = customers.map { c ->
                     listOf(c.name, c.phone ?: "", c.email ?: "", c.gstin ?: "", c.address ?: "", c.city ?: "", c.state ?: "", c.pincode ?: "", "${c.openingBalance}", "${c.creditLimit}")
@@ -100,7 +100,7 @@ class ExportDataViewModel @Inject constructor(
                 val response = withContext(Dispatchers.IO) {
                     apiService.getProducts(businessId, perPage = 9999)
                 }
-                val products = response.body()?.data ?: emptyList()
+                val products = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Name", "SKU", "HSN", "Unit", "Selling Price", "Purchase Price", "GST Rate", "Stock")
                 val rows = products.map { p ->
                     listOf(p.name, p.sku ?: "", p.hsnCode ?: "", p.unit ?: "", "${p.sellingPrice}", "${p.purchasePrice}", "${p.gstRate}%", "${p.stock}")
@@ -134,7 +134,7 @@ class ExportDataViewModel @Inject constructor(
                 val response = withContext(Dispatchers.IO) {
                     apiService.getInvoices(businessId, perPage = 9999)
                 }
-                val invoices = response.body()?.data ?: emptyList()
+                val invoices = response.body()?.data?.data ?: emptyList()
                 val headers = listOf("Invoice No", "Date", "Customer", "Direction", "Subtotal", "Taxable Amount", "Total Amount", "Status")
                 val rows = invoices.map { inv ->
                     listOf(

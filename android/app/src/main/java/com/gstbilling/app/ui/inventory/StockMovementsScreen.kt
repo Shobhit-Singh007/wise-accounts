@@ -51,7 +51,7 @@ class StockMovementsViewModel @Inject constructor(
                 try {
                     val response = apiService.getProducts(businessId)
                     if (response.isSuccessful) {
-                        products = response.body()?.data ?: emptyList()
+                        products = response.body()?.data?.data ?: emptyList()
                     }
                 } catch (e: Exception) {
                     // Silently fail - products are optional filter
