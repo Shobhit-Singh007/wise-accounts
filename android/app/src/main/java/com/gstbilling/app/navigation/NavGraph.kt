@@ -32,7 +32,7 @@ import com.gstbilling.app.ui.customer.CustomerLedgerScreen
 import com.gstbilling.app.ui.customer.CustomerGroupsScreen
 import com.gstbilling.app.ui.customer.CustomerListScreen
 import com.gstbilling.app.ui.dashboard.DashboardScreen
-import com.gstbilling.app.ui.dashboard.MainTabsScreen
+import com.gstbilling.app.ui.dashboard.MainTabsHost
 import com.gstbilling.app.ui.inventory.AddProductScreen
 import com.gstbilling.app.ui.inventory.LowStockAlertsScreen
 import com.gstbilling.app.ui.inventory.ProductDetailScreen
@@ -128,7 +128,7 @@ fun NavGraph(
         }
 
         composable(Routes.DASHBOARD) {
-            MainTabsScreen(
+            MainTabsHost(
                 onNavigateToCreateInvoice = { navController.navigate(Routes.CREATE_INVOICE) },
                 onNavigateToAddCustomer = { navController.navigate(Routes.ADD_CUSTOMER) },
                 onNavigateToAddProduct = { navController.navigate(Routes.ADD_PRODUCT) },
