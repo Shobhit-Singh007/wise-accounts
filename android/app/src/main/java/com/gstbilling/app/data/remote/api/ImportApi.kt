@@ -1,5 +1,6 @@
 package com.gstbilling.app.data.remote.api
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -28,9 +29,7 @@ data class ParseCsvResponse(
 )
 
 data class ImportRequest(
-    val data: List<Map<String, Any>>,
-    val columnMapping: Map<String, String>,
-    val overwriteExisting: Boolean = false
+    @SerializedName("records") val records: List<Map<String, Any>>
 )
 
 data class ImportResult(

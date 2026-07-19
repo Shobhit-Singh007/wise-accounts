@@ -71,9 +71,17 @@ const importTypes: ImportTypeOption[] = [
 ];
 
 const columnMappings: Record<ImportType, string[]> = {
-  customers: ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'Opening Balance'],
-  products: ['Name', 'SKU', 'HSN Code', 'Selling Price', 'Purchase Price', 'Tax Rate'],
-  invoices: ['Invoice No', 'Date', 'Customer Name', 'Phone', 'Items', 'Amount'],
+  customers: ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Opening Balance', 'Credit Limit'],
+  products: ['Name', 'SKU', 'HSN Code', 'Unit', 'Selling Price', 'Purchase Price', 'MRP', 'Tax Rate', 'Stock', 'Low Stock Alert'],
+  invoices: [
+    'Invoice No', 'Date', 'Due Date',
+    'Customer Name', 'Customer Phone', 'Customer GSTIN', 'Customer Address', 'Customer State',
+    'Place of Supply', 'Reverse Charge', 'PO No', 'Challan No', 'LR No', 'Payment Type',
+    'Subtotal', 'Discount', 'CGST', 'SGST', 'IGST', 'CESS Total', 'Tax Amount', 'Grand Total',
+    'Total in Words', 'Notes',
+    'EWay Bill No', 'Transporter Name', 'Vehicle No',
+    'IRN', 'ACK No',
+  ],
 };
 
 const steps = ['Select Type', 'Upload & Map', 'Import Results'];
@@ -84,6 +92,7 @@ export default function ImportPage() {
   const [importType, setImportType] = useState<ImportType | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [allRows, setAllRows] = useState<Record<string, string>[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [parsing, setParsing] = useState(false);
@@ -114,8 +123,9 @@ export default function ImportPage() {
 
     try {
       const { data } = await importApi.parseCsv(currentBusinessId, selected);
-      const parsed = data as { headers: string[]; rows: Record<string, string>[] };
+      const parsed = data as { headers: string[]; rows: Record<string, string>[]; totalRows: number };
       setHeaders(parsed.headers || []);
+      setAllRows(parsed.rows || []);
       setPreviewRows((parsed.rows || []).slice(0, 10));
 
       const autoMap: Record<string, string> = {};
@@ -163,7 +173,7 @@ export default function ImportPage() {
     }, 300);
 
     try {
-      const mappedData = previewRows.map((row) => {
+      const mappedData = allRows.map((row) => {
         const mapped: Record<string, string> = {};
         for (const [target, source] of Object.entries(columnMap)) {
           if (source) mapped[target] = row[source] || '';

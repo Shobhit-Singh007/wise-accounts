@@ -9,9 +9,9 @@ export const importApi = {
     });
   },
   importCustomers: (businessId: string, customers: any[]) =>
-    client.post(`/businesses/${businessId}/import/customers`, { customers }),
+    client.post(`/businesses/${businessId}/import/customers`, { records: customers }),
   importProducts: (businessId: string, products: any[]) =>
-    client.post(`/businesses/${businessId}/import/products`, { products }),
+    client.post(`/businesses/${businessId}/import/products`, { records: products }),
   importInvoices: (businessId: string, invoices: any[]) =>
-    client.post(`/businesses/${businessId}/import/invoices`, { invoices }),
+    client.post(`/businesses/${businessId}/import/invoices`, { records: invoices }),
 };

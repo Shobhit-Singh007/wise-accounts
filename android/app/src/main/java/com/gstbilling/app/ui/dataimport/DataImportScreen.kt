@@ -233,11 +233,7 @@ class DataImportViewModel @Inject constructor(
                     mapped
                 }
 
-                val mappingMap = mapping.associate { it.sourceColumn to it.targetField }
-                val request = ImportRequest(
-                    data = mappedData,
-                    columnMapping = mappingMap
-                )
+                val request = ImportRequest(records = mappedData)
 
                 withContext(Dispatchers.IO) {
                     val response = when (selectedType) {
