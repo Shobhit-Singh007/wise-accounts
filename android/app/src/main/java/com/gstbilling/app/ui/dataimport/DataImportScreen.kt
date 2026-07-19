@@ -1034,7 +1034,7 @@ private fun ImportResultContent(
                     )
                     result.errors.take(10).forEach { error ->
                         Text(
-                            "Row ${error.row}: ${error.message}",
+                            error,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )

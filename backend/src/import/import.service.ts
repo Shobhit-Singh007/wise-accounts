@@ -693,13 +693,13 @@ export class ImportService {
     const grouped = this.groupGoGSTRecords(records);
     if (grouped.length > 0 && grouped[0].items.length > 0) {
       const headers = Object.keys(grouped[0].header);
-      const rows = grouped.slice(0, 10).map((g) => headers.map((h) => g.header[h] ?? ''));
+      const rows = grouped.map((g) => headers.map((h) => g.header[h] ?? ''));
       const detectedType = this.detectFileType(headers);
       return { headers, rows, totalRows: grouped.length, detectedType };
     }
 
     const headers = Object.keys(records[0]);
-    const rows = records.slice(0, 10).map((record) => headers.map((h) => record[h] ?? ''));
+    const rows = records.map((record) => headers.map((h) => record[h] ?? ''));
     const detectedType = this.detectFileType(headers);
     return { headers, rows, totalRows: records.length, detectedType };
   }

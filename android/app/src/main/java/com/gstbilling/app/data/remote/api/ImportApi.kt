@@ -33,18 +33,11 @@ data class ImportRequest(
 )
 
 data class ImportResult(
-    val totalRows: Int,
-    val imported: Int,
-    val skipped: Int,
-    val errors: List<ImportError>,
+    val totalRows: Int = 0,
+    val imported: Int = 0,
+    val skipped: Int = 0,
+    val errors: List<String> = emptyList(),
     val warnings: List<String> = emptyList()
-)
-
-data class ImportError(
-    val row: Int,
-    val field: String? = null,
-    val message: String,
-    val value: String? = null
 )
 
 interface ImportApi {

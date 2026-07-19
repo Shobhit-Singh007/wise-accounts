@@ -12,7 +12,9 @@ import { CloudWatchLogger } from './common/cloudwatch.logger';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: process.env.NODE_ENV === 'production' ? new CloudWatchLogger() : undefined,
+    rawBody: true,
   });
+  app.useBodyParser('json', { limit: '10mb' });
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
