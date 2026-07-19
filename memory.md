@@ -163,6 +163,13 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-19**: Fixed Android invoice API routes — was using flat `/invoices` but backend expects `/businesses/{businessId}/invoices`. Fixed `getInvoices`, `getInvoice`, `createInvoice`, `cancelInvoice`, `createCreditNote`. Also fixed callers in Repository and ViewModels. See `ApiService.kt`.
 - **2026-07-19**: Added delete product button + stock adjust dialog to admin dashboard ProductsPage. See `ProductsPage.tsx`.
 - **2026-07-19**: Fixed business name/logo in invoice detail dialog — replaced hardcoded "Your Business" with actual `currentBusiness.name` and logo. See `InvoicesPage.tsx`.
+- **2026-07-19**: Fixed import validation pipe stripping — added `@UsePipes(new ValidationPipe({ whitelist: false, transform: false }))` at controller level to override global ValidationPipe. Changed to `@Body() body: any` with manual `body?.records` extraction. See `import.controller.ts`.
+- **2026-07-19**: Added `transactionDate` field to `CustomerTransaction` Prisma model + migration `add_transaction_date`. Import now stores transaction dates from Khatabook files. Backend ledger endpoint now returns `transactionDate` instead of `createdAt`. See `schema.prisma`, `import.service.ts`, `customer.service.ts`.
+- **2026-07-19**: Added `DELETE /businesses/:businessId/import/customers` endpoint + "Clear All Customers" button in admin dashboard Import page. See `import.controller.ts`, `ImportPage.tsx`.
+- **2026-07-19**: Refactored Android bottom navigation — replaced embedded tab content with nested `NavHost` inside `MainTabsHost` so each tab gets its own lifecycle/ViewModel. Added proper back-stack management. See `MainTabsScreen.kt`, `NavGraph.kt`.
+- **2026-07-19**: Fixed Android CustomerListViewModel — `collect {}` was blocking the coroutine, preventing `refreshCustomers()` from ever executing. Moved to `launch { collect {} }` so refresh runs in parallel. See `CustomerListScreen.kt`.
+- **2026-07-19**: Fixed Android customers/products API routes — changed from flat `@GET("customers")?business_id=` to `@GET("businesses/{businessId}/customers")` with `@Path`. See `ApiService.kt`.
+- **2026-07-19**: Removed redundant "Navigate" cards from Android Dashboard (now handled by bottom nav bar). See `DashboardScreen.kt`.
 
 ## Deployment Commands
 ```powershell

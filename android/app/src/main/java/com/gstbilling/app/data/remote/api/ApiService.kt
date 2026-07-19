@@ -424,14 +424,14 @@ interface ApiService {
     ): Response<ApiResponse<Unit>>
 
     // ── Inventory Dashboard & Stock Movements ──
-    @GET("inventory/dashboard")
+    @GET("businesses/{businessId}/reports/inventory-dashboard")
     suspend fun getInventoryDashboard(
-        @Query("business_id") businessId: String
+        @Path("businessId") businessId: String
     ): Response<ApiResponse<InventoryDashboard>>
 
-    @GET("inventory/stock-movements")
+    @GET("businesses/{businessId}/reports/stock-movements")
     suspend fun getStockMovements(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("start_date") startDate: String? = null,
         @Query("end_date") endDate: String? = null,
         @Query("product_id") productId: String? = null
