@@ -72,18 +72,32 @@ const importTypes: ImportTypeOption[] = [
 
 const columnMappings: Record<ImportType, string[]> = {
   customers: ['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Opening Balance', 'Credit Limit'],
-  products: ['Name', 'SKU', 'HSN Code', 'Unit', 'Selling Price', 'Purchase Price', 'MRP', 'Tax Rate', 'Stock', 'Low Stock Alert'],
+  products: ['Name', 'Product Name', 'SKU', 'Barcode', 'Barcode no',
+    'HSN Code', 'HSN/SAC Code', 'Unit', 'Unit of Measurement',
+    'Selling Price', 'Sell Price', 'Purchase Price', 'MRP',
+    'Tax Rate', 'CGST %', 'SGST %', 'IGST %', 'CESS %',
+    'Stock', 'Stock Available', 'Low Stock Alert',
+    'Is Service', 'Is Service Product ?', 'Barcode',
+    'Product Note', 'Product Type', 'Product Group', 'Model No.',
+  ],
   invoices: [
-    'Invoice No', 'Date', 'Due Date',
-    'Customer Name', 'Customer Phone', 'Customer GSTIN', 'Customer Address', 'Customer State',
-    'Place of Supply', 'Reverse Charge', 'PO No', 'Challan No', 'LR No', 'Payment Type',
-    'Subtotal', 'Taxable Value', 'Discount',
-    'Total Quantity', 'CGST', 'SGST', 'IGST', 'CGST Rate', 'SGST Rate', 'IGST Rate',
-    'CESS Total', 'CESS Rate', 'CESS Amount',
-    'Tax Amount', 'Total Tax', 'Grand Total',
-    'Total in Words', 'Notes',
-    'EWay Bill No', 'EWay Bill Date', 'Transporter ID', 'Transporter Name', 'Vehicle No', 'Distance Km',
-    'IRN', 'IRN Date', 'ACK No', 'ACK Date',
+    'Invoice No', 'Invoice Id', 'Date', 'Invoice Date', 'Due Date',
+    'Customer Name', 'Company Name', 'Customer Phone', 'Phone No',
+    'Customer GSTIN', 'GST NO', 'Customer Address', 'Address', 'Customer State', 'State',
+    'Place of Supply', 'Reverse Charge', 'Reverse Tax',
+    'PO No', 'Challan No', 'Challan Date', 'LR No', 'Payment Type',
+    'Subtotal', 'Taxable Value', 'Taxble Value Total', 'Discount',
+    'Total Quantity', 'Quantity Total',
+    'CGST', 'CGST Total', 'SGST', 'SGST Total', 'IGST', 'IGST Total',
+    'CGST Rate', 'CGST %', 'SGST Rate', 'SGST %', 'IGST Rate', 'IGST %',
+    'CESS Total', 'CESS Rate', 'CESS %', 'CESS Amount',
+    'Tax Amount', 'Tax Total', 'Grand Total',
+    'Total in Words', 'Notes', 'Document Note',
+    'EWay No', 'EWay Bill No', 'EWay Bill Date',
+    'Transport Id', 'Transporter ID', 'Transport Name', 'Transporter Name',
+    'Vehicle No', 'Distance Km',
+    'IRN', 'IRN No', 'IRN Date', 'ACK No', 'ACK Date',
+    'Shipping Name', 'Shipping Address', 'Shipping Phone No', 'Shipping Email',
   ],
 };
 
@@ -96,6 +110,7 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [allRows, setAllRows] = useState<Record<string, string>[]>([]);
+  const [allRawRows, setAllRawRows] = useState<Record<string, string>[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [parsing, setParsing] = useState(false);
@@ -126,10 +141,18 @@ export default function ImportPage() {
 
     try {
       const { data } = await importApi.parseCsv(currentBusinessId, selected);
-      const parsed = data as { headers: string[]; rows: Record<string, string>[]; totalRows: number };
+      const parsed = data as { headers: string[]; rows: any[][]; totalRows: number };
       setHeaders(parsed.headers || []);
-      setAllRows(parsed.rows || []);
-      setPreviewRows((parsed.rows || []).slice(0, 10));
+      // Backend returns rows as string[][] arrays — convert to objects for mapping
+      const headers = parsed.headers || [];
+      const objectRows = (parsed.rows || []).map((row: any[]) => {
+        const obj: Record<string, string> = {};
+        headers.forEach((h, i) => obj[h] = String(row[i] ?? ''));
+        return obj;
+      });
+      setAllRows(objectRows);
+      setAllRawRows(objectRows);
+      setPreviewRows(objectRows.slice(0, 10));
 
       const autoMap: Record<string, string> = {};
       const targets = columnMappings[importType];
@@ -176,25 +199,32 @@ export default function ImportPage() {
     }, 300);
 
     try {
-      const mappedData = allRows.map((row) => {
-        const mapped: Record<string, string> = {};
-        for (const [target, source] of Object.entries(columnMap)) {
-          if (source) mapped[target] = row[source] || '';
-        }
-        return mapped;
-      });
-
       let response;
-      switch (importType) {
-        case 'customers':
-          response = await importApi.importCustomers(currentBusinessId, mappedData);
-          break;
-        case 'products':
-          response = await importApi.importProducts(currentBusinessId, mappedData);
-          break;
-        case 'invoices':
-          response = await importApi.importInvoices(currentBusinessId, mappedData);
-          break;
+      // For XLSX files, import directly via file upload to preserve format
+      if (importType === 'invoices' && file.name.match(/\.(xlsx|xls)$/i)) {
+        response = await importApi.importInvoicesFromFile(currentBusinessId, file);
+      } else if (importType === 'products' && file.name.match(/\.(xlsx|xls)$/i)) {
+        response = await importApi.importProductsFromFile(currentBusinessId, file);
+      } else {
+        const recordsToSend = allRows.map((row) => {
+          const mapped: Record<string, string> = {};
+          for (const [target, source] of Object.entries(columnMap)) {
+            if (source) mapped[target] = row[source] || '';
+          }
+          return Object.keys(mapped).length > 0 ? mapped : row;
+        });
+
+        switch (importType) {
+          case 'customers':
+            response = await importApi.importCustomers(currentBusinessId, recordsToSend);
+            break;
+          case 'products':
+            response = await importApi.importProducts(currentBusinessId, recordsToSend);
+            break;
+          case 'invoices':
+            response = await importApi.importInvoices(currentBusinessId, recordsToSend);
+            break;
+        }
       }
 
       clearInterval(progressInterval);
@@ -202,7 +232,7 @@ export default function ImportPage() {
 
       const res = response?.data as { imported?: number; skipped?: number; errors?: string[] };
       setResult({
-        imported: res?.imported ?? mappedData.length,
+        imported: res?.imported ?? 0,
         skipped: res?.skipped ?? 0,
         errors: res?.errors ?? [],
       });
@@ -223,6 +253,8 @@ export default function ImportPage() {
     setImportType(null);
     setFile(null);
     setHeaders([]);
+    setAllRows([]);
+    setAllRawRows([]);
     setPreviewRows([]);
     setColumnMap({});
     setResult(null);
@@ -277,7 +309,7 @@ export default function ImportPage() {
       {activeStep === 1 && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-            <IconButton onClick={() => { setActiveStep(0); setFile(null); setHeaders([]); setPreviewRows([]); setColumnMap({}); }}>
+            <IconButton onClick={() => { setActiveStep(0); setFile(null); setHeaders([]); setAllRows([]); setAllRawRows([]); setPreviewRows([]); setColumnMap({}); }}>
               <BackIcon />
             </IconButton>
             <Typography variant="h5">

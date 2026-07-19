@@ -16,19 +16,22 @@ export class ImportService {
 
   constructor(private prisma: PrismaService) {}
 
+  private normalizeKey(key: string): string {
+    return key.toLowerCase().replace(/[\s_\-%\/.?#()]/g, '');
+  }
+
   private getNormalized(record: any, key: string): any {
     if (record[key] != null) return record[key];
-    const lower = key.toLowerCase();
+    const normalizedKey = this.normalizeKey(key);
     const keys = Object.keys(record);
     for (const k of keys) {
-      const normalized = k.toLowerCase().replace(/[\s_\-]/g, '');
-      if (normalized === lower.replace(/[\s_\-]/g, '')) {
+      if (this.normalizeKey(k) === normalizedKey) {
         return record[k];
       }
     }
     for (const k of keys) {
-      const normalized = k.toLowerCase().replace(/[\s_\-]/g, '');
-      if (normalized.includes(lower.replace(/[\s_\-]/g, '')) || lower.replace(/[\s_\-]/g, '').includes(normalized)) {
+      const nk = this.normalizeKey(k);
+      if (nk.includes(normalizedKey) || normalizedKey.includes(nk)) {
         return record[k];
       }
     }
@@ -70,6 +73,10 @@ export class ImportService {
     purchasePrice: number;
     mrp: number | null;
     taxRate: number;
+    barcode: string | null;
+    stock: number;
+    isService: boolean;
+    lowStockThreshold: number;
   } {
     const get = (key: string) => this.getNormalized(record, key);
 
@@ -81,8 +88,12 @@ export class ImportService {
     const purchasePrice = this.parseIndianNumber(get('purchasePrice'));
     const mrp = get('mrp') != null ? this.parseIndianNumber(get('mrp')) : null;
     const taxRate = this.parseIndianNumber(get('taxRate'));
+    const barcode = get('barcode');
+    const stock = this.parseIndianNumber(get('stock'));
+    const isService = String(get('isService') || '').toLowerCase() === 'yes' || String(get('isService') || '').toLowerCase() === 'true';
+    const lowStockThreshold = this.parseIndianNumber(get('lowStockThreshold'));
 
-    return { name, sku, hsnCode, unit, sellingPrice, purchasePrice, mrp, taxRate };
+    return { name, sku, hsnCode, unit, sellingPrice, purchasePrice, mrp, taxRate, barcode, stock, isService, lowStockThreshold };
   }
 
   normalizeInvoiceRecord(record: any): {
@@ -442,6 +453,9 @@ export class ImportService {
             purchasePrice: normalized.purchasePrice,
             mrp: normalized.mrp,
             taxRate: normalized.taxRate,
+            barcode: normalized.barcode,
+            lowStockThreshold: normalized.lowStockThreshold,
+            isService: normalized.isService,
           },
         });
         result.imported++;
@@ -655,21 +669,22 @@ export class ImportService {
     return groups;
   }
 
-  parseCsv(fileBuffer: Buffer, originalFilename: string): CsvParseResult {
+  getAllRecords(fileBuffer: Buffer, originalFilename: string): Record<string, string>[] {
     const isExcel = /\.(xlsx|xls)$/i.test(originalFilename);
-    let records: Record<string, string>[];
-
     if (isExcel) {
       const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       if (!sheetName) throw new BadRequestException('Excel file has no sheets');
       const sheet = workbook.Sheets ? workbook.Sheets[sheetName] : null;
       if (!sheet) throw new BadRequestException('Excel sheet not found');
-      records = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) as Record<string, string>[];
-    } else {
-      const content = fileBuffer.toString('utf-8');
-      records = parse(content, { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true });
+      return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) as Record<string, string>[];
     }
+    const content = fileBuffer.toString('utf-8');
+    return parse(content, { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true });
+  }
+
+  parseCsv(fileBuffer: Buffer, originalFilename: string): CsvParseResult {
+    const records = this.getAllRecords(fileBuffer, originalFilename);
 
     if (!records || records.length === 0) {
       throw new BadRequestException('File is empty or has no valid data rows');

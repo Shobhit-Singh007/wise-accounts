@@ -154,6 +154,7 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-19**: Import field name mismatch — Android sent `{data,...}` but backend expected `{records}`. Admin dashboard sent `{customers/products/invoices}` instead of `{records}`. Fixed both. See `ImportApi.kt`, `import.ts`.
 - **2026-07-19**: Added `totalQuantity` field + expanded import/export column mappings. Prisma migration `add_total_quantity`, Room migration 3→4. Added `Total Quantity`, `Taxable Value`, `Total Tax`, `Transporter ID`, `ACK Date`, `IRN Date`, `EWay Bill Date`, `Distance Km` to import mapping targets. Updated export service with all new fields.
 - **2026-07-19**: Fixed backend import service — was not saving `ewayBillNo`, `ewayBillDate`, `transporterName`, `vehicleNo`, `irn`, `irnDate`, `ackNo`, `ackDate`, `paymentNote`, `notes` during import. Also fixed `notes` being set to `totalInWords` value instead of actual notes.
+- **2026-07-19**: Added direct file upload import endpoints (`/import/invoices/upload`, `/import/products/upload`) that bypass column mapping for GoGST XLSX files. Backend handles grouping, normalization, and cross-table creation. Admin dashboard auto-detects XLSX files and uses direct upload. Added `normalizeKey()` regex improvement for `%`, `/`, `.`, `?` chars. Added `barcode`, `stock`, `isService`, `lowStockThreshold` to `normalizeProductRecord`.
 
 ## Deployment Commands
 ```powershell
