@@ -209,11 +209,11 @@ export default function ImportPage() {
         response = await importApi.importProductsFromFile(currentBusinessId, file);
       } else {
         const recordsToSend = allRows.map((row) => {
-          const mapped: Record<string, string> = {};
+          const mapped: Record<string, string> = { ...row };
           for (const [target, source] of Object.entries(columnMap)) {
             if (source) mapped[target] = row[source] || '';
           }
-          return Object.keys(mapped).length > 0 ? mapped : row;
+          return mapped;
         });
 
         switch (importType) {

@@ -395,7 +395,7 @@ export class ImportService {
 
     // Check if records contain transaction data (Date or Debit/Credit columns)
     const hasTransactionData = records.some((r: any) => {
-      const keys = Object.keys(r).map(k => k.toLowerCase().replace(/[\s_-]/g, ''));
+      const keys = Object.keys(r).map(k => this.normalizeKey(k));
       return keys.some(k => k === 'date' || k === 'debit' || k === 'credit');
     });
 
