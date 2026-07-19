@@ -40,7 +40,7 @@ class CustomerRepository @Inject constructor(
             return AppResult.Error("No internet connection")
         }
         return safeApiCall {
-            val response = apiService.getCustomers(businessId)
+            val response = apiService.getCustomers(businessId, perPage = 9999)
             if (response.isSuccessful) {
                 val paginated = response.body()?.data
                 val customers = paginated?.data ?: emptyList()

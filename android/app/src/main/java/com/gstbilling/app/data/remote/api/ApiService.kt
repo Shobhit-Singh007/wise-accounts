@@ -331,16 +331,16 @@ interface ApiService {
     ): Response<ApiResponse<Map<String, Any>>>
 
     // ── Reports ──
-    @GET("reports/sales")
+    @GET("businesses/{businessId}/reports/sales")
     suspend fun getSalesReport(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("from") from: String? = null,
         @Query("to") to: String? = null
     ): Response<ApiResponse<SalesReport>>
 
-    @GET("reports/gstr1")
+    @GET("businesses/{businessId}/reports/gstr1")
     suspend fun getGstr1Report(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("period") period: String? = null,
         @Query("month") month: Int? = null,
         @Query("year") year: Int? = null,
@@ -348,29 +348,29 @@ interface ApiService {
         @Query("to_date") toDate: String? = null
     ): Response<ApiResponse<Gstr1Report>>
 
-    @GET("reports/gstr3b")
+    @GET("businesses/{businessId}/reports/gstr3b")
     suspend fun getGstr3bReport(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("period") period: String? = null,
         @Query("month") month: Int? = null,
         @Query("year") year: Int? = null
     ): Response<ApiResponse<Gstr3bReport>>
 
-    @GET("reports/customers")
+    @GET("businesses/{businessId}/reports/customers")
     suspend fun getCustomerReport(
-        @Query("business_id") businessId: String
+        @Path("businessId") businessId: String
     ): Response<ApiResponse<List<CustomerReport>>>
 
-    @GET("reports/products")
+    @GET("businesses/{businessId}/reports/products")
     suspend fun getProductReport(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("from") from: String? = null,
         @Query("to") to: String? = null
     ): Response<ApiResponse<ProductReportResponse>>
 
-    @GET("reports/profit-loss")
+    @GET("businesses/{businessId}/reports/profit-loss")
     suspend fun getProfitLoss(
-        @Query("business_id") businessId: String,
+        @Path("businessId") businessId: String,
         @Query("from") from: String? = null,
         @Query("to") to: String? = null
     ): Response<ApiResponse<ProfitLossReport>>

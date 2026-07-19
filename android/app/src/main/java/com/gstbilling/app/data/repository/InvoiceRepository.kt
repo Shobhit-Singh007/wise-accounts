@@ -43,7 +43,7 @@ class InvoiceRepository @Inject constructor(
             return AppResult.Error("No internet connection")
         }
         return safeApiCall {
-            val response = apiService.getInvoices(businessId, direction = direction)
+            val response = apiService.getInvoices(businessId, direction = direction, perPage = 9999)
             if (response.isSuccessful) {
                 val paginated = response.body()?.data
                 val invoices = paginated?.data ?: emptyList()
