@@ -448,10 +448,13 @@ export class ImportService {
         // Create ledger entries for records with debit/credit data
         for (const entry of entries) {
           const rawRecord = entry.record;
-          const debit = this.parseIndianNumber(this.getNormalized(rawRecord, 'debit'));
-          const credit = this.parseIndianNumber(this.getNormalized(rawRecord, 'credit'));
+          const debitRaw = this.getNormalized(rawRecord, 'debit');
+          const creditRaw = this.getNormalized(rawRecord, 'credit');
 
-          if (debit > 0 || credit > 0) {
+          // Create entry if either debit or credit has a value present in the record
+          if (debitRaw != null || creditRaw != null) {
+            const debit = this.parseIndianNumber(debitRaw);
+            const credit = this.parseIndianNumber(creditRaw);
             const amount = debit > 0 ? debit : credit;
             const txType = debit > 0 ? 'LEDGER_GAVE' : 'LEDGER_RECEIVED';
             const currentBalance = customer.balance || 0;
