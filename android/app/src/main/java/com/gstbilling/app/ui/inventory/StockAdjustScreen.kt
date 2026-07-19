@@ -70,7 +70,8 @@ class StockAdjustViewModel @Inject constructor(
                 reason = notes.ifBlank { adjustmentType },
                 type = adjustmentType
             )
-            when (val result = productRepository.adjustStock(productId, request)) {
+            val businessId = sessionManager.getBusinessId() ?: return@launch
+            when (val result = productRepository.adjustStock(businessId, productId, request)) {
                 is AppResult.Success -> {
                     val updatedProduct = result.data
                     // Refresh local product

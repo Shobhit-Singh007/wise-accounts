@@ -201,7 +201,7 @@ fun InvoiceListScreen(
                     items(invoiceList, key = { it.id.toString() }) { invoice ->
                         InvoiceListItem(
                             invoice = invoice,
-                            onClick = { onInvoiceClick(invoice.id.toString()) }
+                            onClick = { onInvoiceClick(invoice.remoteId.ifEmpty { invoice.id.toString() }) }
                         )
                     }
                 }

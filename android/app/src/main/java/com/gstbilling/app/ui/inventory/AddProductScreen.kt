@@ -49,6 +49,35 @@ class AddProductViewModel @Inject constructor(
     var showGstDropdown by mutableStateOf(false)
     private var productId: String = ""
 
+    fun loadProduct(id: String) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            val businessId = sessionManager.getBusinessId() ?: ""
+            val result = productRepository.getProductByRemoteId(businessId, id)
+            isLoading = false
+            when (result) {
+                is AppResult.Success -> {
+                    val product = result.data
+                    name = product.name
+                    sku = product.sku ?: ""
+                    hsnCode = product.hsnCode ?: ""
+                    unit = product.unit ?: "Pcs"
+                    sellingPrice = if (product.sellingPrice > 0) product.sellingPrice.toString() else ""
+                    purchasePrice = if (product.purchasePrice > 0) product.purchasePrice.toString() else ""
+                    gstRate = product.gstRate.toInt().toString()
+                    stock = product.stock.toString()
+                    lowStockAlert = product.lowStockAlert?.toString() ?: ""
+                    categoryName = product.categoryName ?: ""
+                    isEditMode = true
+                    productId = product.id
+                }
+                is AppResult.Error -> errorMessage = result.message
+                is AppResult.Loading -> { }
+            }
+        }
+    }
+
     fun save(onSuccess: () -> Unit) {
         if (name.isBlank()) {
             errorMessage = "Product name is required"
@@ -78,9 +107,9 @@ class AddProductViewModel @Inject constructor(
             )
 
             val result = if (isEditMode) {
-                productRepository.updateProduct(productId, product)
+                productRepository.updateProduct(businessId, productId, product)
             } else {
-                productRepository.createProduct(product)
+                productRepository.createProduct(businessId, product)
             }
             isLoading = false
             when (result) {
@@ -99,6 +128,24 @@ fun AddProductScreen(
     onBack: () -> Unit,
     viewModel: AddProductViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(productId) {
+        if (productId != null) {
+            viewModel.loadProduct(productId!!)
+        } else {
+            viewModel.name = ""
+            viewModel.sku = ""
+            viewModel.hsnCode = ""
+            viewModel.unit = "Pcs"
+            viewModel.sellingPrice = ""
+            viewModel.purchasePrice = ""
+            viewModel.gstRate = "18"
+            viewModel.stock = "0"
+            viewModel.lowStockAlert = ""
+            viewModel.categoryName = ""
+            viewModel.isEditMode = false
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

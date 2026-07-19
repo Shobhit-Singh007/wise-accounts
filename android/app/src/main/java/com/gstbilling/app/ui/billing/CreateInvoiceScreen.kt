@@ -30,6 +30,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.util.*
 import javax.inject.Inject
 
@@ -93,6 +95,54 @@ class CreateInvoiceViewModel @Inject constructor(
     var isCreatingCustomer by mutableStateOf(false)
     var isGstinLookupLoading by mutableStateOf(false)
     var newCustomerError by mutableStateOf<String?>(null)
+
+    var isEditing by mutableStateOf(false)
+    var editingInvoiceId by mutableStateOf("")
+
+    fun loadInvoice(invoiceId: String) {
+        viewModelScope.launch {
+            val businessId = sessionManager.getBusinessId() ?: return@launch
+            try {
+                val response = apiService.getInvoice(businessId, invoiceId)
+                if (response.isSuccessful) {
+                    val inv = response.body()?.data ?: return@launch
+                    customerId = inv.customerId ?: ""
+                    customerName = inv.customerName ?: ""
+                    customerGstin = inv.customerGstin
+                    customerState = inv.customerState
+                    customerAddress = inv.customerAddress
+                    customerPhone = inv.customerPhone
+                    invoiceType = if (inv.customerGstin.isNullOrBlank()) "B2C" else "B2B"
+                    invoiceDate = inv.invoiceDate
+                    dueDate = inv.dueDate ?: ""
+                    discount = inv.discount.toString()
+                    notes = inv.notes ?: ""
+                    val items = inv.items ?: emptyList()
+                    if (items.isNotEmpty()) {
+                        lineItems.clear()
+                        items.forEach { item ->
+                            lineItems.add(
+                                LineItemState(
+                                    productId = item.productId ?: "",
+                                    productName = item.productName ?: "",
+                                    hsnCode = item.hsnCode ?: "",
+                                    quantity = item.quantity.toString(),
+                                    unitPrice = item.unitPrice.toString(),
+                                    discount = item.discount.toString(),
+                                    gstRate = item.gstRate.toString(),
+                                    taxableAmount = item.taxableAmount,
+                                    cgst = item.cgst,
+                                    sgst = item.sgst,
+                                    igst = item.igst,
+                                    totalPrice = item.totalPrice
+                                )
+                            )
+                        }
+                    }
+                }
+            } catch (_: Exception) { }
+        }
+    }
 
     val subtotal by derivedStateOf { lineItems.sumOf { it.unitPrice.toDoubleOrNull()?.times(it.quantity.toDoubleOrNull() ?: 1.0) ?: 0.0 } }
     val discountAmount by derivedStateOf { discount.toDoubleOrNull() ?: 0.0 }
@@ -187,7 +237,7 @@ class CreateInvoiceViewModel @Inject constructor(
                 businessId = businessId
             )
             try {
-                val response = apiService.createCustomer(customer)
+                val response = apiService.createCustomer(businessId, customer)
                 if (response.isSuccessful) {
                     val created = response.body()?.data ?: customer.copy(id = "temp")
                     selectCustomer(created)
@@ -327,7 +377,12 @@ class CreateInvoiceViewModel @Inject constructor(
                 notes = notes.ifBlank { null }
             )
             val businessId = sessionManager.getBusinessId() ?: ""
-            when (val result = invoiceRepository.createInvoice(businessId, request)) {
+            val result = if (isEditing) {
+                invoiceRepository.updateInvoice(businessId, editingInvoiceId, request)
+            } else {
+                invoiceRepository.createInvoice(businessId, request)
+            }
+            when (result) {
                 is AppResult.Success -> {
                     isLoading = false
                     isSuccess = true
@@ -346,7 +401,8 @@ class CreateInvoiceViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateInvoiceScreen(
-    customerId: String?,
+    invoiceId: String? = null,
+    customerId: String? = null,
     onBack: () -> Unit,
     onInvoiceCreated: () -> Unit,
     viewModel: CreateInvoiceViewModel = hiltViewModel()
@@ -354,8 +410,16 @@ fun CreateInvoiceScreen(
     var showCustomerSearch by remember { mutableStateOf(false) }
     var customerSearchQuery by remember { mutableStateOf("") }
 
+    LaunchedEffect(invoiceId) {
+        if (invoiceId != null) {
+            viewModel.isEditing = true
+            viewModel.editingInvoiceId = invoiceId
+            viewModel.loadInvoice(invoiceId)
+        }
+    }
+
     LaunchedEffect(customerId) {
-        if (customerId != null && viewModel.customerId.isBlank()) {
+        if (customerId != null && !viewModel.isEditing && viewModel.customerId.isBlank()) {
             viewModel.customerId = customerId
         }
     }
@@ -363,7 +427,7 @@ fun CreateInvoiceScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create Invoice") },
+                title = { Text(if (viewModel.isEditing) "Edit Invoice" else "Create Invoice") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -705,7 +769,7 @@ fun CreateInvoiceScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Create Invoice", fontWeight = FontWeight.Bold)
+                    Text(if (viewModel.isEditing) "Update Invoice" else "Create Invoice", fontWeight = FontWeight.Bold)
                 }
             }
 

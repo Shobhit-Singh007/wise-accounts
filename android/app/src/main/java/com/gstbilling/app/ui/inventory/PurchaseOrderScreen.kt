@@ -147,7 +147,7 @@ class PurchaseOrderViewModel @Inject constructor(
                 businessId = businessId
             )
             val result = safeApiCall {
-                val response = apiService.createPurchaseOrder(order)
+                val response = apiService.createPurchaseOrder(businessId, order)
                 if (response.isSuccessful) response.body()?.data
                 else throw Exception(response.errorBody()?.string() ?: "Failed to create PO")
             }
@@ -172,9 +172,24 @@ class PurchaseOrderViewModel @Inject constructor(
             val existing = purchaseOrders.find { it.id == poId } ?: return@launch
             val updated = existing.copy(status = "received")
             val result = safeApiCall {
-                val response = apiService.updatePurchaseOrder(poId, updated)
+                val response = apiService.updatePurchaseOrder(businessId, poId, updated)
                 if (response.isSuccessful) response.body()?.data
                 else throw Exception(response.errorBody()?.string() ?: "Failed to update PO")
+            }
+            when (result) {
+                is AppResult.Success -> loadData()
+                is AppResult.Error -> errorMessage = result.message
+                is AppResult.Loading -> {}
+            }
+        }
+    }
+
+    fun cancelPurchaseOrder(poId: String) {
+        viewModelScope.launch {
+            val result = safeApiCall {
+                val response = apiService.deletePurchaseOrder(businessId, poId)
+                if (response.isSuccessful) Unit
+                else throw Exception(response.errorBody()?.string() ?: "Failed to cancel PO")
             }
             when (result) {
                 is AppResult.Success -> loadData()
@@ -266,9 +281,11 @@ fun PurchaseOrderScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(viewModel.purchaseOrders, key = { it.id }) { po ->
-                        PurchaseOrderItem(po = po) {
-                            viewModel.markAsReceived(po.id)
-                        }
+                        PurchaseOrderItem(
+                            po = po,
+                            onMarkReceived = { viewModel.markAsReceived(po.id) },
+                            onCancel = { viewModel.cancelPurchaseOrder(po.id) }
+                        )
                     }
                 }
             }
@@ -283,8 +300,11 @@ fun PurchaseOrderScreen(
 @Composable
 private fun PurchaseOrderItem(
     po: PurchaseOrder,
-    onMarkReceived: () -> Unit
+    onMarkReceived: () -> Unit,
+    onCancel: () -> Unit
 ) {
+    var showCancelDialog by remember { mutableStateOf(false) }
+
     val statusColor = when (po.status) {
         "received" -> MaterialTheme.colorScheme.primary
         "cancelled" -> MaterialTheme.colorScheme.error
@@ -335,16 +355,46 @@ private fun PurchaseOrderItem(
             }
             if (po.status != "received" && po.status != "cancelled") {
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onMarkReceived,
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Mark as Received")
+                    OutlinedButton(
+                        onClick = onMarkReceived,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Mark as Received")
+                    }
+                    OutlinedButton(
+                        onClick = { showCancelDialog = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Cancel")
+                    }
                 }
             }
         }
+    }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel Purchase Order") },
+            text = { Text("Are you sure you want to cancel this purchase order?") },
+            confirmButton = {
+                TextButton(onClick = { showCancelDialog = false; onCancel() }) {
+                    Text("Cancel PO", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) { Text("Keep") }
+            }
+        )
     }
 }
 

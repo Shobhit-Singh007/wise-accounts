@@ -43,6 +43,10 @@ class SupplierViewModel @Inject constructor(
     var newAddress by mutableStateOf("")
     var isSaving by mutableStateOf(false)
 
+    var editingSupplier by mutableStateOf<Supplier?>(null)
+    var showDeleteDialog by mutableStateOf(false)
+    var deletingSupplier by mutableStateOf<Supplier?>(null)
+
     private var businessId = ""
 
     init {
@@ -92,11 +96,15 @@ class SupplierViewModel @Inject constructor(
                 businessId = businessId
             )
             val result = safeApiCall {
-                val response = apiService.createSupplier(supplier)
+                val response = if (editingSupplier != null) {
+                    apiService.updateSupplier(businessId, editingSupplier!!.id, supplier)
+                } else {
+                    apiService.createSupplier(businessId, supplier)
+                }
                 if (response.isSuccessful) {
                     response.body()?.data
                 } else {
-                    throw Exception(response.errorBody()?.string() ?: "Failed to create supplier")
+                    throw Exception(response.errorBody()?.string() ?: "Failed to save supplier")
                 }
             }
             isSaving = false
@@ -107,9 +115,43 @@ class SupplierViewModel @Inject constructor(
                     newEmail = ""
                     newGstin = ""
                     newAddress = ""
+                    editingSupplier = null
                     showAddDialog = false
                     loadSuppliers()
                     onDone()
+                }
+                is AppResult.Error -> errorMessage = result.message
+                is AppResult.Loading -> {}
+            }
+        }
+    }
+
+    fun editSupplier(supplier: Supplier) {
+        editingSupplier = supplier
+        newName = supplier.name
+        newPhone = supplier.phone ?: ""
+        newEmail = supplier.email ?: ""
+        newGstin = supplier.gstin ?: ""
+        newAddress = supplier.address ?: ""
+        showAddDialog = true
+    }
+
+    fun deleteSupplier() {
+        val supplier = deletingSupplier ?: return
+        viewModelScope.launch {
+            val result = safeApiCall {
+                val response = apiService.deleteSupplier(businessId, supplier.id)
+                if (response.isSuccessful) {
+                    Unit
+                } else {
+                    throw Exception(response.errorBody()?.string() ?: "Failed to delete supplier")
+                }
+            }
+            when (result) {
+                is AppResult.Success -> {
+                    deletingSupplier = null
+                    showDeleteDialog = false
+                    loadSuppliers()
                 }
                 is AppResult.Error -> errorMessage = result.message
                 is AppResult.Loading -> {}
@@ -203,7 +245,14 @@ fun SupplierManagementScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(viewModel.suppliers, key = { it.id }) { supplier ->
-                        SupplierItem(supplier = supplier)
+                        SupplierItem(
+                            supplier = supplier,
+                            onEdit = { viewModel.editSupplier(supplier) },
+                            onDelete = {
+                                viewModel.deletingSupplier = supplier
+                                viewModel.showDeleteDialog = true
+                            }
+                        )
                     }
                 }
             }
@@ -213,9 +262,10 @@ fun SupplierManagementScreen(
             AlertDialog(
                 onDismissRequest = {
                     viewModel.showAddDialog = false
+                    viewModel.editingSupplier = null
                     viewModel.errorMessage = null
                 },
-                title = { Text("Add Supplier") },
+                title = { Text(if (viewModel.editingSupplier != null) "Edit Supplier" else "Add Supplier") },
                 text = {
                     Column(
                         modifier = Modifier.heightIn(max = 400.dp),
@@ -288,14 +338,36 @@ fun SupplierManagementScreen(
                 }
             )
         }
+
+        if (viewModel.showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.showDeleteDialog = false; viewModel.deletingSupplier = null },
+                title = { Text("Delete Supplier") },
+                text = { Text("Are you sure you want to delete ${viewModel.deletingSupplier?.name ?: "this supplier"}?") },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.deleteSupplier() }) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.showDeleteDialog = false; viewModel.deletingSupplier = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun SupplierItem(supplier: Supplier) {
+private fun SupplierItem(
+    supplier: Supplier,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -332,6 +404,12 @@ private fun SupplierItem(supplier: Supplier) {
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

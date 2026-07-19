@@ -45,6 +45,24 @@ class InvoiceDetailViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
         private set
     fun clearErrorMessage() { errorMessage = null }
+    var deleteSuccess by mutableStateOf(false)
+        private set
+    fun deleteInvoice(businessId: String, invoiceId: String) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = apiService.deleteInvoice(businessId, invoiceId)
+                if (response.isSuccessful) {
+                    deleteSuccess = true
+                } else {
+                    errorMessage = response.errorBody()?.string() ?: "Failed to delete invoice"
+                }
+            } catch (e: Exception) {
+                errorMessage = e.message
+            }
+            isLoading = false
+        }
+    }
     var showEwayBillSheet by mutableStateOf(false)
     var showEinvoiceSheet by mutableStateOf(false)
     var showGenerateBothSheet by mutableStateOf(false)
@@ -54,13 +72,13 @@ class InvoiceDetailViewModel @Inject constructor(
             isLoading = true
             val entity = invoiceRepository.getInvoiceById(invoiceId)
             if (entity != null) {
-                invoice = Invoice(
-                    id = entity.id.toString(),
-                    invoiceNumber = entity.invoiceNumber,
-                    customerId = entity.customerId.toString(),
-                    customerName = entity.customerName,
-                    customerGstin = entity.customerGstin,
-                    businessId = entity.businessId.toString(),
+                    invoice = Invoice(
+                        id = entity.remoteId.ifEmpty { entity.id.toString() },
+                        invoiceNumber = entity.invoiceNumber,
+                        customerId = entity.customerId.toString(),
+                        customerName = entity.customerName,
+                        customerGstin = entity.customerGstin,
+                        businessId = sessionManager.getBusinessId() ?: entity.businessId.toString(),
                     invoiceDate = entity.invoiceDate,
                     dueDate = entity.dueDate,
                     subtotal = entity.subtotal,
@@ -188,11 +206,14 @@ class InvoiceDetailViewModel @Inject constructor(
 fun InvoiceDetailScreen(
     invoiceId: String,
     onBack: () -> Unit,
+    onEdit: () -> Unit = {},
+    onShare: () -> Unit = {},
     viewModel: InvoiceDetailViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val invoice = viewModel.invoice
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedDocType by remember { mutableStateOf("INVOICE") }
     var docTypeExpanded by remember { mutableStateOf(false) }
 
@@ -336,7 +357,42 @@ fun InvoiceDetailScreen(
                     }
                 }
 
-                if (invoice.status != "cancelled") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onEdit,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit", style = MaterialTheme.typography.labelMedium)
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val baseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
+                            val url = "$baseUrl/businesses/${invoice.businessId}/invoices/${invoice.id}/pdf"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("PDF", style = MaterialTheme.typography.labelMedium)
+                    }
+                    OutlinedButton(
+                        onClick = onShare,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Share", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+
+                if (invoice.status != "cancelled" && invoice.status != "CANCELLED") {
                     Button(
                         onClick = { viewModel.showGenerateBothSheet = true },
                         modifier = Modifier.fillMaxWidth(),
@@ -437,14 +493,30 @@ fun InvoiceDetailScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedButton(
-                        onClick = { showCancelDialog = true },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Cancel, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Cancel Invoice")
+                        if (invoice.status == "draft" || invoice.status == "DRAFT") {
+                            OutlinedButton(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Delete", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { showCancelDialog = true },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                        ) {
+                            Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Cancel", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
 
@@ -461,6 +533,31 @@ fun InvoiceDetailScreen(
                         )
                     }
                 }
+            }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Invoice") },
+                text = { Text("Are you sure you want to delete this draft invoice?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            viewModel.deleteInvoice(invoice!!.businessId, invoiceId)
+                        }
+                    ) { Text("Delete", color = Color.Red) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) { Text("Keep") }
+                }
+            )
+        }
+
+        if (viewModel.deleteSuccess) {
+            LaunchedEffect(Unit) {
+                onBack()
             }
         }
 

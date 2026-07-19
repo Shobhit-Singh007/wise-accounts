@@ -22,6 +22,7 @@ object Routes {
     const val CREATE_INVOICE_WITH_CUSTOMER = "billing/create/{customerId}"
     const val INVOICES = "invoices"
     const val INVOICE_DETAIL = "invoices/{invoiceId}"
+    const val EDIT_INVOICE = "invoices/{invoiceId}/edit"
     const val INVOICE_SHARE = "invoices/{invoiceId}/share"
     const val INVOICE_PREVIEW = "invoices/{invoiceId}/preview"
     const val BULK_INVOICES = "billing/bulk"
@@ -46,6 +47,7 @@ object Routes {
     const val STOCK_MOVEMENTS = "stock_movements"
     const val DATA_IMPORT = "settings/import"
     const val EXPORT_DATA = "settings/export"
+    const val BUSINESS_LIST = "businesses"
     const val BUSINESS_PROFILE = "settings/business-profile"
     const val TAX_SETTINGS = "settings/tax"
     const val INVOICE_TEMPLATE = "settings/invoice-template"
@@ -62,6 +64,7 @@ object Routes {
     fun createInvoice(customerId: String? = null) =
         if (customerId != null) "billing/create/$customerId" else "billing/create"
     fun invoiceDetail(invoiceId: String) = "invoices/$invoiceId"
+    fun editInvoice(invoiceId: String) = "invoices/$invoiceId/edit"
     fun invoiceShare(invoiceId: String) = "invoices/$invoiceId/share"
     fun invoicePreview(invoiceId: String) = "invoices/$invoiceId/preview"
     fun editPermissions(userId: String, currentName: String) = "staff/$userId/payments/$currentName"

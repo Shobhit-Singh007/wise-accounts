@@ -35,7 +35,7 @@ class InvoiceRepository @Inject constructor(
     }
 
     suspend fun getInvoiceById(id: String): InvoiceEntity? {
-        return invoiceDao.getInvoiceById(id.hashCode().toLong())
+        return invoiceDao.getInvoiceByRemoteId(id) ?: invoiceDao.getInvoiceById(id.hashCode().toLong())
     }
 
     suspend fun refreshInvoices(businessId: String, direction: String? = null): AppResult<List<Invoice>> {
@@ -91,6 +91,19 @@ class InvoiceRepository @Inject constructor(
                 created
             } else {
                 throw Exception(response.errorBody()?.string() ?: "Failed to create invoice")
+            }
+        }
+    }
+
+    suspend fun updateInvoice(businessId: String, invoiceId: String, request: CreateInvoiceRequest): AppResult<Invoice> {
+        return safeApiCall {
+            val response = apiService.updateInvoice(businessId, invoiceId, request)
+            if (response.isSuccessful) {
+                val updated = response.body()?.data ?: throw Exception("Failed to update invoice")
+                invoiceDao.insert(updated.toEntity())
+                updated
+            } else {
+                throw Exception(response.errorBody()?.string() ?: "Failed to update invoice")
             }
         }
     }
@@ -181,13 +194,14 @@ class InvoiceRepository @Inject constructor(
 
     private fun Invoice.toEntity() = InvoiceEntity(
         id = id.hashCode().toLong(),
+        remoteId = id,
         invoiceNumber = invoiceNumber,
         customerId = customerId?.hashCode()?.toLong() ?: 0L,
-        customerName = customerName,
-        customerGstin = customerGstin,
-        customerAddress = customerAddress,
-        customerPhone = customerPhone,
-        customerState = customerState,
+        customerName = customerName ?: customer?.name,
+        customerGstin = customerGstin ?: customer?.gstin,
+        customerAddress = customerAddress ?: customer?.address,
+        customerPhone = customerPhone ?: customer?.phone,
+        customerState = customerState ?: customer?.state,
         businessId = businessId.hashCode().toLong(),
         invoiceDate = invoiceDate,
         dueDate = dueDate,

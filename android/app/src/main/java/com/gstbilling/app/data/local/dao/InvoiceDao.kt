@@ -16,6 +16,9 @@ interface InvoiceDao {
     @Query("SELECT * FROM invoices WHERE id = :id")
     suspend fun getInvoiceById(id: Long): InvoiceEntity?
 
+    @Query("SELECT * FROM invoices WHERE remoteId = :remoteId")
+    suspend fun getInvoiceByRemoteId(remoteId: String): InvoiceEntity?
+
     @Query("SELECT * FROM invoices WHERE id = :id")
     fun getInvoiceByIdFlow(id: Long): Flow<InvoiceEntity?>
 

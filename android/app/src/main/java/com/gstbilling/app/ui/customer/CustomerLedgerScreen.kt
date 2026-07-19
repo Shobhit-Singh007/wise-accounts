@@ -74,7 +74,8 @@ class CustomerLedgerViewModel @Inject constructor(
     fun downloadPdf(customerId: String, context: android.content.Context) {
         viewModelScope.launch {
             snackbarMessage = "Downloading PDF..."
-            when (val result = customerRepository.getLedgerPdf(customerId)) {
+            val businessId = sessionManager.getBusinessId() ?: ""
+            when (val result = customerRepository.getLedgerPdf(businessId, customerId)) {
                 is AppResult.Success -> {
                     try {
                         val file = java.io.File(context.cacheDir, "ledger_${customerId}.pdf")
@@ -103,7 +104,8 @@ class CustomerLedgerViewModel @Inject constructor(
 
     fun sharePdf(customerId: String, context: android.content.Context) {
         viewModelScope.launch {
-            when (val result = customerRepository.getLedgerPdf(customerId)) {
+            val businessId = sessionManager.getBusinessId() ?: ""
+            when (val result = customerRepository.getLedgerPdf(businessId, customerId)) {
                 is AppResult.Success -> {
                     try {
                         val file = java.io.File(context.cacheDir, "ledger_${customerId}.pdf")
@@ -146,7 +148,8 @@ class CustomerLedgerViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            val result = customerRepository.getCustomerLedger(customerId)
+            val businessId = sessionManager.getBusinessId() ?: ""
+            val result = customerRepository.getCustomerLedger(businessId, customerId)
             when (result) {
                 is AppResult.Success -> {
                     ledgerResponse = result.data
@@ -179,9 +182,10 @@ class CustomerLedgerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             isSaving = true
+            val businessId = sessionManager.getBusinessId() ?: ""
             var imageUrl: String? = null
             if (selectedImageFile != null) {
-                when (val uploadResult = customerRepository.uploadLedgerImage(customerId, selectedImageFile!!)) {
+                when (val uploadResult = customerRepository.uploadLedgerImage(businessId, customerId, selectedImageFile!!)) {
                     is AppResult.Success -> imageUrl = uploadResult.data?.url
                     is AppResult.Error -> {
                         snackbarMessage = "Image upload failed: ${uploadResult.message}"
@@ -200,7 +204,7 @@ class CustomerLedgerViewModel @Inject constructor(
                 reference = entryReference.ifBlank { null },
                 imageUrl = imageUrl
             )
-            when (val result = customerRepository.createLedgerEntry(customerId, request)) {
+            when (val result = customerRepository.createLedgerEntry(businessId, customerId, request)) {
                 is AppResult.Success -> {
                     showEntryDialog = false
                     snackbarMessage = if (entryType == "GAVE") "Debit entry added" else "Credit entry added"
@@ -215,7 +219,8 @@ class CustomerLedgerViewModel @Inject constructor(
 
     fun deleteEntry(customerId: String, transactionId: String) {
         viewModelScope.launch {
-            when (val result = customerRepository.deleteLedgerEntry(customerId, transactionId)) {
+            val businessId = sessionManager.getBusinessId() ?: ""
+            when (val result = customerRepository.deleteLedgerEntry(businessId, customerId, transactionId)) {
                 is AppResult.Success -> {
                     snackbarMessage = "Transaction deleted"
                     loadLedger(customerId)
@@ -238,11 +243,12 @@ class CustomerLedgerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             isSendingSms = true
+            val businessId = sessionManager.getBusinessId() ?: ""
             val request = SendLedgerSmsRequest(
                 phone = smsPhone.ifBlank { null },
                 message = smsMessage.ifBlank { null }
             )
-            when (val result = customerRepository.sendLedgerSms(customerId, request)) {
+            when (val result = customerRepository.sendLedgerSms(businessId, customerId, request)) {
                 is AppResult.Success -> {
                     showSmsDialog = false
                     snackbarMessage = "SMS sent to ${result.data?.phone}"

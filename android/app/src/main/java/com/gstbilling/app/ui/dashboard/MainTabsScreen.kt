@@ -42,6 +42,7 @@ fun MainTabsHost(
     onNavigateToSuppliers: () -> Unit,
     onNavigateToWarehouses: () -> Unit,
     onNavigateToStockMovements: () -> Unit,
+    onNavigateToBusinessList: () -> Unit = {},
     onNavigateToNotifications: () -> Unit,
     onInvoiceClick: (String) -> Unit,
     onEditProduct: (String) -> Unit,
@@ -119,6 +120,7 @@ fun MainTabsHost(
                         onNavigateToBatchExpiry = onNavigateToBatchExpiry,
                         onNavigateToCustomerGroups = onNavigateToCustomerGroups,
                         onNavigateToInventoryDashboard = { tabNavController.navigate(MainTab.INVENTORY.route) { popUpTo(MainTab.DASHBOARD.route) } },
+                        onNavigateToBusinessList = onNavigateToBusinessList,
                         onInvoiceClick = onInvoiceClick
                     )
                 }

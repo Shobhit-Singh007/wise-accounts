@@ -84,6 +84,7 @@ fun DashboardScreen(
     onNavigateToBatchExpiry: () -> Unit = {},
     onNavigateToCustomerGroups: () -> Unit = {},
     onNavigateToInventoryDashboard: () -> Unit = {},
+    onNavigateToBusinessList: () -> Unit = {},
     onInvoiceClick: (String) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -97,6 +98,9 @@ fun DashboardScreen(
                     }
                     IconButton(onClick = onNavigateToNotifications) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    }
+                    IconButton(onClick = onNavigateToBusinessList) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Switch Business")
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -300,7 +304,7 @@ fun DashboardScreen(
                         val invoice = recentInvoices[index]
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { onInvoiceClick(invoice.id.toString()) }
+                            onClick = { onInvoiceClick(invoice.remoteId.ifEmpty { invoice.id.toString() }) }
                         ) {
                             Row(
                                 modifier = Modifier

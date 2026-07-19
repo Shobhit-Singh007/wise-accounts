@@ -54,23 +54,40 @@ interface ApiService {
         @Query("limit") limit: Int? = null
     ): Response<ApiResponse<PaginatedData<Customer>>>
 
-    @GET("customers/{id}")
-    suspend fun getCustomer(@Path("id") id: String): Response<ApiResponse<Customer>>
+    @GET("businesses/{businessId}/customers/{id}")
+    suspend fun getCustomer(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Customer>>
 
-    @POST("customers")
-    suspend fun createCustomer(@Body customer: Customer): Response<ApiResponse<Customer>>
+    @POST("businesses/{businessId}/customers")
+    suspend fun createCustomer(
+        @Path("businessId") businessId: String,
+        @Body customer: Customer
+    ): Response<ApiResponse<Customer>>
 
-    @PUT("customers/{id}")
-    suspend fun updateCustomer(@Path("id") id: String, @Body customer: Customer): Response<ApiResponse<Customer>>
+    @PUT("businesses/{businessId}/customers/{id}")
+    suspend fun updateCustomer(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String,
+        @Body customer: Customer
+    ): Response<ApiResponse<Customer>>
 
-    @DELETE("customers/{id}")
-    suspend fun deleteCustomer(@Path("id") id: String): Response<ApiResponse<Unit>>
+    @DELETE("businesses/{businessId}/customers/{id}")
+    suspend fun deleteCustomer(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
 
-    @GET("customers/{id}/ledger")
-    suspend fun getCustomerLedger(@Path("id") id: String): Response<ApiResponse<LedgerResponse>>
+    @GET("businesses/{businessId}/customers/{id}/ledger")
+    suspend fun getCustomerLedger(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<LedgerResponse>>
 
-    @POST("customers/{id}/payments")
+    @POST("businesses/{businessId}/customers/{id}/payments")
     suspend fun recordCustomerPayment(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body payment: PaymentRequest
     ): Response<ApiResponse<Payment>>
@@ -84,20 +101,34 @@ interface ApiService {
         @Query("limit") limit: Int? = null
     ): Response<ApiResponse<PaginatedData<Product>>>
 
-    @GET("products/{id}")
-    suspend fun getProduct(@Path("id") id: String): Response<ApiResponse<Product>>
+    @GET("businesses/{businessId}/products/{id}")
+    suspend fun getProduct(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Product>>
 
-    @POST("products")
-    suspend fun createProduct(@Body product: Product): Response<ApiResponse<Product>>
+    @POST("businesses/{businessId}/products")
+    suspend fun createProduct(
+        @Path("businessId") businessId: String,
+        @Body product: Product
+    ): Response<ApiResponse<Product>>
 
-    @PUT("products/{id}")
-    suspend fun updateProduct(@Path("id") id: String, @Body product: Product): Response<ApiResponse<Product>>
+    @PUT("businesses/{businessId}/products/{id}")
+    suspend fun updateProduct(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String,
+        @Body product: Product
+    ): Response<ApiResponse<Product>>
 
-    @DELETE("products/{id}")
-    suspend fun deleteProduct(@Path("id") id: String): Response<ApiResponse<Unit>>
+    @DELETE("businesses/{businessId}/products/{id}")
+    suspend fun deleteProduct(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
 
-    @POST("products/{id}/stock/adjust")
+    @POST("businesses/{businessId}/products/{id}/stock/adjust")
     suspend fun adjustStock(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body request: StockAdjustRequest
     ): Response<ApiResponse<Product>>
@@ -116,29 +147,54 @@ interface ApiService {
     suspend fun deleteCategory(@Path("id") id: String): Response<ApiResponse<Unit>>
 
     // ── Suppliers ──
-    @GET("suppliers")
-    suspend fun getSuppliers(@Query("business_id") businessId: String): Response<ApiResponse<List<Supplier>>>
+    @GET("businesses/{businessId}/suppliers")
+    suspend fun getSuppliers(
+        @Path("businessId") businessId: String
+    ): Response<ApiResponse<List<Supplier>>>
 
-    @POST("suppliers")
-    suspend fun createSupplier(@Body supplier: Supplier): Response<ApiResponse<Supplier>>
+    @POST("businesses/{businessId}/suppliers")
+    suspend fun createSupplier(
+        @Path("businessId") businessId: String,
+        @Body supplier: Supplier
+    ): Response<ApiResponse<Supplier>>
 
-    @PUT("suppliers/{id}")
-    suspend fun updateSupplier(@Path("id") id: String, @Body supplier: Supplier): Response<ApiResponse<Supplier>>
+    @PUT("businesses/{businessId}/suppliers/{id}")
+    suspend fun updateSupplier(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String,
+        @Body supplier: Supplier
+    ): Response<ApiResponse<Supplier>>
+
+    @DELETE("businesses/{businessId}/suppliers/{id}")
+    suspend fun deleteSupplier(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
 
     // ── Purchase Orders ──
-    @GET("purchase-orders")
+    @GET("businesses/{businessId}/purchase-orders")
     suspend fun getPurchaseOrders(
-        @Query("business_id") businessId: String
+        @Path("businessId") businessId: String
     ): Response<ApiResponse<List<PurchaseOrder>>>
 
-    @POST("purchase-orders")
-    suspend fun createPurchaseOrder(@Body order: PurchaseOrder): Response<ApiResponse<PurchaseOrder>>
+    @POST("businesses/{businessId}/purchase-orders")
+    suspend fun createPurchaseOrder(
+        @Path("businessId") businessId: String,
+        @Body order: PurchaseOrder
+    ): Response<ApiResponse<PurchaseOrder>>
 
-    @PUT("purchase-orders/{id}")
+    @PUT("businesses/{businessId}/purchase-orders/{id}")
     suspend fun updatePurchaseOrder(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body order: PurchaseOrder
     ): Response<ApiResponse<PurchaseOrder>>
+
+    @DELETE("businesses/{businessId}/purchase-orders/{id}")
+    suspend fun deletePurchaseOrder(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
 
     // ── Invoices ──
     @GET("businesses/{businessId}/invoices")
@@ -168,6 +224,12 @@ interface ApiService {
         @Path("id") id: String,
         @Body request: CreateInvoiceRequest
     ): Response<ApiResponse<Invoice>>
+
+    @DELETE("businesses/{businessId}/invoices/{id}")
+    suspend fun deleteInvoice(
+        @Path("businessId") businessId: String,
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
 
     @POST("businesses/{businessId}/invoices/{id}/cancel")
     suspend fun cancelInvoice(
@@ -330,6 +392,11 @@ interface ApiService {
         @Path("inviteId") inviteId: String
     ): Response<ApiResponse<Map<String, Any>>>
 
+    @POST("staff/accept-invite/{token}")
+    suspend fun acceptInvite(
+        @Path("token") token: String
+    ): Response<ApiResponse<AcceptInviteResponse>>
+
     // ── Reports ──
     @GET("businesses/{businessId}/reports/sales")
     suspend fun getSalesReport(
@@ -434,34 +501,39 @@ interface ApiService {
     ): Response<ApiResponse<List<StockMovement>>>
 
     // -- Ledger Entries --
-    @POST("customers/{id}/ledger")
+    @POST("businesses/{businessId}/customers/{id}/ledger")
     suspend fun createLedgerEntry(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body request: CreateLedgerEntryRequest
     ): Response<ApiResponse<LedgerEntryResponse>>
 
-    @DELETE("customers/{customerId}/ledger/{transactionId}")
+    @DELETE("businesses/{businessId}/customers/{customerId}/ledger/{transactionId}")
     suspend fun deleteLedgerEntry(
+        @Path("businessId") businessId: String,
         @Path("customerId") customerId: String,
         @Path("transactionId") transactionId: String
     ): Response<ApiResponse<Unit>>
 
-    @POST("customers/{id}/ledger/sms")
+    @POST("businesses/{businessId}/customers/{id}/ledger/sms")
     suspend fun sendLedgerSms(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Body request: SendLedgerSmsRequest
     ): Response<ApiResponse<LedgerSmsResponse>>
 
     @Multipart
-    @POST("customers/{id}/ledger/upload")
+    @POST("businesses/{businessId}/customers/{id}/ledger/upload")
     suspend fun uploadLedgerImage(
+        @Path("businessId") businessId: String,
         @Path("id") id: String,
         @Part file: MultipartBody.Part
     ): Response<ApiResponse<LedgerImageUploadResponse>>
 
-    @GET("customers/{id}/ledger/pdf")
+    @GET("businesses/{businessId}/customers/{id}/ledger/pdf")
     @Streaming
     suspend fun getLedgerPdf(
+        @Path("businessId") businessId: String,
         @Path("id") id: String
     ): Response<okhttp3.ResponseBody>
 
@@ -593,42 +665,42 @@ data class Customer(
 )
 
 data class LedgerCustomer(
-    val id: String,
-    val name: String,
-    val phone: String,
-    val email: String,
-    val gstin: String?,
-    val address: String?,
-    val city: String?,
-    val state: String?,
-    val creditLimit: Double,
-    val currentBalance: Double
+    val id: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val email: String = "",
+    val gstin: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    val state: String? = null,
+    val creditLimit: Double = 0.0,
+    val currentBalance: Double = 0.0
 )
 
 data class LedgerSummary(
-    val openingBalance: Double,
-    val totalDebit: Double,
-    val totalCredit: Double,
-    val closingBalance: Double,
-    val totalEntries: Int
+    val openingBalance: Double = 0.0,
+    val totalDebit: Double = 0.0,
+    val totalCredit: Double = 0.0,
+    val closingBalance: Double = 0.0,
+    val totalEntries: Int = 0
 )
 
 data class LedgerEntry(
-    val id: String,
-    val date: String,
-    val type: String,
-    val description: String,
-    val invoiceNo: String?,
-    val debit: Double,
-    val credit: Double,
-    val balanceAfter: Double,
+    val id: String = "",
+    val date: String = "",
+    val type: String = "",
+    val description: String = "",
+    val invoiceNo: String? = null,
+    val debit: Double = 0.0,
+    val credit: Double = 0.0,
+    val balanceAfter: Double = 0.0,
     val imageUrl: String? = null
 )
 
 data class LedgerResponse(
-    val customer: LedgerCustomer,
-    val summary: LedgerSummary,
-    val entries: List<LedgerEntry>
+    val customer: LedgerCustomer = LedgerCustomer(),
+    val summary: LedgerSummary = LedgerSummary(),
+    val entries: List<LedgerEntry> = emptyList()
 )
 
 data class PaymentRequest(
@@ -716,7 +788,7 @@ data class PurchaseOrderItem(
 // ── Invoice Models ──
 data class Invoice(
     val id: String = "",
-    val invoiceNumber: String = "",
+    @SerializedName("invoiceNo") val invoiceNumber: String = "",
     val customerId: String? = null,
     val customerName: String? = null,
     val customerGstin: String? = null,
@@ -728,11 +800,11 @@ data class Invoice(
     val dueDate: String? = null,
     val subtotal: Double = 0.0,
     val discount: Double = 0.0,
-    val taxableAmount: Double = 0.0,
+    @SerializedName("taxAmount") val taxableAmount: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
-    val totalAmount: Double = 0.0,
+    @SerializedName("grandTotal") val totalAmount: Double = 0.0,
     val roundOff: Double = 0.0,
     val status: String = "draft",
     val direction: String = "SALE",
@@ -740,6 +812,7 @@ data class Invoice(
     val supplier: Supplier? = null,
     val notes: String? = null,
     val terms: String? = null,
+    val customer: Customer? = null,
     val items: List<InvoiceItem>? = null,
     val payments: List<Payment>? = null,
     val ewayBillNo: String? = null,
@@ -775,18 +848,18 @@ data class Invoice(
 data class InvoiceItem(
     val id: String? = null,
     val productId: String? = null,
-    val productName: String? = null,
+    @SerializedName("itemName") val productName: String? = null,
     val hsnCode: String? = null,
     val quantity: Double = 1.0,
     val unit: String? = null,
-    val unitPrice: Double = 0.0,
+    @SerializedName("rate") val unitPrice: Double = 0.0,
     val discount: Double = 0.0,
-    val taxableAmount: Double = 0.0,
-    val gstRate: Double = 0.0,
+    @SerializedName("taxableValue") val taxableAmount: Double = 0.0,
+    @SerializedName("taxRate") val gstRate: Double = 0.0,
     val cgst: Double = 0.0,
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
-    val totalPrice: Double = 0.0,
+    @SerializedName("total") val totalPrice: Double = 0.0,
     val productNote: String? = null,
     val cgstRate: Double = 0.0,
     val sgstRate: Double = 0.0,
@@ -933,8 +1006,8 @@ data class Payment(
     val id: String = "",
     val invoiceId: String,
     val amount: Double,
-    val date: String,
-    val mode: String,
+    @SerializedName("paidAt") val date: String,
+    @SerializedName("method") val mode: String,
     val reference: String? = null,
     val notes: String? = null
 )
@@ -1232,6 +1305,16 @@ data class InviteStaffRequest(
 data class UpdatePermissionsRequest(
     val permissions: List<String>,
     val role: String? = null
+)
+
+data class AcceptInviteResponse(
+    val message: String = "",
+    val business: AcceptInviteBusiness? = null
+)
+
+data class AcceptInviteBusiness(
+    val id: String = "",
+    val name: String = ""
 )
 
 // ── Ledger Entry Models --

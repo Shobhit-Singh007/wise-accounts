@@ -21,6 +21,7 @@ import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.graphics.Color
 
 @HiltViewModel
 class ProductDetailViewModel @Inject constructor(
@@ -48,6 +49,21 @@ class ProductDetailViewModel @Inject constructor(
             }
         }
     }
+
+    var deleteSuccess by mutableStateOf(false)
+        private set
+
+    fun deleteProduct() {
+        viewModelScope.launch {
+            val businessId = sessionManager.getBusinessId() ?: return@launch
+            val result = productRepository.deleteProduct(businessId, productId)
+            when (result) {
+                is AppResult.Success -> deleteSuccess = true
+                is AppResult.Error -> errorMessage = result.message
+                is AppResult.Loading -> {}
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,10 +74,19 @@ fun ProductDetailScreen(
     onEdit: (String) -> Unit,
     onAdjustStock: (String) -> Unit,
     onViewStockBatches: (String) -> Unit,
+    onProductDeleted: () -> Unit = {},
     viewModel: ProductDetailViewModel = hiltViewModel()
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(productId) {
         viewModel.loadProduct(productId)
+    }
+
+    LaunchedEffect(viewModel.deleteSuccess) {
+        if (viewModel.deleteSuccess) {
+            onProductDeleted()
+        }
     }
 
     Scaffold(
@@ -76,6 +101,9 @@ fun ProductDetailScreen(
                 actions = {
                     IconButton(onClick = { onEdit(productId) }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                     }
                 }
             )
@@ -282,6 +310,22 @@ fun ProductDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Product") },
+                text = { Text("Are you sure you want to delete ${viewModel.product?.name ?: "this product"}?") },
+                confirmButton = {
+                    TextButton(onClick = { showDeleteDialog = false; viewModel.deleteProduct() }) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                }
+            )
         }
     }
 }

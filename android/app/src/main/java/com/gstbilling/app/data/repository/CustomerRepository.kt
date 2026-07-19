@@ -53,7 +53,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun createCustomer(customer: Customer): AppResult<Customer> {
+    suspend fun createCustomer(businessId: String, customer: Customer): AppResult<Customer> {
         if (!networkMonitor.isOnline()) {
             val offlineEntity = customer.copy(id = UUID.randomUUID().toString())
                 .toEntity().copy(syncStatus = "pending", syncOperation = "CREATE")
@@ -61,7 +61,7 @@ class CustomerRepository @Inject constructor(
             return AppResult.Success(customer)
         }
         return safeApiCall {
-            val response = apiService.createCustomer(customer)
+            val response = apiService.createCustomer(businessId, customer)
             if (response.isSuccessful) {
                 val created = response.body()?.data ?: throw Exception("Failed to create customer")
                 customerDao.insert(created.toEntity())
@@ -75,13 +75,13 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun updateCustomer(id: String, customer: Customer): AppResult<Customer> {
+    suspend fun updateCustomer(businessId: String, id: String, customer: Customer): AppResult<Customer> {
         if (!networkMonitor.isOnline()) {
             customerDao.insert(customer.copy(id = id).toEntity().copy(syncStatus = "pending", syncOperation = "UPDATE"))
             return AppResult.Success(customer)
         }
         return safeApiCall {
-            val response = apiService.updateCustomer(id, customer)
+            val response = apiService.updateCustomer(businessId, id, customer)
             if (response.isSuccessful) {
                 val updated = response.body()?.data ?: throw Exception("Failed to update customer")
                 customerDao.insert(updated.toEntity())
@@ -93,9 +93,9 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteCustomer(id: String): AppResult<Unit> {
+    suspend fun deleteCustomer(businessId: String, id: String): AppResult<Unit> {
         return safeApiCall {
-            val response = apiService.deleteCustomer(id)
+            val response = apiService.deleteCustomer(businessId, id)
             if (response.isSuccessful) {
                 customerDao.deleteById(id.hashCode().toLong())
             } else {
@@ -104,50 +104,50 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun getCustomerLedger(customerId: String): AppResult<LedgerResponse> {
+    suspend fun getCustomerLedger(businessId: String, customerId: String): AppResult<LedgerResponse> {
         return safeApiCall {
-            val response = apiService.getCustomerLedger(customerId)
+            val response = apiService.getCustomerLedger(businessId, customerId)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to load ledger")
         }
     }
 
-    suspend fun createLedgerEntry(customerId: String, request: CreateLedgerEntryRequest): AppResult<LedgerEntryResponse> {
+    suspend fun createLedgerEntry(businessId: String, customerId: String, request: CreateLedgerEntryRequest): AppResult<LedgerEntryResponse> {
         return safeApiCall {
-            val response = apiService.createLedgerEntry(customerId, request)
+            val response = apiService.createLedgerEntry(businessId, customerId, request)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to add entry")
         }
     }
 
-    suspend fun deleteLedgerEntry(customerId: String, transactionId: String): AppResult<Unit> {
+    suspend fun deleteLedgerEntry(businessId: String, customerId: String, transactionId: String): AppResult<Unit> {
         return safeApiCall {
-            val response = apiService.deleteLedgerEntry(customerId, transactionId)
+            val response = apiService.deleteLedgerEntry(businessId, customerId, transactionId)
             if (!response.isSuccessful) throw Exception(response.errorBody()?.string() ?: "Failed to delete entry")
         }
     }
 
-    suspend fun sendLedgerSms(customerId: String, request: SendLedgerSmsRequest): AppResult<LedgerSmsResponse> {
+    suspend fun sendLedgerSms(businessId: String, customerId: String, request: SendLedgerSmsRequest): AppResult<LedgerSmsResponse> {
         return safeApiCall {
-            val response = apiService.sendLedgerSms(customerId, request)
+            val response = apiService.sendLedgerSms(businessId, customerId, request)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to send SMS")
         }
     }
 
-    suspend fun uploadLedgerImage(customerId: String, file: java.io.File): AppResult<LedgerImageUploadResponse> {
+    suspend fun uploadLedgerImage(businessId: String, customerId: String, file: java.io.File): AppResult<LedgerImageUploadResponse> {
         return safeApiCall {
             val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val response = apiService.uploadLedgerImage(customerId, body)
+            val response = apiService.uploadLedgerImage(businessId, customerId, body)
             if (response.isSuccessful) response.body()?.data
             else throw Exception(response.errorBody()?.string() ?: "Failed to upload image")
         }
     }
 
-    suspend fun getLedgerPdf(customerId: String): AppResult<okhttp3.ResponseBody> {
+    suspend fun getLedgerPdf(businessId: String, customerId: String): AppResult<okhttp3.ResponseBody> {
         return safeApiCall {
-            val response = apiService.getLedgerPdf(customerId)
+            val response = apiService.getLedgerPdf(businessId, customerId)
             if (response.isSuccessful) response.body()
             else throw Exception(response.errorBody()?.string() ?: "Failed to download PDF")
         }
@@ -155,11 +155,12 @@ class CustomerRepository @Inject constructor(
 
     suspend fun syncPending() {
         val pending = customerDao.getPendingSync()
+        val businessId = sessionManager.getBusinessId() ?: return
         for (customer in pending) {
             try {
                 val response = when (customer.syncOperation) {
-                    "UPDATE" -> apiService.updateCustomer(customer.id.toString(), customer.toApiModel())
-                    else -> apiService.createCustomer(customer.toApiModel())
+                    "UPDATE" -> apiService.updateCustomer(businessId, customer.id.toString(), customer.toApiModel())
+                    else -> apiService.createCustomer(businessId, customer.toApiModel())
                 }
                 if (response.isSuccessful) {
                     customerDao.deleteById(customer.id)
@@ -171,6 +172,7 @@ class CustomerRepository @Inject constructor(
 
     private fun Customer.toEntity() = CustomerEntity(
         id = id.hashCode().toLong(),
+        remoteId = id,
         name = name,
         phone = phone,
         email = email,

@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gstbilling.app.data.local.entity.ProductEntity
 import com.gstbilling.app.data.repository.ProductRepository
+import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -51,6 +52,17 @@ class ProductListViewModel @Inject constructor(
                 productRepository.refreshProducts(businessId)
             }
             isRefreshing = false
+        }
+    }
+
+    fun deleteProduct(productId: String) {
+        viewModelScope.launch {
+            val result = productRepository.deleteProduct(businessId, productId)
+            when (result) {
+                is AppResult.Success -> refresh()
+                is AppResult.Error -> {}
+                is AppResult.Loading -> {}
+            }
         }
     }
 
@@ -160,7 +172,8 @@ fun ProductListScreen(
                     items(products, key = { it.id }) { product ->
                         ProductListItem(
                             product = product,
-                            onClick = { onEditProduct(product.id.toString()) }
+                            onClick = { onEditProduct(product.remoteId.ifEmpty { product.id.toString() }) },
+                            onDelete = { viewModel.deleteProduct(product.remoteId.ifEmpty { product.id.toString() }) }
                         )
                     }
                 }
@@ -172,13 +185,16 @@ fun ProductListScreen(
 @Composable
 fun ProductListItem(
     product: ProductEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(onClick = onClick) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -230,6 +246,25 @@ fun ProductListItem(
                     )
                 }
             }
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+            }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Product") },
+            text = { Text("Are you sure you want to delete ${product.name}?") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }

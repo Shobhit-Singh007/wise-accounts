@@ -98,8 +98,21 @@ class SessionManager @Inject constructor(
         return context.dataStore.data.first()[Key.BUSINESS_NAME]
     }
 
+    suspend fun saveBusinessId(id: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Key.BUSINESS_ID] = id
+        }
+    }
+
     suspend fun saveBusinessName(name: String) {
         context.dataStore.edit { prefs ->
+            prefs[Key.BUSINESS_NAME] = name
+        }
+    }
+
+    suspend fun switchBusiness(id: String, name: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Key.BUSINESS_ID] = id
             prefs[Key.BUSINESS_NAME] = name
         }
     }

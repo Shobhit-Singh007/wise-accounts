@@ -1,5 +1,6 @@
 package com.gstbilling.app.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
@@ -63,6 +64,7 @@ fun SettingsScreen(
     onNavigateToPurchaseOrders: () -> Unit = {},
     onNavigateToDataImport: () -> Unit = {},
     onNavigateToExportData: () -> Unit = {},
+    onNavigateToBusinessList: () -> Unit = {},
     onNavigateToBusinessProfile: () -> Unit = {},
     onNavigateToTaxSettings: () -> Unit = {},
     onNavigateToInvoiceTemplate: () -> Unit = {},
@@ -124,7 +126,8 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(20.dp)
+                            .clickable { onNavigateToBusinessList() },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
@@ -161,6 +164,15 @@ fun SettingsScreen(
                     subtitle = "Edit your business details",
                     icon = Icons.Default.Store,
                     onClick = onNavigateToBusinessProfile
+                )
+            }
+
+            item {
+                SettingsItem(
+                    title = "Switch Business",
+                    subtitle = "Select or create a different business",
+                    icon = Icons.Default.SwapHoriz,
+                    onClick = onNavigateToBusinessList
                 )
             }
 

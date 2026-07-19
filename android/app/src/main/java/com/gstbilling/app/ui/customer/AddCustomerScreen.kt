@@ -72,7 +72,7 @@ class AddCustomerViewModel @Inject constructor(
         viewModelScope.launch {
             val entity = customerRepository.getCustomerById(id.hashCode().toLong())
             if (entity != null) {
-                customerId = entity.id.toString()
+                customerId = entity.remoteId
                 name = entity.name
                 phone = entity.phone ?: ""
                 email = entity.email ?: ""
@@ -112,9 +112,9 @@ class AddCustomerViewModel @Inject constructor(
                 businessId = businessId
             )
             val result = if (isEditMode) {
-                customerRepository.updateCustomer(customerId, customer)
+                customerRepository.updateCustomer(businessId, customerId, customer)
             } else {
-                customerRepository.createCustomer(customer)
+                customerRepository.createCustomer(businessId, customer)
             }
             isLoading = false
             when (result) {

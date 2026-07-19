@@ -162,9 +162,9 @@ fun CustomerListScreen(
                     items(customerList, key = { it.id }) { customer ->
                         CustomerListItem(
                             customer = customer,
-                            onClick = { onCustomerClick(customer.id.toString()) },
-                            onEdit = { onEditCustomer(customer.id.toString()) },
-                            onLedger = { onOpenLedger(customer.id.toString()) }
+                            onClick = { onCustomerClick(customer.remoteId.ifEmpty { customer.id.toString() }) },
+                            onEdit = { onEditCustomer(customer.remoteId.ifEmpty { customer.id.toString() }) },
+                            onLedger = { onOpenLedger(customer.remoteId.ifEmpty { customer.id.toString() }) }
                         )
                     }
                 }

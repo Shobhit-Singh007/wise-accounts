@@ -167,7 +167,7 @@ fun LowStockAlertsScreen(
                     items(lowStockProducts, key = { it.id }) { product ->
                         LowStockItem(
                             product = product,
-                            onClick = { onProductClick(product.id.toString()) }
+                            onClick = { onProductClick(product.remoteId.ifEmpty { product.id.toString() }) }
                         )
                     }
                 }

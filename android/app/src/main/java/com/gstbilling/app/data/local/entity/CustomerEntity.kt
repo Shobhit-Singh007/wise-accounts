@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class CustomerEntity(
     @PrimaryKey
     val id: Long,
+    val remoteId: String = "",
     val name: String,
     val phone: String? = null,
     val email: String? = null,

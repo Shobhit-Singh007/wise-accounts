@@ -61,6 +61,7 @@ import com.gstbilling.app.ui.settings.PaymentMethodsScreen
 import com.gstbilling.app.ui.settings.PrintSettingsScreen
 import com.gstbilling.app.ui.settings.SyncDataScreen
 import com.gstbilling.app.ui.settings.BackupScreen
+import com.gstbilling.app.ui.settings.BusinessListScreen
 import com.gstbilling.app.ui.dataimport.DataImportScreen
 import com.gstbilling.app.ui.dataimport.ExportDataScreen
 import com.gstbilling.app.ui.staff.EditPermissionsScreen
@@ -144,11 +145,12 @@ fun NavGraph(
                 onNavigateToSuppliers = { navController.navigate(Routes.SUPPLIERS) },
                 onNavigateToWarehouses = { navController.navigate(Routes.WAREHOUSES) },
                 onNavigateToStockMovements = { navController.navigate(Routes.STOCK_MOVEMENTS) },
+                onNavigateToBusinessList = { navController.navigate(Routes.BUSINESS_LIST) },
                 onNavigateToNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 onInvoiceClick = { invoiceId -> navController.navigate(Routes.invoiceDetail(invoiceId)) },
                 onEditProduct = { productId -> navController.navigate(Routes.editProduct(productId)) },
                 onEditCustomer = { customerId -> navController.navigate(Routes.editCustomer(customerId)) },
-                onCustomerClick = { customerId -> navController.navigate(Routes.createInvoice(customerId)) },
+                onCustomerClick = { customerId -> navController.navigate(Routes.customerLedger(customerId)) },
                 onOpenLedger = { customerId -> navController.navigate(Routes.customerLedger(customerId)) },
             )
         }
@@ -157,7 +159,7 @@ fun NavGraph(
             CustomerListScreen(
                 onAddCustomer = { navController.navigate(Routes.ADD_CUSTOMER) },
                 onEditCustomer = { id -> navController.navigate(Routes.editCustomer(id)) },
-                onCustomerClick = { id -> navController.navigate(Routes.createInvoice(id)) },
+                onCustomerClick = { id -> navController.navigate(Routes.customerLedger(id)) },
                 onOpenLedger = { id -> navController.navigate(Routes.customerLedger(id)) },
                 onBack = { navController.popBackStack() },
                 onCustomerGroups = { navController.navigate(Routes.CUSTOMER_GROUPS) }
@@ -312,7 +314,22 @@ fun NavGraph(
             val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
             InvoiceDetailScreen(
                 invoiceId = invoiceId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Routes.editInvoice(invoiceId)) },
+                onShare = { navController.navigate(Routes.invoiceShare(invoiceId)) }
+            )
+        }
+
+        composable(
+            route = Routes.EDIT_INVOICE,
+            arguments = listOf(navArgument("invoiceId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val invoiceId = backStackEntry.arguments?.getString("invoiceId") ?: ""
+            CreateInvoiceScreen(
+                invoiceId = invoiceId,
+                customerId = null,
+                onBack = { navController.popBackStack() },
+                onInvoiceCreated = { navController.popBackStack() }
             )
         }
 
@@ -407,6 +424,7 @@ fun NavGraph(
                 onNavigateToPurchaseOrders = { navController.navigate(Routes.PURCHASE_ORDERS) },
                 onNavigateToDataImport = { navController.navigate(Routes.DATA_IMPORT) },
                 onNavigateToExportData = { navController.navigate(Routes.EXPORT_DATA) },
+                onNavigateToBusinessList = { navController.navigate(Routes.BUSINESS_LIST) },
                 onNavigateToBusinessProfile = { navController.navigate(Routes.BUSINESS_PROFILE) },
                 onNavigateToTaxSettings = { navController.navigate(Routes.TAX_SETTINGS) },
                 onNavigateToInvoiceTemplate = { navController.navigate(Routes.INVOICE_TEMPLATE) },
@@ -598,6 +616,17 @@ fun NavGraph(
         composable(Routes.BACKUP) {
             BackupScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.BUSINESS_LIST) {
+            BusinessListScreen(
+                onBack = { navController.popBackStack() },
+                onBusinessSwitched = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.DASHBOARD) { inclusive = true }
+                    }
+                }
             )
         }
     }
