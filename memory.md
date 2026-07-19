@@ -186,3 +186,6 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 [System.IO.File]::WriteAllText("tmp_ssm.json", '{"commands":["cd /home/ec2-user/wise-accounts && docker compose exec -T backend npx prisma migrate deploy"]}', [System.Text.UTF8Encoding]::new($false))
 aws ssm send-command --instance-id i-0b4277d47b7ccdbe2 --document-name "AWS-RunShellScript" --parameters "file://tmp_ssm.json" --region us-east-1
 ```
+
+## Deployments
+- **2026-07-19**: Deployed 40 commits including: Android reports route fixes, nginx body size fix, Clear All Data endpoint, paginated data parsing fix, customer/stock-movement route corrections, CustomerListViewModel refresh fix, bottom nav refactor, import bypass fix, GoGST 15-field import expansion, direct file upload import, khatabook transaction import, delete product button, business name/logo fix, import validation pipe bypass, transactionDate field, Clear All Customers button, Android nested NavHost refactor, Dashboard card removal, ledger date fix.
