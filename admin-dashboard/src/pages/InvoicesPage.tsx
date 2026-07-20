@@ -474,9 +474,11 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
           </Paper>
         )}
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
           <Typography variant="subtitle2">Line Items</Typography>
-          {isEdit && <Typography variant="caption" color={items.length > 1 ? 'success.main' : 'error.main'}>({items.length} loaded)</Typography>}
+          <Typography variant="body2" sx={{ bgcolor: isEdit ? '#e3f2fd' : '#fff3e0', px: 1, py: 0.3, borderRadius: 1, fontWeight: 700 }}>
+            {isEdit ? `EDIT mode - ${items.length} items` : 'CREATE mode'}
+          </Typography>
         </Box>
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
           <Table size="small">
