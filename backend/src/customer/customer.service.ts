@@ -156,6 +156,7 @@ export class CustomerService {
           id: true,
           invoiceNo: true,
           invoiceDate: true,
+          createdAt: true,
           grandTotal: true,
           paidAmount: true,
           status: true,
@@ -196,17 +197,17 @@ export class CustomerService {
 
     for (const inv of invoices) {
       if (inv.status === 'CANCELLED') continue;
-      const entryDate = inv.invoiceDate || inv.id;
+      const entryDate = inv.invoiceDate ?? inv.createdAt;
       const existing = entries.find((e) => e.id === `inv_${inv.id}`);
       if (!existing) {
-        runningBalance += inv.grandTotal;
+        runningBalance += inv.grandTotal ?? 0;
         entries.push({
           id: `inv_${inv.id}`,
           date: new Date(entryDate).toISOString(),
           type: 'SALE_INVOICE',
           description: `Invoice ${inv.invoiceNo}`,
           invoiceNo: inv.invoiceNo,
-          debit: inv.grandTotal,
+          debit: inv.grandTotal ?? 0,
           credit: 0,
           balanceAfter: runningBalance,
         });

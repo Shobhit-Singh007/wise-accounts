@@ -50,6 +50,11 @@ class InvoiceItemDto {
 }
 
 export class CreateInvoiceDto {
+  @ApiProperty({ required: false, description: 'Custom invoice number (auto-generated if not provided)' })
+  @IsString()
+  @IsOptional()
+  invoiceNo?: string;
+
   @ApiProperty({ enum: InvoiceType, example: 'B2C' })
   @IsEnum(InvoiceType)
   type: InvoiceType;

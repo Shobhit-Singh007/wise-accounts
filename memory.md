@@ -139,6 +139,11 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 | `admin-dashboard/src/__tests__/api.client.test.ts` | API client response unwrapping & 401 refresh |
 
 ## Bug Fixes
+- **2026-07-20**: Ledger crash on invoices with null invoiceDate — `inv.invoiceDate ?? inv.createdAt` fallback using `createdAt` instead of `inv.id` (UUID string caused `RangeError: Invalid time value`). Also added `?? 0` guards on `grandTotal`. See `customer.service.ts:159,200,203,210`.
+- **2026-07-20**: Discount calculation mismatch — backend treated discount as flat amount but frontend sent percentage. Fixed `billing.service.ts` create/update to compute `discountAmt = gross * (discount / 100)` matching frontend `calcItemTax`. See `billing.service.ts:73-75,242-244`.
+- **2026-07-20**: Invoice items deleted outside transaction in `updateInvoice` — removed premature `deleteMany` before `$transaction` to prevent data loss on errors. See `billing.service.ts`.
+- **2026-07-20**: Added `invoiceNo` field to `CreateInvoiceDto`/`CreateInvoiceRequest` — users can now set custom invoice numbers on create/edit. Auto-generated if left blank. See `create-invoice.dto.ts`, `InvoicesPage.tsx`.
+- **2026-07-20**: Added one-click "Print" buttons for E-Way Bill and e-Invoice in invoice detail dialog — opens government portal URLs (`ewaybillgst.gov.in`, `einvoice.gst.gov.in`). See `InvoicesPage.tsx`.
 - **2026-07-19**: Dashboard crash on API error — `String.format("%.0f", ...)` with `?: 0` (Int) instead of `?: 0.0` (Double) caused `IllegalFormatConversionException` when `dashboardData` was null. Added error state UI with Retry button. See `DashboardScreen.kt:129,158`.
 - **2026-07-19**: GSTIN lookup always returned blank — Backend returns flat `{gstin, name, ...}` JSON but Android expected `ApiResponse<T>` wrapper (`response.body()?.data` was always null). Fixed `ApiService.lookupGstin` return type + 3 ViewModels. See `ApiService.kt:475`, `AddCustomerScreen.kt`, `SubSettingsViewModel.kt`, `CreateInvoiceScreen.kt`.
 - **2026-07-19**: XLSX import from GoGST showed blank fields — Android file picker only accepted `text/*` (no XLSX MIME). XLSX binary read as garbled text. Added Apache POI based XLSX parser + updated file picker. See `DataImportScreen.kt`.
@@ -175,6 +180,12 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-19**: Refactored Android bottom navigation — replaced embedded tab content with nested `NavHost` for proper lifecycle/ViewModel per tab. See `MainTabsScreen.kt`.
 - **2026-07-19**: Fixed CustomerListViewModel `collect` blocking refresh — moved to `launch { collect {} }`. See `CustomerListScreen.kt`.
 - **2026-07-19**: Fixed ledger date display — backend `getLedger` now uses `transactionDate` instead of `createdAt`. See `customer.service.ts`.
+
+## One-time Scripts
+```powershell
+# Backfill null invoiceDate with createdAt
+cd backend && npm run scripts:backfill-invoice-dates
+```
 
 ## Deployment Commands
 ```powershell

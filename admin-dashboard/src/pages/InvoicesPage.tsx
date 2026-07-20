@@ -129,6 +129,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [partySearch, setPartySearch] = useState('');
   const [partyList, setPartyList] = useState<Customer[]>([]);
   const [selectedParty, setSelectedParty] = useState<Customer | null>(null);
+  const [invoiceNo, setInvoiceNo] = useState(editInvoice?.invoiceNo || '');
   const [invoiceDate, setInvoiceDate] = useState(editInvoice?.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate?.slice(0, 10) || '');
   const [items, setItems] = useState<LineItem[]>(
@@ -164,6 +165,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     if (!open) return;
     if (editInvoice) {
       setType(editInvoice.type);
+      setInvoiceNo(editInvoice.invoiceNo || '');
       setInvoiceDate(editInvoice.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10));
       setDueDate(editInvoice.dueDate?.slice(0, 10) || '');
       setItems(
@@ -181,6 +183,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setTerms(editInvoice.terms || '');
     } else {
       setType('B2C');
+      setInvoiceNo('');
       setInvoiceDate(new Date().toISOString().slice(0, 10));
       setDueDate('');
       setItems([{ ...emptyItem }]);
@@ -305,6 +308,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       const payload: CreateInvoiceRequest = {
         type,
         direction,
+        invoiceNo: invoiceNo || undefined,
         invoiceDate: invoiceDate || undefined,
         dueDate: dueDate || undefined,
         notes: notes || undefined,
@@ -394,6 +398,16 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                 </IconButton>
               )}
             </Box>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField
+              label="Invoice #"
+              value={invoiceNo}
+              onChange={(e) => setInvoiceNo(e.target.value)}
+              size="small"
+              fullWidth
+              placeholder={isEdit ? '' : 'Auto-generated'}
+            />
           </Grid>
           <Grid item xs={6} md={2}>
             <TextField
@@ -925,6 +939,16 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
               <Divider sx={{ my: 3 }} />
               <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EwayIcon fontSize="small" /> E-Way Bill Details
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
+                  startIcon={<PrintIcon />}
+                  onClick={() => window.open(`https://ewaybillgst.gov.in/Pages/eWayBill/eWayBillStatus.aspx?ewbNo=${invoice.ewayBillNo}`, '_blank')}
+                >
+                  Print
+                </Button>
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6} sm={3}>
@@ -952,6 +976,16 @@ function InvoiceDetailDialog({ open, onClose, invoice, businessId, onRefresh }: 
               <Divider sx={{ my: 3 }} />
               <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EinvoiceIcon fontSize="small" /> e-Invoice Details
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                  sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
+                  startIcon={<PrintIcon />}
+                  onClick={() => window.open(`https://einvoice.gst.gov.in/oltd/print/${invoice.irn}`, '_blank')}
+                >
+                  Print
+                </Button>
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6} sm={4}>

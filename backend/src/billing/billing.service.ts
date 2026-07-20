@@ -35,7 +35,7 @@ export class BillingService {
     if (!business) throw new NotFoundException('Business not found');
 
     const direction = dto.direction || 'SALE';
-    const invoiceNo = await this.generateInvoiceNumber(businessId, dto.type, direction, dto.documentType);
+    const invoiceNo = dto.invoiceNo || await this.generateInvoiceNumber(businessId, dto.type, direction, dto.documentType);
 
     const isInterState = direction === 'SALE'
       ? await this.isInterState(business, dto.customerId)
@@ -70,7 +70,9 @@ export class BillingService {
     );
 
     const items = itemsWithProducts.map((item) => {
-      const taxableValue = item.quantity * item.rate - (item.discount || 0);
+      const grossValue = item.quantity * item.rate;
+      const discountAmt = grossValue * ((item.discount || 0) / 100);
+      const taxableValue = grossValue - discountAmt;
       const taxRate = item.taxRate || 0;
 
       let cgst = 0;
@@ -217,11 +219,6 @@ export class BillingService {
       throw new BadRequestException('Cannot edit a cancelled invoice');
     }
 
-    // Delete old items and create new ones if items are provided
-    if (dto.items && dto.items.length > 0) {
-      await this.prisma.invoiceItem.deleteMany({ where: { invoiceId } });
-    }
-
     const isInterState = existing.direction === 'SALE'
       ? await this.isInterState(
           await this.prisma.business.findUnique({ where: { id: businessId } }),
@@ -239,7 +236,9 @@ export class BillingService {
 
     if (dto.items) {
       items = dto.items.map((item: any) => {
-        const taxableValue = item.quantity * item.rate - (item.discount || 0);
+        const grossValue = item.quantity * item.rate;
+        const discountAmt = grossValue * ((item.discount || 0) / 100);
+        const taxableValue = grossValue - discountAmt;
         const taxRate = item.taxRate || 0;
         let cgst = 0, sgst = 0, igst = 0;
         if (taxRate > 0) {
@@ -278,6 +277,7 @@ export class BillingService {
     const updateData: any = {};
     if (dto.customerId !== undefined) updateData.customerId = dto.customerId;
     if (dto.supplierId !== undefined) updateData.supplierId = dto.supplierId;
+    if (dto.invoiceNo !== undefined) updateData.invoiceNo = dto.invoiceNo;
     if (dto.invoiceDate !== undefined) updateData.invoiceDate = new Date(dto.invoiceDate);
     if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
     if (dto.discount !== undefined) updateData.discount = dto.discount;

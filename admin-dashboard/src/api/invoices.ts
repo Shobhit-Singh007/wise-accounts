@@ -112,6 +112,7 @@ export interface CreateInvoiceRequest {
   direction: 'SALE' | 'PURCHASE';
   customerId?: string;
   supplierId?: string;
+  invoiceNo?: string;
   invoiceDate?: string;
   dueDate?: string;
   discount?: number;
