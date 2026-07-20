@@ -382,7 +382,7 @@ fun CustomerLedgerScreen(
                     item {
                         SummaryCards(response.summary)
                     }
-                    stickyHeader {
+                    item {
                         TransactionHeader()
                     }
                     items(response.entries) { entry ->
