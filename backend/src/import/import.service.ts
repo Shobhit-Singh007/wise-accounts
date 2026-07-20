@@ -661,6 +661,23 @@ export class ImportService {
           }
         }
 
+        if (invoiceItems.length === 0 && invoiceData.grandTotal) {
+          const gt = invoiceData.grandTotal;
+          invoiceItems.push({
+            itemName: 'Imported Items',
+            quantity: 1,
+            unit: 'piece',
+            rate: gt,
+            discount: 0,
+            taxableValue: gt,
+            taxRate: 0,
+            cgst: 0,
+            sgst: 0,
+            igst: 0,
+            total: gt,
+          });
+        }
+
         const subtotal = invoiceData.subtotal || parseFloat(invoiceItems.reduce((s, i) => s + i.taxableValue, 0).toFixed(2));
         const taxAmount = invoiceData.taxAmount || parseFloat(invoiceItems.reduce((s, i) => s + i.cgst + i.sgst + i.igst, 0).toFixed(2));
         const totalQuantity = invoiceData.totalQuantity || invoiceItems.reduce((s, i) => s + i.quantity, 0);
