@@ -1,5 +1,24 @@
 ﻿# Project Memory — Wise Accounts / GST Billing
 
+## User Profile (Target Audience)
+- **Location:** Rural India — 99% Android, <5% desktop/laptop
+- **Users:** Small shop owners — FMCG, pan masala, distributors
+- **Literacy:** Low; minimal skilled staff (1-2 per business at most)
+- **Key pains:**
+  1. GST filing complexity + high CA costs (balance sheets, P&L, GSTR-1/2B/3B)
+  2. Manual stock books → can't count large inventory daily
+  3. Credit sales → tracking & reminders are tedious, often unpaid
+  4. Duplicate data entry (invoice + ewaybill + einvoice portals)
+  5. E-invoicing/ewaybill mandates becoming critical
+
+## Design Principles (for this user base)
+- **Android-first** — app is primary interface; admin dashboard is secondary
+- **Edit must pre-load ALL data** — users should only tweak, never re-enter
+- **Minimal taps/clicks** — every extra step loses users
+- **Offline-resilient** — rural connectivity is unreliable
+- **Auto-calculate everything** — GST, stock, balances, reminders
+- **Voice/numeric input preferred** over text where possible
+
 ## Overview
 Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iOS mobile apps.
 

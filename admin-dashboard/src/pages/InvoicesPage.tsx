@@ -181,6 +181,13 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       );
       setNotes(editInvoice.notes || '');
       setTerms(editInvoice.terms || '');
+      setPoNo(editInvoice.poNo || '');
+      setChallanNo(editInvoice.challanNo || '');
+      setLrNo(editInvoice.lrNo || '');
+      setPaymentType(editInvoice.paymentType || '');
+      setPlaceOfSupply(editInvoice.placeOfSupply || '');
+      setCessTotal(editInvoice.cessTotal || 0);
+      setTotalInWords(editInvoice.totalInWords || '');
     } else {
       setType('B2C');
       setInvoiceNo('');
@@ -189,6 +196,13 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setItems([{ ...emptyItem }]);
       setNotes('');
       setTerms('');
+      setPoNo('');
+      setChallanNo('');
+      setLrNo('');
+      setPaymentType('');
+      setPlaceOfSupply('');
+      setCessTotal(0);
+      setTotalInWords('');
     }
     setPartySearch('');
     setSelectedParty(null);
@@ -468,15 +482,18 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                 <TableCell sx={{ width: 70 }} align="center">Qty</TableCell>
                 <TableCell sx={{ width: 70 }}>Unit</TableCell>
                 <TableCell sx={{ width: 90 }} align="right">Rate</TableCell>
-                <TableCell sx={{ width: 70 }} align="center">Disc %</TableCell>
-                <TableCell sx={{ width: 80 }} align="center">GST %</TableCell>
+                <TableCell sx={{ width: 60 }} align="center">Disc %</TableCell>
+                <TableCell sx={{ width: 60 }} align="center">GST %</TableCell>
+                <TableCell sx={{ width: 90 }} align="right">Taxable</TableCell>
+                <TableCell sx={{ width: 80 }} align="right">CGST</TableCell>
+                <TableCell sx={{ width: 80 }} align="right">SGST</TableCell>
                 <TableCell sx={{ width: 90 }} align="right">Amount</TableCell>
                 <TableCell sx={{ width: 40 }} align="center" />
               </TableRow>
             </TableHead>
             <TableBody>
               {items.map((item, idx) => {
-                const { total } = calcItemTax(item);
+                const t = calcItemTax(item);
                 return (
                   <TableRow key={idx}>
                     <TableCell>
@@ -554,9 +571,18 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                       </TextField>
                     </TableCell>
                     <TableCell align="right">
+                      <Typography variant="body2">₹{t.taxable.toFixed(2)}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2">₹{t.cgst.toFixed(2)}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2">₹{t.sgst.toFixed(2)}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
                       <TextField
                         type="number"
-                        value={total.toFixed(2)}
+                        value={t.total.toFixed(2)}
                         onChange={(e) => updateAmount(idx, Number(e.target.value))}
                         size="small"
                         inputProps={{ min: 0, step: 0.01 }}
