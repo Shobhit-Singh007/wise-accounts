@@ -518,6 +518,8 @@ export class ImportService {
       await this.prisma.invoiceItem.deleteMany({ where: { invoiceId: inv.id } });
       await this.prisma.payment.deleteMany({ where: { invoiceId: inv.id } });
       await this.prisma.creditNote.deleteMany({ where: { invoiceId: inv.id } });
+      await this.prisma.razorpayOrder.deleteMany({ where: { invoiceId: inv.id } });
+      await this.prisma.reconciliationLog.deleteMany({ where: { invoiceId: inv.id } });
       await this.prisma.invoice.delete({ where: { id: inv.id } });
     }
     return { deleted: toDelete.length };
