@@ -22,6 +22,7 @@ import CustomerLedgerPage from './pages/CustomerLedgerPage';
 import BatchExpiryPage from './pages/BatchExpiryPage';
 import InventoryManagementPage from './pages/InventoryManagementPage';
 import ImportPage from './pages/ImportPage';
+import EditInvoicePage from './pages/EditInvoicePage';
 import { CircularProgress, Box } from '@mui/material';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -96,6 +97,7 @@ function AppRoutes() {
         <Route path="/customers/:customerId/ledger" element={<CustomerLedgerPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/invoices/:invoiceId/edit" element={<EditInvoicePage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/batch-expiry" element={<BatchExpiryPage />} />
         <Route path="/inventory" element={<InventoryManagementPage />} />

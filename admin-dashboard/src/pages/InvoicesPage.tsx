@@ -1648,7 +1648,7 @@ function ActionMenu({ invoice, businessId, onView, onRefresh }: ActionMenuProps)
         <MenuItem onClick={() => { setAnchorEl(null); onView(invoice); }}>
           <ViewIcon fontSize="small" sx={{ mr: 1 }} /> View Details
         </MenuItem>
-        <MenuItem onClick={() => { setAnchorEl(null); window.open(`/invoices/${invoice.id}/edit`, '_blank'); }}>
+        <MenuItem onClick={() => { setAnchorEl(null); window.open(`/admin/invoices/${invoice.id}/edit`, '_blank'); }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
         <MenuItem onClick={handlePrint}>
