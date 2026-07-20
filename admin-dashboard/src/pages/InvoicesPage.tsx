@@ -132,8 +132,9 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [invoiceNo, setInvoiceNo] = useState(editInvoice?.invoiceNo || '');
   const [invoiceDate, setInvoiceDate] = useState(editInvoice?.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate?.slice(0, 10) || '');
-  const [items, setItems] = useState<LineItem[]>(
-    editInvoice?.items?.map((it) => ({
+  const initItems = (inv: typeof editInvoice): LineItem[] => {
+    if (!inv?.items || !Array.isArray(inv.items) || inv.items.length === 0) return [{ ...emptyItem }];
+    return inv.items.map((it) => ({
       productId: it.productId || undefined,
       itemName: it.itemName,
       quantity: it.quantity,
@@ -141,8 +142,9 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       rate: it.rate,
       discount: it.discount,
       taxRate: it.taxRate,
-    })) || [{ ...emptyItem }]
-  );
+    }));
+  };
+  const [items, setItems] = useState<LineItem[]>(() => initItems(editInvoice));
   const [notes, setNotes] = useState(editInvoice?.notes || '');
   const [terms, setTerms] = useState(editInvoice?.terms || '');
   const [poNo, setPoNo] = useState('');
@@ -168,17 +170,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setInvoiceNo(editInvoice.invoiceNo || '');
       setInvoiceDate(editInvoice.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10));
       setDueDate(editInvoice.dueDate?.slice(0, 10) || '');
-      setItems(
-        editInvoice.items?.map((it) => ({
-          productId: it.productId || undefined,
-          itemName: it.itemName,
-          quantity: it.quantity,
-          unit: it.unit,
-          rate: it.rate,
-          discount: it.discount,
-          taxRate: it.taxRate,
-        })) || [{ ...emptyItem }]
-      );
+      setItems(initItems(editInvoice));
       setNotes(editInvoice.notes || '');
       setTerms(editInvoice.terms || '');
       setPoNo(editInvoice.poNo || '');
@@ -204,8 +196,14 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setCessTotal(0);
       setTotalInWords('');
     }
-    setPartySearch('');
-    setSelectedParty(null);
+    setPartySearch(editInvoice ? (direction === 'SALE' ? editInvoice.customer?.name || '' : editInvoice.supplier?.name || '') : '');
+    if (editInvoice && direction === 'SALE' && editInvoice.customer) {
+      setSelectedParty(editInvoice.customer as unknown as Customer);
+    } else if (editInvoice && direction === 'PURCHASE' && editInvoice.supplier) {
+      setSelectedParty(editInvoice.supplier as unknown as Customer);
+    } else {
+      setSelectedParty(null);
+    }
     setProductSearch('');
     setProductList([]);
     setError('');
@@ -232,16 +230,6 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     }, 300);
     return () => clearTimeout(timer);
   }, [productSearch, open, businessId]);
-
-  useEffect(() => {
-    if (editInvoice && open) {
-      if (direction === 'SALE' && editInvoice.customer) {
-        setSelectedParty(editInvoice.customer as unknown as Customer);
-      } else if (direction === 'PURCHASE' && editInvoice.supplier) {
-        setSelectedParty(editInvoice.supplier as unknown as Customer);
-      }
-    }
-  }, [editInvoice, open, direction]);
 
   const totals = calcTotals(items);
 
