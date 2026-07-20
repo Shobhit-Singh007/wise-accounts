@@ -382,7 +382,7 @@ fun CustomerLedgerScreen(
                     item {
                         SummaryCards(response.summary)
                     }
-                    item {
+                    stickyHeader {
                         TransactionHeader()
                     }
                     items(response.entries) { entry ->
@@ -818,27 +818,26 @@ fun TransactionHeader() {
             modifier = Modifier.weight(2.5f)
         )
         Text(
-            text = "Dr",
+            text = "Debit",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1.5f)
         )
         Text(
-            text = "Cr",
+            text = "Credit",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1.5f)
         )
         Text(
             text = "Balance",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(1.2f)
+            modifier = Modifier.weight(1.5f)
         )
-        Spacer(modifier = Modifier.weight(0.3f))
     }
 }
 
@@ -849,18 +848,6 @@ fun TransactionRow(
     onImageClick: (String) -> Unit = {}
 ) {
     val isStandalone = entry.type == "LEDGER_GAVE" || entry.type == "LEDGER_RECEIVED"
-    val typeColor = when {
-        entry.type.contains("INVOICE") || entry.type == "LEDGER_GAVE" -> Color(0xFFF44336)
-        entry.type.contains("PAYMENT") || entry.type == "LEDGER_RECEIVED" -> Color(0xFF4CAF50)
-        entry.type == "OPENING_BALANCE" -> Color(0xFF9C27B0)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val typeLabel = when {
-        entry.type.contains("INVOICE") || entry.type == "LEDGER_GAVE" -> "Dr"
-        entry.type.contains("PAYMENT") || entry.type == "LEDGER_RECEIVED" -> "Cr"
-        entry.type == "OPENING_BALANCE" -> "OB"
-        else -> entry.type
-    }
 
     Row(
         modifier = Modifier
@@ -898,47 +885,29 @@ fun TransactionRow(
             }
         }
         Text(
-            text = if (entry.debit > 0) String.format("%.2f", entry.debit) else "-",
+            text = if (entry.debit > 0) formatAmount(entry.debit) else "-",
             style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (entry.debit > 0) FontWeight.SemiBold else FontWeight.Normal,
             color = if (entry.debit > 0) Color(0xFFF44336) else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1.5f)
         )
         Text(
-            text = if (entry.credit > 0) String.format("%.2f", entry.credit) else "-",
+            text = if (entry.credit > 0) formatAmount(entry.credit) else "-",
             style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (entry.credit > 0) FontWeight.SemiBold else FontWeight.Normal,
             color = if (entry.credit > 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1.5f)
         )
-        Row(
-            modifier = Modifier.weight(1.2f),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SuggestionChip(
-                onClick = {},
-                label = {
-                    Text(
-                        text = typeLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White
-                    )
-                },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = typeColor
-                ),
-                modifier = Modifier.height(24.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = String.format("%.2f", entry.balanceAfter),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = if (entry.balanceAfter > 0) Color(0xFFF44336) else Color(0xFF4CAF50),
-                textAlign = TextAlign.End
-            )
-        }
+        Text(
+            text = formatAmount(entry.balanceAfter),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = if (entry.balanceAfter >= 0) Color(0xFFF44336) else Color(0xFF4CAF50),
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1.5f)
+        )
         if (isStandalone) {
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(
@@ -998,4 +967,8 @@ fun TransactionFooter(summary: LedgerSummary) {
             }
         }
     }
+}
+
+private fun formatAmount(amount: Double): String {
+    return "₹%,.2f".format(amount)
 }

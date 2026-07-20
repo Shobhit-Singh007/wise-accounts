@@ -468,7 +468,7 @@ export default function CustomerLedgerPage() {
             </Typography>
           </Box>
         ) : (
-          <TableContainer sx={{ maxHeight: 480 }}>
+          <><TableContainer sx={{ maxHeight: 480 }}>
             <Table stickyHeader size="small" sx={{ minWidth: 650, tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
@@ -568,7 +568,7 @@ export default function CustomerLedgerPage() {
               </Typography>
             </Box>
           </Box>
-        )}
+        </>)}
       </Paper>
 
       <Dialog open={entryDialogOpen} onClose={() => setEntryDialogOpen(false)} maxWidth="sm" fullWidth>
