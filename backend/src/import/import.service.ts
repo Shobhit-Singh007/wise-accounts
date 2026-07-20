@@ -163,6 +163,7 @@ export class ImportService {
       const ackNo = get('ACK No') || get('ackNo') || get('ack_no');
       const ackDate = get('ACK Date') || get('ackDate') || get('ack_date');
       const notes = get('Document Note') || get('notes') || get('document_note');
+      const status = (get('Status') || get('status') || '').toUpperCase();
 
       const invoiceValue = this.parseIndianNumber(get('invoice_value') || get('Invoice Value') || get('Total') || get('total'));
       const rate = this.parseIndianNumber(get('rate') || get('Rate'));
@@ -228,6 +229,7 @@ export class ImportService {
         subtotal,
         taxAmount,
         grandTotal: grandTotal || subtotal + taxAmount,
+        status,
       };
     }
 
@@ -290,6 +292,7 @@ export class ImportService {
       subtotal,
       taxAmount,
       grandTotal: grandTotal || subtotal + taxAmount,
+      status: (get('status') || '').toUpperCase(),
     };
   }
 
@@ -684,6 +687,7 @@ export class ImportService {
         const grandTotal = invoiceData.grandTotal || parseFloat((subtotal + taxAmount).toFixed(2));
 
         const type = invoiceData.customerGstin ? 'B2B' as const : 'B2C' as const;
+        const invStatus = invoiceData.status === 'CANCELLED' || invoiceData.status === 'Cancel' || invoiceData.isCancelled ? 'CANCELLED' : 'CONFIRMED';
 
         await this.prisma.invoice.create({
           data: {
@@ -699,7 +703,7 @@ export class ImportService {
             discount: 0,
             grandTotal,
             paidAmount: 0,
-            status: 'CONFIRMED',
+            status: invStatus,
             notes: invoiceData.notes,
             customerAddress: invoiceData.customerAddress,
             customerPhone: invoiceData.customerPhone,
