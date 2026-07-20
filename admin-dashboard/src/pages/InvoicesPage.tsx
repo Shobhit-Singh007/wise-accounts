@@ -156,6 +156,24 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [totalInWords, setTotalInWords] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isEdit || !open || !businessId || !editInvoice?.id) return;
+    if (editInvoice.items && editInvoice.items.length > 0) return;
+    invoicesApi.getById(businessId, editInvoice.id).then(({ data }) => {
+      if (!data?.items || data.items.length === 0) return;
+      setItems(data.items.map((it) => ({
+        productId: it.productId || undefined,
+        itemName: it.itemName,
+        quantity: it.quantity,
+        unit: it.unit,
+        rate: it.rate,
+        discount: it.discount,
+        taxRate: it.taxRate,
+      })));
+    }).catch(() => {});
+  }, [isEdit, open, businessId, editInvoice?.id]);
+
   const [productSearch, setProductSearch] = useState('');
   const [productList, setProductList] = useState<Product[]>([]);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
