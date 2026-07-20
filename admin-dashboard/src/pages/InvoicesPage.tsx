@@ -157,23 +157,6 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!isEdit || !open || !businessId || !editInvoice?.id) return;
-    if (editInvoice.items && editInvoice.items.length > 0) return;
-    invoicesApi.getById(businessId, editInvoice.id).then(({ data }) => {
-      if (!data?.items || data.items.length === 0) return;
-      setItems(data.items.map((it) => ({
-        productId: it.productId || undefined,
-        itemName: it.itemName,
-        quantity: it.quantity,
-        unit: it.unit,
-        rate: it.rate,
-        discount: it.discount,
-        taxRate: it.taxRate,
-      })));
-    }).catch(() => {});
-  }, [isEdit, open, businessId, editInvoice?.id]);
-
   const [productSearch, setProductSearch] = useState('');
   const [productList, setProductList] = useState<Product[]>([]);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
@@ -188,7 +171,6 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setInvoiceNo(editInvoice.invoiceNo || '');
       setInvoiceDate(editInvoice.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10));
       setDueDate(editInvoice.dueDate?.slice(0, 10) || '');
-      setItems(initItems(editInvoice));
       setNotes(editInvoice.notes || '');
       setTerms(editInvoice.terms || '');
       setPoNo(editInvoice.poNo || '');
@@ -198,6 +180,19 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setPlaceOfSupply(editInvoice.placeOfSupply || '');
       setCessTotal(editInvoice.cessTotal || 0);
       setTotalInWords(editInvoice.totalInWords || '');
+      invoicesApi.getById(businessId, editInvoice.id).then(({ data }) => {
+        if (data?.items && data.items.length > 0) {
+          setItems(data.items.map((it) => ({
+            productId: it.productId || undefined,
+            itemName: it.itemName,
+            quantity: it.quantity,
+            unit: it.unit,
+            rate: it.rate,
+            discount: it.discount,
+            taxRate: it.taxRate,
+          })));
+        }
+      }).catch(() => {});
     } else {
       setType('B2C');
       setInvoiceNo('');
