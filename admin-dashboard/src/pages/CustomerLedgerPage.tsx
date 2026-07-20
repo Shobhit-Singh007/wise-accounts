@@ -76,16 +76,20 @@ interface LedgerData {
   entries: LedgerEntry[];
 }
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number | null | undefined): string {
+  if (amount == null || isNaN(amount)) return '₹0.00';
   return `₹${Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch { return '-'; }
 }
 
 const paymentModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'OTHER'];
@@ -328,7 +332,7 @@ export default function CustomerLedgerPage() {
               {customer.name}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.85, mb: 0.25 }}>
-              {customer.phone}{customer.email ? ` | ${customer.email}` : ''}
+              {customer.phone || ''}{customer.email ? ` | ${customer.email}` : ''}
             </Typography>
             {customer.gstin && (
               <Typography variant="body2" sx={{ opacity: 0.85, mb: 0.25 }}>
@@ -459,200 +463,112 @@ export default function CustomerLedgerPage() {
             </Typography>
           </Box>
         ) : (
-          <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse' }}>
-            <Box component="thead">
-              <Box component="tr" sx={{ bgcolor: '#1a237e' }}>
-                {['Date', 'Description', 'Invoice #', 'Debit (Dr)', 'Credit (Cr)', 'Balance', ''].map((h) => (
-                  <Box
-                    key={h}
-                    component="th"
-                    sx={{
-                      p: 1.5,
-                      textAlign: h === 'Description' || h === '' ? 'left' : h === 'Date' ? 'left' : 'right',
-                      color: 'white',
-                      fontWeight: 600,
-                      fontSize: '0.85rem',
-                      borderBottom: '2px solid #ff8f00',
-                    }}
-                  >
-                    {h}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-            <Box component="tbody">
-              {entries.map((entry, idx) => {
-                const isInvoice = entry.type.includes('INVOICE');
-                const isPayment = entry.type.includes('PAYMENT');
-                const isOpening = entry.type === 'OPENING_BALANCE';
-                const isGave = entry.type === 'LEDGER_GAVE';
-                const isReceived = entry.type === 'LEDGER_RECEIVED';
-                const isStandalone = isGave || isReceived;
-                const balancePositive = entry.balanceAfter >= 0;
+          <Box>
+            {entries.map((entry, idx) => {
+              const isInvoice = entry.type.includes('INVOICE');
+              const isPayment = entry.type.includes('PAYMENT');
+              const isOpening = entry.type === 'OPENING_BALANCE';
+              const isGave = entry.type === 'LEDGER_GAVE';
+              const isReceived = entry.type === 'LEDGER_RECEIVED';
+              const isStandalone = isGave || isReceived;
+              const isDebit = entry.debit > 0;
+              const balancePositive = entry.balanceAfter >= 0;
 
-                return (
-                  <Box
-                    key={entry.id}
-                    component="tr"
-                    sx={{
-                      bgcolor: idx % 2 === 0 ? 'white' : '#fafafa',
-                      '&:hover': { bgcolor: '#e8eaf6' },
-                      transition: 'background-color 0.15s',
-                    }}
-                  >
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.85rem',
-                        color: 'text.secondary',
-                        borderBottom: '1px solid #f0f0f0',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {formatDate(entry.date)}
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.875rem',
-                        fontWeight: isOpening ? 700 : isInvoice || isGave ? 500 : 400,
-                        borderBottom: '1px solid #f0f0f0',
-                        color: isOpening ? '#1a237e' : isGave ? '#c62828' : 'text.primary',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {isInvoice && (
-                          <Chip label="Dr" size="small" sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />
-                        )}
-                        {isGave && (
-                          <Chip label="Dr" size="small" sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />
-                        )}
-                        {isPayment && (
-                          <Chip label="Cr" size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />
-                        )}
-                        {isReceived && (
-                          <Chip label="Cr" size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />
-                        )}
-                        {isOpening && (
-                          <Chip label="OB" size="small" sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />
-                        )}
-                        {entry.description}
-                        {entry.imageUrl && (
-                          <Box
-                            component="img"
-                            src={entry.imageUrl}
-                            alt="Attachment"
-                            sx={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 1, mt: 0.5, cursor: 'pointer', border: '1px solid #e0e0e0' }}
-                            onClick={() => window.open(entry.imageUrl, '_blank')}
-                          />
-                        )}
+              return (
+                <Paper
+                  key={entry.id}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    mb: 0.5,
+                    borderLeft: `4px solid ${isOpening ? '#1a237e' : isDebit ? '#e53935' : '#2e7d32'}`,
+                    bgcolor: idx === entries.length - 1 ? (balancePositive ? '#fff8e1' : '#e8f5e9') : 'white',
+                    '&:hover': { bgcolor: '#f5f5f5' },
+                    transition: 'background-color 0.15s',
+                  }}
+                >
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80 }}>
+                          {formatDate(entry.date)}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flex: 1 }}>
+                          {isOpening && <Chip label="Opening" size="small" sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />}
+                          {(isInvoice || isGave) && <Chip label="Dr" size="small" sx={{ bgcolor: '#ffebee', color: '#c62828', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />}
+                          {(isPayment || isReceived) && <Chip label="Cr" size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 700, fontSize: '0.7rem', height: 20 }} />}
+                          <Typography variant="body2" sx={{ fontWeight: isOpening || isDebit ? 600 : 400 }}>
+                            {entry.description}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.8rem',
-                        color: 'text.secondary',
-                        borderBottom: '1px solid #f0f0f0',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {entry.invoiceNo || '-'}
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        color: entry.debit > 0 ? '#c62828' : 'text.secondary',
-                        borderBottom: '1px solid #f0f0f0',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {entry.debit > 0 ? formatCurrency(entry.debit) : '-'}
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        color: entry.credit > 0 ? '#2e7d32' : 'text.secondary',
-                        borderBottom: '1px solid #f0f0f0',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {entry.credit > 0 ? formatCurrency(entry.credit) : '-'}
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        fontSize: '0.9rem',
-                        fontWeight: 700,
-                        color: balancePositive ? '#c62828' : '#2e7d32',
-                        borderBottom: '1px solid #f0f0f0',
-                        textAlign: 'right',
-                        bgcolor: idx === entries.length - 1 ? (balancePositive ? '#fff3e0' : '#e8f5e9') : 'transparent',
-                      }}
-                    >
-                      {formatCurrency(entry.balanceAfter)}
-                    </Box>
-                    <Box
-                      component="td"
-                      sx={{
-                        p: 1.5,
-                        borderBottom: '1px solid #f0f0f0',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {isStandalone && (
+                    </Grid>
+                    <Grid item xs={6}>
+                      {entry.invoiceNo && (
+                        <Typography variant="caption" color="text.secondary">
+                          Invoice: {entry.invoiceNo}
+                        </Typography>
+                      )}
+                    </Grid>
+                    <Grid item xs={3} sx={{ textAlign: 'right' }}>
+                      {entry.debit > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#c62828' }}>
+                          {formatCurrency(entry.debit)}
+                        </Typography>
+                      )}
+                      {entry.credit > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#2e7d32' }}>
+                          {formatCurrency(entry.credit)}
+                        </Typography>
+                      )}
+                      {!entry.debit && !entry.credit && <Typography variant="body2">-</Typography>}
+                    </Grid>
+                    <Grid item xs={3} sx={{ textAlign: 'right' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">Bal:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: balancePositive ? '#c62828' : '#2e7d32' }}>
+                          {formatCurrency(entry.balanceAfter)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    {entry.imageUrl && (
+                      <Grid item xs={12}>
+                        <Box
+                          component="img"
+                          src={entry.imageUrl}
+                          alt="Attachment"
+                          sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 1, cursor: 'pointer', border: '1px solid #e0e0e0' }}
+                          onClick={() => window.open(entry.imageUrl, '_blank')}
+                        />
+                      </Grid>
+                    )}
+                    {isStandalone && (
+                      <Grid item xs={12} sx={{ textAlign: 'right' }}>
                         <IconButton size="small" onClick={() => handleDeleteEntry(entry.id)} sx={{ color: '#e53935' }}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
-                      )}
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Box>
-            <Box component="tfoot">
-              <Box component="tr" sx={{ bgcolor: '#e8eaf6' }}>
-                <Box component="td" sx={{ p: 1.5, fontWeight: 700, fontSize: '0.85rem' }} colSpan={3}>
-                  TOTAL
-                </Box>
-                <Box
-                  component="td"
-                  sx={{ p: 1.5, fontWeight: 700, textAlign: 'right', color: '#c62828', fontSize: '0.9rem' }}
-                >
-                  {formatCurrency(summary.totalDebit)}
-                </Box>
-                <Box
-                  component="td"
-                  sx={{ p: 1.5, fontWeight: 700, textAlign: 'right', color: '#2e7d32', fontSize: '0.9rem' }}
-                >
-                  {formatCurrency(summary.totalCredit)}
-                </Box>
-                <Box
-                  component="td"
-                  sx={{
-                    p: 1.5,
-                    fontWeight: 700,
-                    textAlign: 'right',
-                    color: isPositive ? '#c62828' : '#2e7d32',
-                    fontSize: '0.9rem',
-                    bgcolor: isPositive ? '#ffe0b2' : '#c8e6c9',
-                  }}
-                >
-                  {formatCurrency(summary.closingBalance)}
-                </Box>
-                <Box component="td" sx={{ p: 1.5 }} />
-              </Box>
-            </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Paper>
+              );
+            })}
+            <Paper elevation={0} sx={{ p: 2, mt: 1, bgcolor: '#e8eaf6', borderRadius: 2 }}>
+              <Grid container spacing={1}>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Total Debit</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700, color: '#c62828' }}>{formatCurrency(summary.totalDebit)}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Total Credit</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700, color: '#2e7d32' }}>{formatCurrency(summary.totalCredit)}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Closing Balance</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700, color: isPositive ? '#c62828' : '#2e7d32' }}>{formatCurrency(summary.closingBalance)}</Typography>
+                </Grid>
+              </Grid>
+            </Paper>
           </Box>
         )}
       </Paper>
