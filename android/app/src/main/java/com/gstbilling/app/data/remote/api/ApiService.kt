@@ -667,8 +667,8 @@ data class Customer(
 data class LedgerCustomer(
     val id: String = "",
     val name: String = "",
-    val phone: String = "",
-    val email: String = "",
+    val phone: String? = null,
+    val email: String? = null,
     val gstin: String? = null,
     val address: String? = null,
     val city: String? = null,

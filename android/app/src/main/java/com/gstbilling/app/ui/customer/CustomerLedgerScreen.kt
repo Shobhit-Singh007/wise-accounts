@@ -640,19 +640,21 @@ fun CustomerHeaderCard(customer: LedgerCustomer) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Phone,
-                        contentDescription = null,
-                        tint = Color(0xFF90CAF9),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = customer.phone,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF90CAF9)
-                    )
+                if (customer.phone != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color(0xFF90CAF9),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = customer.phone!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF90CAF9)
+                        )
+                    }
                 }
                 if (customer.gstin != null) {
                     Spacer(modifier = Modifier.height(4.dp))
