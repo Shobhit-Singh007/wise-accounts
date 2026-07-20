@@ -41,20 +41,21 @@ struct InvoicePreviewView: View {
             }
         }
         .task {
-            let bizId = authManager.businessId
+            let bizId = authManager.currentBusiness?.id ?? ""
             await viewModel.loadPrintHtml(businessId: bizId, invoiceId: invoiceId)
         }
     }
 
     private func printInvoice() {
-        guard let url = APIService.shared.getInvoicePrintUrl(businessId: authManager.businessId, invoiceId: invoiceId) else { return }
+        guard let bizId = authManager.currentBusiness?.id, let url = APIService.shared.getInvoicePrintUrl(businessId: bizId, invoiceId: invoiceId) else { return }
         openURL(url)
     }
 
     private func sharePdf() {
         Task {
             do {
-                let data = try await APIService.shared.getInvoicePdfData(businessId: authManager.businessId, invoiceId: invoiceId)
+                let bizId = authManager.currentBusiness?.id ?? ""
+                let data = try await APIService.shared.getInvoicePdfData(businessId: bizId, invoiceId: invoiceId)
                 await MainActor.run {
                     let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("\(invoiceNo).pdf")
                     try? data.write(to: tmpUrl)

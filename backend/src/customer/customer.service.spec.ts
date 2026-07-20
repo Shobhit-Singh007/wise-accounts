@@ -46,6 +46,9 @@ describe('CustomerService', () => {
     invoice: {
       findMany: jest.fn(),
     },
+    payment: {
+      findMany: jest.fn(),
+    },
   };
 
   const mockPaymentsService = {
@@ -186,6 +189,161 @@ describe('CustomerService', () => {
       await expect(
         service.findOne('biz-1', 'cust-unknown'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getLedger', () => {
+    const mockInvoice = {
+      id: 'inv-1',
+      invoiceNo: 'INV-001',
+      invoiceDate: new Date('2024-01-15'),
+      createdAt: new Date('2024-01-10'),
+      grandTotal: 5000,
+      paidAmount: 0,
+      status: 'CONFIRMED',
+      type: 'B2C',
+      subtotal: 5000,
+      taxAmount: 0,
+    };
+
+    const mockPayment = {
+      id: 'pay-1',
+      amount: 2000,
+      method: 'CASH',
+      status: 'COMPLETED',
+      reference: null,
+      notes: null,
+      paidAt: new Date('2024-01-20'),
+    };
+
+    const mockTransaction = {
+      id: 'tx-1',
+      type: 'LEDGER_GAVE',
+      amount: 1000,
+      description: 'Advance payment',
+      transactionDate: new Date('2024-01-25'),
+      createdAt: new Date('2024-01-25'),
+      imageUrl: null,
+    };
+
+    beforeEach(() => {
+      mockPrisma.invoice.findMany.mockResolvedValue([]);
+      mockPrisma.payment.findMany.mockResolvedValue([]);
+      mockPrisma.customerTransaction.findMany.mockResolvedValue([]);
+    });
+
+    it('should return ledger with opening balance', async () => {
+      const customerWithBalance = {
+        ...mockCustomer,
+        openingBalance: 10000,
+        balance: 15000,
+        createdAt: new Date('2024-01-01'),
+      };
+      mockPrisma.customer.findFirst.mockResolvedValue(customerWithBalance);
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.customer).toBeDefined();
+      expect(result.summary.openingBalance).toBe(10000);
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].type).toBe('OPENING_BALANCE');
+      expect(result.entries[0].balanceAfter).toBe(10000);
+    });
+
+    it('should combine invoices, payments, and manual entries', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue({
+        ...mockCustomer,
+        openingBalance: 5000,
+        createdAt: new Date('2024-01-01'),
+      });
+      mockPrisma.invoice.findMany.mockResolvedValue([mockInvoice]);
+      mockPrisma.payment.findMany.mockResolvedValue([mockPayment]);
+      mockPrisma.customerTransaction.findMany.mockResolvedValue([mockTransaction]);
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.entries.length).toBeGreaterThanOrEqual(3);
+      const invoiceEntry = result.entries.find((e: any) => e.type === 'SALE_INVOICE');
+      const paymentEntry = result.entries.find((e: any) => e.type === 'PAYMENT_RECEIVED');
+      const gaveEntry = result.entries.find((e: any) => e.type === 'LEDGER_GAVE');
+
+      expect(invoiceEntry).toBeDefined();
+      expect(invoiceEntry!.debit).toBe(5000);
+      expect(paymentEntry).toBeDefined();
+      expect(paymentEntry!.credit).toBe(2000);
+      expect(gaveEntry).toBeDefined();
+      expect(gaveEntry!.debit).toBe(1000);
+    });
+
+    it('should calculate correct running balance', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue({
+        ...mockCustomer,
+        openingBalance: 0,
+        createdAt: new Date('2024-01-01'),
+      });
+      mockPrisma.invoice.findMany.mockResolvedValue([
+        { ...mockInvoice, grandTotal: 3000 },
+      ]);
+      mockPrisma.payment.findMany.mockResolvedValue([
+        { ...mockPayment, amount: 2000 },
+      ]);
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.summary.totalDebit).toBe(3000);
+      expect(result.summary.totalCredit).toBe(2000);
+      expect(result.summary.closingBalance).toBe(3000 - 2000);
+    });
+
+    it('should skip cancelled invoices', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue({
+        ...mockCustomer,
+        openingBalance: 0,
+        createdAt: new Date('2024-01-01'),
+      });
+      mockPrisma.invoice.findMany.mockResolvedValue([
+        { ...mockInvoice, status: 'CANCELLED' },
+        { ...mockInvoice, id: 'inv-2', grandTotal: 4000, status: 'CONFIRMED' },
+      ]);
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.entries.filter((e: any) => e.type === 'SALE_INVOICE')).toHaveLength(1);
+      expect(result.summary.totalDebit).toBe(4000);
+    });
+
+    it('should handle empty ledger with no entries', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue({
+        ...mockCustomer,
+        openingBalance: 0,
+        createdAt: new Date('2024-01-01'),
+      });
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.entries).toHaveLength(0);
+      expect(result.summary.totalDebit).toBe(0);
+      expect(result.summary.totalCredit).toBe(0);
+      expect(result.summary.closingBalance).toBe(0);
+    });
+
+    it('should sort entries by date', async () => {
+      mockPrisma.customer.findFirst.mockResolvedValue({
+        ...mockCustomer,
+        openingBalance: 0,
+        createdAt: new Date('2024-01-01'),
+      });
+      mockPrisma.invoice.findMany.mockResolvedValue([
+        { ...mockInvoice, id: 'inv-1', grandTotal: 1000, invoiceDate: new Date('2024-01-15') },
+      ]);
+      mockPrisma.customerTransaction.findMany.mockResolvedValue([
+        { ...mockTransaction, id: 'tx-1', type: 'LEDGER_GAVE', amount: 2000, transactionDate: new Date('2024-01-10') },
+      ]);
+
+      const result = await service.getLedger('biz-1', 'cust-1');
+
+      expect(result.entries[0].id).toBe('tx_tx-1');
+      expect(result.entries[1].id).toBe('inv_inv-1');
     });
   });
 

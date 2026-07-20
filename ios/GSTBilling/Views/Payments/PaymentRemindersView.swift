@@ -204,7 +204,7 @@ struct ReminderRow: View {
                 .foregroundColor(.secondary)
             
             HStack {
-                Text(Helper.formatCurrency(reminder.amount))
+                Text(Helpers.formatCurrency(reminder.amount))
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(urgencyColor)

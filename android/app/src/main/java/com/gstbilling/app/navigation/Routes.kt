@@ -27,7 +27,7 @@ object Routes {
     const val INVOICE_PREVIEW = "invoices/{invoiceId}/preview"
     const val BULK_INVOICES = "billing/bulk"
     const val STAFF = "staff"
-    const val EDIT_PERMISSIONS = "staff/{userId}/payments/{currentName}"
+    const val EDIT_PERMISSIONS = "staff/{userId}/permissions/{currentName}"
     const val REPORTS = "reports"
     const val CUSTOMER_REPORT = "reports/customers"
     const val PRODUCT_REPORT = "reports/products"

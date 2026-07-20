@@ -72,13 +72,20 @@ class InvoiceDetailViewModel @Inject constructor(
             isLoading = true
             val entity = invoiceRepository.getInvoiceById(invoiceId)
             if (entity != null) {
-                    invoice = Invoice(
-                        id = entity.remoteId.ifEmpty { entity.id.toString() },
-                        invoiceNumber = entity.invoiceNumber,
-                        customerId = entity.customerId.toString(),
-                        customerName = entity.customerName,
-                        customerGstin = entity.customerGstin,
-                        businessId = sessionManager.getBusinessId() ?: entity.businessId.toString(),
+                val gson = com.google.gson.Gson()
+                val items: List<InvoiceItem> = try {
+                    gson.fromJson(entity.itemsJson, Array<InvoiceItem>::class.java)?.toList() ?: emptyList()
+                } catch (_: Exception) { emptyList() }
+                invoice = Invoice(
+                    id = entity.remoteId.ifEmpty { entity.id.toString() },
+                    invoiceNumber = entity.invoiceNumber,
+                    customerId = entity.customerId.toString(),
+                    customerName = entity.customerName,
+                    customerGstin = entity.customerGstin,
+                    customerAddress = entity.customerAddress,
+                    customerPhone = entity.customerPhone,
+                    customerState = entity.customerState,
+                    businessId = sessionManager.getBusinessId() ?: entity.businessId.toString(),
                     invoiceDate = entity.invoiceDate,
                     dueDate = entity.dueDate,
                     subtotal = entity.subtotal,
@@ -90,7 +97,23 @@ class InvoiceDetailViewModel @Inject constructor(
                     totalAmount = entity.totalAmount,
                     roundOff = entity.roundOff,
                     status = entity.status,
-                    notes = entity.notes
+                    direction = "",
+                    notes = entity.notes,
+                    placeOfSupply = entity.placeOfSupply,
+                    reverseCharge = entity.reverseCharge,
+                    poNo = entity.poNo,
+                    poDate = entity.poDate,
+                    challanNo = entity.challanNo,
+                    challanDate = entity.challanDate,
+                    lrNo = entity.lrNo,
+                    paymentType = entity.paymentType,
+                    paymentNote = entity.paymentNote,
+                    cessTotal = entity.cessTotal,
+                    totalInWords = entity.totalInWords,
+                    totalQuantity = entity.totalQuantity,
+                    createdAt = entity.createdAt,
+                    updatedAt = entity.updatedAt,
+                    items = items
                 )
             }
             isLoading = false

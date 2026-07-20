@@ -260,28 +260,16 @@ export default function EditInvoicePage() {
                 return (
                   <TableRow key={idx}>
                     <TableCell>
-                      <Autocomplete
-                        options={productList}
-                        getOptionLabel={(opt) => `${opt.name}${opt.hsnCode ? ` (${opt.hsnCode})` : ''}`}
-                        value={productList.find((p) => p.id === item.productId) || null}
-                        inputValue={item.productId ? (productList.find((p) => p.id === item.productId)?.name || item.itemName) : item.itemName}
-                        onInputChange={(_, val) => {
-                          if (!item.productId) updateItem(idx, 'itemName', val);
-                        }}
-                        onChange={(_, val) => {
-                          if (val) {
-                            updateItem(idx, 'productId', val.id);
-                            updateItem(idx, 'itemName', val.name);
-                            updateItem(idx, 'rate', val.sellingPrice || 0);
-                            updateItem(idx, 'taxRate', val.taxRate || 0);
-                            updateItem(idx, 'unit', val.unit || 'piece');
-                          } else {
-                            updateItem(idx, 'productId', undefined);
-                          }
-                        }}
-                        freeSolo
-                        renderInput={(params) => <TextField {...params} placeholder="Search product..." size="small" sx={{ minWidth: 180 }} />}
+                      <TextField
+                        placeholder="Search product..."
                         size="small"
+                        sx={{ minWidth: 180 }}
+                        value={item.itemName}
+                        onChange={(e) => {
+                          updateItem(idx, 'itemName', e.target.value);
+                          updateItem(idx, 'productId', undefined);
+                          setProductSearch(e.target.value);
+                        }}
                       />
                     </TableCell>
                     <TableCell align="center">

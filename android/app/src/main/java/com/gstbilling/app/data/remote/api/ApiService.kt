@@ -455,7 +455,7 @@ interface ApiService {
         @Query("limit") limit: Int? = null
     ): Response<ApiResponse<List<AppNotification>>>
 
-    @GET("notifications")
+    @GET("notifications/count")
     suspend fun getNotificationCount(
         @Query("business_id") businessId: String,
         @Query("limit") limit: Int = 1
