@@ -131,6 +131,7 @@ export class ImportService {
     subtotal: number;
     taxAmount: number;
     grandTotal: number;
+    status?: string;
   } {
     const get = (key: string) => this.getNormalized(record, key);
 
@@ -507,6 +508,21 @@ export class ImportService {
     return { customers: customers.length, invoices: invoices.count, products: products.count };
   }
 
+  async clearInvoices(businessId: string): Promise<{ deleted: number }> {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { businessId },
+      include: { _count: { select: { items: true } } },
+    });
+    const toDelete = invoices.filter(inv => inv._count.items === 0);
+    for (const inv of toDelete) {
+      await this.prisma.invoiceItem.deleteMany({ where: { invoiceId: inv.id } });
+      await this.prisma.payment.deleteMany({ where: { invoiceId: inv.id } });
+      await this.prisma.creditNote.deleteMany({ where: { invoiceId: inv.id } });
+      await this.prisma.invoice.delete({ where: { id: inv.id } });
+    }
+    return { deleted: toDelete.length };
+  }
+
   async clearCustomers(businessId: string): Promise<{ deleted: number }> {
     const customers = await this.prisma.customer.findMany({ where: { businessId } });
     for (const c of customers) {
@@ -593,42 +609,83 @@ export class ImportService {
 
         if (lineItems.length > 0) {
           for (const item of lineItems) {
-            const itemData = this.normalizeInvoiceRecord(item);
-            for (const li of itemData.items) {
-              const product = await this.findOrCreateProduct(businessId, {
-                name: li.name,
-                hsnCode: li.hsnCode,
-                unit: undefined,
-                sellingPrice: li.rate,
-                taxRate: li.taxRate,
-              });
-
-              const taxableValue = li.taxableValue || parseFloat((li.quantity * li.rate).toFixed(2));
-              const halfTax = li.taxRate / 2;
-              const cgst = li.cgstRate ? parseFloat(((taxableValue * li.cgstRate) / 100).toFixed(2)) : parseFloat(((taxableValue * halfTax) / 100).toFixed(2));
-              const sgst = li.sgstRate ? parseFloat(((taxableValue * li.sgstRate) / 100).toFixed(2)) : parseFloat(((taxableValue * halfTax) / 100).toFixed(2));
-              const igst = li.igstRate ? parseFloat(((taxableValue * li.igstRate) / 100).toFixed(2)) : 0;
-              const total = li.total || parseFloat((taxableValue + cgst + sgst + igst).toFixed(2));
-
-              invoiceItems.push({
-                productId: product?.id,
-                itemName: li.name,
-                quantity: li.quantity,
-                unit: product?.unit || 'piece',
-                rate: li.rate,
-                discount: 0,
-                taxableValue,
-                taxRate: li.taxRate,
-                cgst,
-                sgst,
-                igst,
-                total,
-                productNote: li.productNote,
-                cgstRate: li.cgstRate,
-                sgstRate: li.sgstRate,
-                igstRate: li.igstRate,
-                serialNo: li.serialNo,
-              });
+            const firstVal = String(Object.values(item)[0] || '').trim();
+            const isGoGSTItemRow = firstVal === '--------';
+            if (isGoGSTItemRow) {
+              const keys = Object.keys(item);
+              const vals = Object.values(item) as any[];
+              const getAt = (idx: number) => idx < vals.length ? vals[idx] : null;
+              const itemName = String(getAt(1) || '').trim();
+              if (itemName && itemName !== '--------') {
+                const qty = this.parseIndianNumber(getAt(5));
+                const rate = this.parseIndianNumber(getAt(6));
+                const taxableValue = this.parseIndianNumber(getAt(8)) || parseFloat((qty * rate).toFixed(2));
+                const cgstAmt = this.parseIndianNumber(getAt(9));
+                const cgstPct = this.parseIndianNumber(getAt(10));
+                const sgstAmt = this.parseIndianNumber(getAt(11));
+                const sgstPct = this.parseIndianNumber(getAt(12));
+                const total = this.parseIndianNumber(getAt(18)) || parseFloat((taxableValue + (cgstAmt || 0) + (sgstAmt || 0)).toFixed(2));
+                const taxRate = (cgstPct || sgstPct || 0);
+                const hsnCode = String(getAt(3) || '').trim();
+                const product = await this.findOrCreateProduct(businessId, {
+                  name: itemName,
+                  hsnCode,
+                  unit: undefined,
+                  sellingPrice: rate,
+                  taxRate,
+                });
+                invoiceItems.push({
+                  productId: product?.id,
+                  itemName,
+                  quantity: qty,
+                  unit: String(getAt(4) || 'piece').trim(),
+                  rate,
+                  discount: 0,
+                  taxableValue,
+                  taxRate: taxRate * 2,
+                  cgst: cgstAmt || 0,
+                  sgst: sgstAmt || 0,
+                  igst: 0,
+                  total,
+                  serialNo: this.parseIndianNumber(getAt(19)) || undefined,
+                });
+              }
+            } else {
+              const itemData = this.normalizeInvoiceRecord(item);
+              for (const li of itemData.items) {
+                const product = await this.findOrCreateProduct(businessId, {
+                  name: li.name,
+                  hsnCode: li.hsnCode,
+                  unit: undefined,
+                  sellingPrice: li.rate,
+                  taxRate: li.taxRate,
+                });
+                const taxableValue = li.taxableValue || parseFloat((li.quantity * li.rate).toFixed(2));
+                const halfTax = li.taxRate / 2;
+                const cgst = li.cgstRate ? parseFloat(((taxableValue * li.cgstRate) / 100).toFixed(2)) : parseFloat(((taxableValue * halfTax) / 100).toFixed(2));
+                const sgst = li.sgstRate ? parseFloat(((taxableValue * li.sgstRate) / 100).toFixed(2)) : parseFloat(((taxableValue * halfTax) / 100).toFixed(2));
+                const igst = li.igstRate ? parseFloat(((taxableValue * li.igstRate) / 100).toFixed(2)) : 0;
+                const total = li.total || parseFloat((taxableValue + cgst + sgst + igst).toFixed(2));
+                invoiceItems.push({
+                  productId: product?.id,
+                  itemName: li.name,
+                  quantity: li.quantity,
+                  unit: product?.unit || 'piece',
+                  rate: li.rate,
+                  discount: 0,
+                  taxableValue,
+                  taxRate: li.taxRate,
+                  cgst,
+                  sgst,
+                  igst,
+                  total,
+                  productNote: li.productNote,
+                  cgstRate: li.cgstRate,
+                  sgstRate: li.sgstRate,
+                  igstRate: li.igstRate,
+                  serialNo: li.serialNo,
+                });
+              }
             }
           }
         } else {
@@ -687,7 +744,7 @@ export class ImportService {
         const grandTotal = invoiceData.grandTotal || parseFloat((subtotal + taxAmount).toFixed(2));
 
         const type = invoiceData.customerGstin ? 'B2B' as const : 'B2C' as const;
-        const invStatus = invoiceData.status === 'CANCELLED' || invoiceData.status === 'Cancel' || invoiceData.isCancelled ? 'CANCELLED' : 'CONFIRMED';
+        const invStatus = invoiceData.status === 'CANCELLED' || invoiceData.status === 'Cancel' ? 'CANCELLED' : 'CONFIRMED';
 
         await this.prisma.invoice.create({
           data: {

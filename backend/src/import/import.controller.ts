@@ -157,8 +157,14 @@ export class ImportController {
     return result;
   }
 
+  @Delete('invoices')
+  @ApiOperation({ summary: 'Clear all imported invoices (removes items, payments, credit notes)' })
+  async clearInvoices(@Param('businessId') businessId: string) {
+    return this.importService.clearInvoices(businessId);
+  }
+
   @Delete('customers')
-  @ApiOperation({ summary: 'Delete all imported customers and their ledger entries' })
+  @ApiOperation({ summary: 'Clear all imported customers' })
   async clearCustomers(@Param('businessId') businessId: string) {
     return this.importService.clearCustomers(businessId);
   }
