@@ -875,16 +875,20 @@ data class CreateInvoiceRequest(
     val invoiceDate: String,
     val dueDate: String? = null,
     val items: List<InvoiceItemRequest>,
+    val type: String = "B2C",
+    val direction: String = "SALE",
     val discount: Double = 0.0,
-    val notes: String? = null
+    val notes: String? = null,
+    val referenceId: String? = null
 )
 
 data class InvoiceItemRequest(
     val productId: String = "",
+    val itemName: String = "",
     val quantity: Double = 1.0,
-    val unitPrice: Double = 0.0,
+    @SerializedName("rate") val unitPrice: Double = 0.0,
     val discount: Double = 0.0,
-    val gstRate: Double = 0.0
+    @SerializedName("taxRate") val gstRate: Double = 0.0
 )
 
 data class CreditNoteRequest(

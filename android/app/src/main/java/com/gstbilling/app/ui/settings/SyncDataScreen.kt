@@ -11,19 +11,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SyncDataScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: SyncViewModel = hiltViewModel()
 ) {
-    var lastSynced by remember { mutableStateOf("Never") }
-    var isSyncing by remember { mutableStateOf(false) }
     var autoSync by remember { mutableStateOf(true) }
     var wifiOnly by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var showClearedToast by remember { mutableStateOf(false) }
+
+    val isSyncing = viewModel.isSyncing
+    val lastSynced = viewModel.lastSynced
+    val errorMessage = viewModel.errorMessage
 
     if (showClearDialog) {
         AlertDialog(
@@ -116,9 +119,7 @@ fun SyncDataScreen(
                         }
 
                         Button(
-                            onClick = {
-                                isSyncing = true
-                            },
+                            onClick = { viewModel.syncAll() },
                             enabled = !isSyncing
                         ) {
                             Icon(Icons.Default.Sync, contentDescription = null)
@@ -133,6 +134,14 @@ fun SyncDataScreen(
                             "Syncing data...",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (errorMessage != null) {
+                        Text(
+                            errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -188,14 +197,6 @@ fun SyncDataScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-
-    LaunchedEffect(isSyncing) {
-        if (isSyncing) {
-            delay(2000)
-            lastSynced = "Just now"
-            isSyncing = false
         }
     }
 }

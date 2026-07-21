@@ -22,6 +22,9 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE businessId = :businessId AND stock <= lowStockAlert AND lowStockAlert IS NOT NULL")
     fun getLowStockProducts(businessId: Long): Flow<List<ProductEntity>>
 
+    @Query("DELETE FROM products WHERE businessId = :businessId AND syncStatus != 'pending'")
+    suspend fun deleteSyncedByBusinessId(businessId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(product: ProductEntity)
 

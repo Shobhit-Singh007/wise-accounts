@@ -48,6 +48,7 @@ class InvoiceRepository @Inject constructor(
                 val paginated = response.body()?.data
                 val invoices = paginated?.data ?: emptyList()
                 val entities = invoices.map { it.toEntity() }
+                invoiceDao.deleteSyncedByBusinessId(businessId.hashCode().toLong())
                 invoiceDao.insertAll(entities)
                 invoices
             } else {
@@ -180,7 +181,8 @@ class InvoiceRepository @Inject constructor(
                     dueDate = invoice.dueDate,
                     items = items,
                     discount = invoice.discount,
-                    notes = invoice.notes
+                    notes = invoice.notes,
+                    referenceId = invoice.id.toString()
                 )
                 val bizId = sessionManager.getBusinessId() ?: ""
                 val response = apiService.createInvoice(bizId, request)
@@ -227,7 +229,7 @@ class InvoiceRepository @Inject constructor(
         cessTotal = cessTotal,
         totalInWords = totalInWords,
         totalQuantity = totalQuantity,
-        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(item.productId ?: "", item.quantity, item.unitPrice, item.discount, item.gstRate) }) } ?: "[]",
+        itemsJson = items?.let { Gson().toJson(it.map { item -> InvoiceItemRequest(productId = item.productId ?: "", itemName = item.productName ?: "", quantity = item.quantity, unitPrice = item.unitPrice, discount = item.discount, gstRate = item.gstRate) }) } ?: "[]",
         createdAt = createdAt,
         updatedAt = updatedAt,
         syncStatus = "synced"

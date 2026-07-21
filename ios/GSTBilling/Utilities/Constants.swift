@@ -13,7 +13,7 @@ enum Constants {
     static let defaultCurrencyCode = "INR"
     static let defaultLocale = Locale(identifier: "en_IN")
 
-    static let gstRateOptions: [Double] = [0, 0.25, 1, 1.5, 3, 5, 6, 12, 18, 28]
+    static let gstRateOptions: [Double] = [0, 0.25, 1, 1.5, 3, 5, 6, 18, 28, 40]
     static let defaultTaxRate: Double = 18
     static let defaultTaxType = "exclusive"
 

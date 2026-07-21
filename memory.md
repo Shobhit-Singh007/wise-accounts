@@ -202,6 +202,78 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-21**: Fixed customer delete API — `remove()` now checks for associated records (transactions, invoices, payments, recurring invoices). Customers with zero records get permanently deleted; others get soft-deactivated (isActive=false). Added Delete button + confirmation dialog to admin dashboard. See `customer.service.ts`, `CustomersPage.tsx`.
 - **2026-07-21**: Fixed Android app showing duplicate/inactive customers — added `isActive` field to `Customer` API model, `CustomerEntity` Room entity, and `isActive = 1` filter to `CustomerDao` queries. Added Room migration 7→8. See `ApiService.kt`, `CustomerEntity.kt`, `CustomerDao.kt`, `CustomerRepository.kt`, `AppDatabase.kt`, `AppModule.kt`.
 
+- **2026-07-21**: Deployed comprehensive cleanup endpoint — `DELETE /businesses/:businessId/import/all` now deletes ALL business data (invoices, items, credit notes, payments, customers, products, suppliers, stock, categories, etc.) respecting FK order while keeping businesses + users. See `import.service.ts`.
+- **2026-07-21**: Fixed deleteInvoice FK cascade — billing.service.ts `deleteInvoice()` now deletes `CreditNoteItem` + `ReconciliationLog` before `InvoiceItem`/`Invoice`. See `billing.service.ts:306`.
+- **2026-07-21**: Added idempotency to invoice creation — Backend `createInvoice()` checks for existing invoice with same `referenceId`. Android `syncPending()` passes local entity ID as `referenceId` to prevent duplicates on retry. See `billing.service.ts`, `InvoiceRepository.kt`.
+- **2026-07-21**: Fixed Android local cache not clearing on refresh — added `deleteSyncedByBusinessId()` to InvoiceDao/CustomerDao/ProductDao, called before `insertAll()` in refresh methods. See `*Dao.kt`, `*Repository.kt`.
+- **2026-07-21**: Fixed SyncDataScreen — was a fake 2-second animation, now actually calls `syncPending()` + `refreshInvoices/refreshCustomers/refreshProducts`. Added `SyncViewModel` with Hilt injection.
+- **2026-07-21**: Removed dummy "Product Name" invoice items from database. Backend now filters out empty/null items from responses.
+- **2026-07-21**: Fixed Android invoice creation 400 error — Added `type`, `direction`, `itemName` to `CreateInvoiceRequest`. Renamed `unitPrice`→`rate`, `gstRate`→`taxRate` with `@SerializedName` mappings. See `ApiService.kt`, `CreateInvoiceScreen.kt`.
+- **2026-07-21**: Fixed Android search bars — CustomerListViewModel and ProductListViewModel now switch between `getCustomers`/`searchCustomers` and `getProducts`/`searchProducts` based on query. Added `startCollecting()` with debounce. See `CustomerListScreen.kt`, `ProductListScreen.kt`.
+- **2026-07-21**: Android delete button now available on all invoices (not just DRAFT). Removed status check. See `InvoiceDetailScreen.kt`.
+- **2026-07-21**: Tax rates updated across all platforms — replaced `12%` with `40%` in admin dashboard (InvoicesPage, EditInvoicePage, ProductsPage), Android (AddProductScreen, TaxSettingsScreen, CreateInvoiceScreen dropdown), and iOS (Constants, TaxSettingsView).
+- **2026-07-21**: Fixed column widths in admin dashboard CreateInvoiceDialog and EditInvoicePage — Qty: 80→100px, Rate: 110→140px, Disc/GST: 70→85px. Added `width: 100%` to input fields.
+- **2026-07-21**: Changed Android CreateInvoiceScreen GST% from free-text input to ExposedDropdownMenuBox with options [0,3,5,18,28,40].
+- **2026-07-21**: Fixed AWS_REGION from ap-south-1 to us-east-1 in docker-compose.prod.yml so SES (in production in Virginia) works for email.
+- **2026-07-21**: Added Customer Groups page on admin dashboard at `/customers/groups` — CRUD with name + discount. Added Groups button, group selector dropdown, and Group column on CustomersPage. See `CustomerGroupsPage.tsx`, `groups.ts`, `App.tsx`.
+- **2026-07-21**: Added openingBalance, notes, and groupId fields to admin customer create/edit form.
+- **2026-07-21**: Pre-filled backend does NOT need new Prisma migration — all changes are in service/business logic layer only.
+
+## Feature Sync: Remaining Tasks (Next Session)
+The following features exist on one platform but not the other and need to be synced:
+
+### Add to Admin Dashboard (exists in Android):
+1. **UPI QR code generation** on payments page — Android generates UPI intent QR codes
+2. **Payment reminders** — Android has PaymentRemindersScreen with "Send All" option
+3. **Warehouse CRUD** — Android has full CRUD; admin shows Warehouse in inventory tab but no create/edit/delete
+4. **Customer Groups** — DONE (added this session)
+5. **Opening balance on customer** — DONE (added this session)
+6. **Stock transfer between warehouses** — Android has StockTransferScreen
+7. **In-app notifications list** — Android has NotificationsScreen with mark-as-read
+
+### Add to Android (exists in admin dashboard):
+8. **Report export (CSV/PDF)** per report screen
+9. **Barcode generation** on product detail
+10. **Invoice settings** — prefix, numbering, bank details, API credentials
+11. **Multiple document types** — admin has 7 types (Quotation, Proforma, etc.), Android only Invoice
+12. **Payment reconciliation** — admin has auto-reconcile tab
+13. **Outstanding report** — admin has dedicated tab
+14. **Payment Collection report** with charts
+15. **Inventory Valuation report**
+16. **Dashboard charts/graphs**
+17. **API credentials management** in settings
+
+### Key Files Changed This Session
+| File | Change |
+|------|--------|
+| `backend/src/billing/billing.service.ts` | FK cascade fix, idempotency check, filter empty items |
+| `backend/src/import/import.service.ts` | Comprehensive clearAllData, cleanupEmptyItems |
+| `backend/src/import/import.controller.ts` | Added cleanupEmptyItems endpoint |
+| `docker-compose.prod.yml` | AWS_REGION → us-east-1 |
+| `admin-dashboard/src/pages/InvoicesPage.tsx` | Tax rates [0,5,18,28,40], column widths |
+| `admin-dashboard/src/pages/EditInvoicePage.tsx` | Tax rates, field widths |
+| `admin-dashboard/src/pages/ProductsPage.tsx` | Tax rates [0,5,18,28,40] |
+| `admin-dashboard/src/pages/CustomersPage.tsx` | Opening balance, notes, group selector, Groups button |
+| `admin-dashboard/src/pages/CustomerGroupsPage.tsx` | NEW — full CRUD for groups |
+| `admin-dashboard/src/api/groups.ts` | NEW — groups API client |
+| `admin-dashboard/src/api/customers.ts` | Types already supported openingBalance/groupId |
+| `admin-dashboard/src/App.tsx` | Added /customers/groups route |
+| `android/.../CreateInvoiceScreen.kt` | Fixed itemName/rate/taxRate fields, added type/direction, GST dropdown |
+| `android/.../InvoiceDetailScreen.kt` | Remove DRAFT-only restriction on delete |
+| `android/.../CustomerListScreen.kt` | Fixed search — now uses searchCustomers flow |
+| `android/.../ProductListScreen.kt` | Fixed search — added startCollecting + searchProducts |
+| `android/.../InvoiceRepository.kt` | Added searchProducts, fixed toEntity field mapping, added referenceId for sync |
+| `android/.../SyncDataScreen.kt` | Rewrote with real sync + SyncViewModel |
+| `android/.../SyncViewModel.kt` | NEW — sync orchestration |
+| `android/.../ApiService.kt` | Fixed CreateInvoiceRequest/InvoiceItemRequest fields |
+| `android/.../InvoiceDao.kt` | Added deleteSyncedByBusinessId |
+| `android/.../CustomerDao.kt` | Added deleteSyncedByBusinessId |
+| `android/.../ProductDao.kt` | Added deleteSyncedByBusinessId |
+| `android/.../AddProductScreen.kt` | Tax rates [0,3,5,18,28,40] |
+| `android/.../TaxSettingsScreen.kt` | Tax rates [0,5,18,28,40] |
+| `ios/.../Constants.swift` | Tax rates [0,0.25,1,1.5,3,5,6,18,28,40] |
+| `ios/.../TaxSettingsView.swift` | Tax rates [0,5,18,28,40] |
+
 ## One-time Scripts
 ```powershell
 # Backfill null invoiceDate with createdAt

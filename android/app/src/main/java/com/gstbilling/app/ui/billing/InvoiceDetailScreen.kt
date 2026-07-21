@@ -520,16 +520,14 @@ fun InvoiceDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (invoice.status == "draft" || invoice.status == "DRAFT") {
-                            OutlinedButton(
-                                onClick = { showDeleteDialog = true },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Delete", style = MaterialTheme.typography.labelMedium)
-                            }
+                        OutlinedButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Delete", style = MaterialTheme.typography.labelMedium)
                         }
                         OutlinedButton(
                             onClick = { showCancelDialog = true },
@@ -563,7 +561,7 @@ fun InvoiceDetailScreen(
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
                 title = { Text("Delete Invoice") },
-                text = { Text("Are you sure you want to delete this draft invoice?") },
+                text = { Text("Are you sure you want to delete this invoice? This cannot be undone.") },
                 confirmButton = {
                     TextButton(
                         onClick = {

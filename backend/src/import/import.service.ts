@@ -497,15 +497,55 @@ export class ImportService {
     return result;
   }
 
-  async clearAllData(businessId: string): Promise<{ customers: number; invoices: number; products: number }> {
-    const customers = await this.prisma.customer.findMany({ where: { businessId } });
-    for (const c of customers) {
-      await this.prisma.customerTransaction.deleteMany({ where: { customerId: c.id } });
+  async clearAllData(businessId: string): Promise<{ deleted: Record<string, number> }> {
+    const result: Record<string, number> = {};
+
+    const invIds = (await this.prisma.invoice.findMany({ where: { businessId }, select: { id: true } })).map(i => i.id);
+    const invItemIds = invIds.length > 0 ? (await this.prisma.invoiceItem.findMany({ where: { invoiceId: { in: invIds } }, select: { id: true } })).map(i => i.id) : [];
+    const cnIds = invIds.length > 0 ? (await this.prisma.creditNote.findMany({ where: { invoiceId: { in: invIds } }, select: { id: true } })).map(i => i.id) : [];
+    const poIds = (await this.prisma.purchaseOrder.findMany({ where: { businessId }, select: { id: true } })).map(i => i.id);
+
+    if (cnIds.length > 0) {
+      result.creditNoteItems = (await this.prisma.creditNoteItem.deleteMany({ where: { creditNoteId: { in: cnIds } } })).count;
     }
-    await this.prisma.customer.deleteMany({ where: { businessId } });
-    const invoices = await this.prisma.invoice.deleteMany({ where: { businessId } });
-    const products = await this.prisma.product.deleteMany({ where: { businessId } });
-    return { customers: customers.length, invoices: invoices.count, products: products.count };
+    if (invItemIds.length > 0) {
+      result.creditNoteItemsByInvoiceItem = (await this.prisma.creditNoteItem.deleteMany({ where: { invoiceItemId: { in: invItemIds } } })).count;
+    }
+    if (invItemIds.length > 0) {
+      result.invoiceItems = (await this.prisma.invoiceItem.deleteMany({ where: { invoiceId: { in: invIds } } })).count;
+    }
+    if (cnIds.length > 0) {
+      result.creditNotes = (await this.prisma.creditNote.deleteMany({ where: { invoiceId: { in: invIds } } })).count;
+    }
+    result.payments = (await this.prisma.payment.deleteMany({ where: { businessId } })).count;
+    if (invIds.length > 0) {
+      result.razorpayOrders = (await this.prisma.razorpayOrder.deleteMany({ where: { invoiceId: { in: invIds } } })).count;
+      result.reconciliationLogs = (await this.prisma.reconciliationLog.deleteMany({ where: { invoiceId: { in: invIds } } })).count;
+    }
+    result.invoices = (await this.prisma.invoice.deleteMany({ where: { businessId } })).count;
+
+    result.customerTransactions = (await this.prisma.customerTransaction.deleteMany({ where: { customer: { businessId } } })).count;
+    result.customers = (await this.prisma.customer.deleteMany({ where: { businessId } })).count;
+
+    if (poIds.length > 0) {
+      result.purchaseOrderItems = (await this.prisma.purchaseOrderItem.deleteMany({ where: { purchaseOrderId: { in: poIds } } })).count;
+    }
+    result.purchaseOrders = (await this.prisma.purchaseOrder.deleteMany({ where: { businessId } })).count;
+    result.suppliers = (await this.prisma.supplier.deleteMany({ where: { businessId } })).count;
+
+    result.stockMovements = (await this.prisma.stockMovement.deleteMany({ where: { product: { businessId } } })).count;
+    result.stockBatches = (await this.prisma.stockBatch.deleteMany({ where: { product: { businessId } } })).count;
+    result.products = (await this.prisma.product.deleteMany({ where: { businessId } })).count;
+    result.categories = (await this.prisma.category.deleteMany({ where: { businessId } })).count;
+    result.warehouses = (await this.prisma.warehouse.deleteMany({ where: { businessId } })).count;
+    result.customerGroups = (await this.prisma.customerGroup.deleteMany({ where: { businessId } })).count;
+    result.recurringInvoices = (await this.prisma.recurringInvoice.deleteMany({ where: { businessId } })).count;
+    result.notifications = (await this.prisma.notification.deleteMany({ where: { businessId } })).count;
+    result.syncLogs = (await this.prisma.syncLog.deleteMany({ where: { businessId } })).count;
+    result.auditLogs = (await this.prisma.auditLog.deleteMany({ where: { businessId } })).count;
+    result.staffInvites = (await this.prisma.staffInvite.deleteMany({ where: { businessId } })).count;
+
+    return { deleted: result };
   }
 
   async clearInvoices(businessId: string): Promise<{ deleted: number }> {
@@ -522,6 +562,26 @@ export class ImportService {
       await this.prisma.$executeRawUnsafe(`DELETE FROM "Invoice" WHERE id = $1`, row.id);
     }
     return { deleted: ids.length };
+  }
+
+  async cleanupEmptyItems(businessId: string): Promise<{ deleted: number }> {
+    const d1 = await this.prisma.invoiceItem.deleteMany({
+      where: {
+        invoice: { businessId },
+        itemName: '',
+      },
+    });
+    const d2 = await this.prisma.$executeRawUnsafe(
+      `DELETE FROM "InvoiceItem" WHERE "itemName" IS NULL AND "invoiceId" IN (SELECT id FROM "Invoice" WHERE "businessId" = $1)`,
+      businessId,
+    );
+    const d3 = await this.prisma.invoiceItem.deleteMany({
+      where: {
+        invoice: { businessId },
+        itemName: 'Product Name',
+      },
+    });
+    return { deleted: Number(d1.count) + Number(d2) + Number(d3.count) };
   }
 
   async clearCustomers(businessId: string): Promise<{ deleted: number }> {

@@ -23,6 +23,10 @@ class ProductRepository @Inject constructor(
         return productDao.getProductsByBusiness(businessId.hashCode().toLong())
     }
 
+    fun searchProducts(businessId: String, query: String): Flow<List<ProductEntity>> {
+        return productDao.searchProducts(businessId.hashCode().toLong(), query)
+    }
+
     suspend fun getProductById(id: String): ProductEntity? {
         return productDao.getProductById(id.hashCode().toLong())
     }
@@ -47,6 +51,7 @@ class ProductRepository @Inject constructor(
                 val paginated = response.body()?.data
                 val products = paginated?.data ?: emptyList()
                 val entities = products.map { it.toEntity() }
+                productDao.deleteSyncedByBusinessId(businessId.hashCode().toLong())
                 productDao.insertAll(entities)
                 products
             } else {

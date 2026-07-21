@@ -42,7 +42,7 @@ services:
       JWT_SECRET: dev-jwt-secret-change-in-production
       JWT_EXPIRY: 15m
       CORS_ORIGIN: "*"
-      AWS_REGION: ap-south-1
+      AWS_REGION: us-east-1
       REDIS_URL: redis://redis:6379
       APPYFLOW_KEY: 8UPSAswHGghDpIwYppVVfGA3fZt2
     depends_on:

@@ -23,7 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val GST_OPTIONS = listOf("0", "3", "5", "12", "18", "28")
+private val GST_OPTIONS = listOf("0", "3", "5", "18", "28", "40")
 private val UNITS = listOf("Pcs", "Kg", "Ltr", "Mtr", "Box", "Pack", "Doz", "Gram", "ML", "Nos")
 
 @HiltViewModel

@@ -28,6 +28,9 @@ interface InvoiceDao {
     @Query("SELECT * FROM invoices WHERE businessId = :businessId AND invoiceDate BETWEEN :from AND :to ORDER BY invoiceDate DESC")
     fun getInvoicesByDateRange(businessId: Long, from: String, to: String): Flow<List<InvoiceEntity>>
 
+    @Query("DELETE FROM invoices WHERE businessId = :businessId AND syncStatus != 'pending'")
+    suspend fun deleteSyncedByBusinessId(businessId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(invoice: InvoiceEntity)
 

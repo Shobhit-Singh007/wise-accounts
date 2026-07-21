@@ -20,6 +20,8 @@ import com.gstbilling.app.data.repository.ProductRepository
 import com.gstbilling.app.util.AppResult
 import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,6 +34,7 @@ class ProductListViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
     private var businessId by mutableStateOf("")
+    private var collectJob: Job? = null
     var products by mutableStateOf<List<ProductEntity>>(emptyList())
         private set
 
@@ -39,9 +42,21 @@ class ProductListViewModel @Inject constructor(
         viewModelScope.launch {
             businessId = sessionManager.getBusinessId() ?: ""
             if (businessId.isNotEmpty()) {
-                launch { productRepository.getProducts(businessId).collect { products = it } }
+                startCollecting(businessId)
                 productRepository.refreshProducts(businessId)
             }
+        }
+    }
+
+    private fun startCollecting(bizId: String) {
+        collectJob?.cancel()
+        collectJob = viewModelScope.launch {
+            val flow = if (searchQuery.isBlank()) {
+                productRepository.getProducts(bizId)
+            } else {
+                productRepository.searchProducts(bizId, searchQuery)
+            }
+            flow.collect { products = it }
         }
     }
 
@@ -68,6 +83,11 @@ class ProductListViewModel @Inject constructor(
 
     fun onSearchQueryChanged(query: String) {
         searchQuery = query
+        viewModelScope.launch {
+            if (businessId.isNotEmpty()) {
+                startCollecting(businessId)
+            }
+        }
     }
 }
 

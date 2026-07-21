@@ -19,6 +19,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffPage from './pages/StaffPage';
 import CustomerLedgerPage from './pages/CustomerLedgerPage';
+import CustomerGroupsPage from './pages/CustomerGroupsPage';
 import BatchExpiryPage from './pages/BatchExpiryPage';
 import InventoryManagementPage from './pages/InventoryManagementPage';
 import ImportPage from './pages/ImportPage';
@@ -94,6 +95,7 @@ function AppRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/businesses" element={<BusinessesPage />} />
         <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/customers/groups" element={<CustomerGroupsPage />} />
         <Route path="/customers/:customerId/ledger" element={<CustomerLedgerPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />

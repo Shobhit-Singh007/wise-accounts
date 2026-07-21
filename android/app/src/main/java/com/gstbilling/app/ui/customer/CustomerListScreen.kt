@@ -33,6 +33,7 @@ class CustomerListViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
     var isRefreshing by mutableStateOf(false)
     private var searchJob: Job? = null
+    private var collectJob: Job? = null
     private var businessId by mutableStateOf("")
     var customers by mutableStateOf<List<CustomerEntity>>(emptyList())
         private set
@@ -41,9 +42,21 @@ class CustomerListViewModel @Inject constructor(
         viewModelScope.launch {
             businessId = sessionManager.getBusinessId() ?: ""
             if (businessId.isNotEmpty()) {
-                launch { customerRepository.getCustomers(businessId).collect { customers = it } }
+                startCollecting(businessId)
                 customerRepository.refreshCustomers(businessId)
             }
+        }
+    }
+
+    private fun startCollecting(bizId: String) {
+        collectJob?.cancel()
+        collectJob = viewModelScope.launch {
+            val flow = if (searchQuery.isBlank()) {
+                customerRepository.getCustomers(bizId)
+            } else {
+                customerRepository.searchCustomers(bizId, searchQuery)
+            }
+            flow.collect { customers = it }
         }
     }
 
@@ -52,7 +65,9 @@ class CustomerListViewModel @Inject constructor(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(300)
-            // debounce - the flow is already reactive
+            if (businessId.isNotEmpty()) {
+                startCollecting(businessId)
+            }
         }
     }
 

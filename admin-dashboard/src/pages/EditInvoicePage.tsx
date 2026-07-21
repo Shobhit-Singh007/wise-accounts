@@ -46,6 +46,8 @@ function calcTotals(items: LineItem[]) {
 
 const emptyItem: LineItem = { itemName: '', quantity: 1, unit: 'piece', rate: 0, discount: 0, taxRate: 18 };
 
+const TAX_RATES = [0, 5, 18, 28, 40];
+
 export default function EditInvoicePage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
@@ -245,12 +247,12 @@ export default function EditInvoicePage() {
             <TableHead>
               <TableRow>
                 <TableCell>Item</TableCell>
-                <TableCell align="center" sx={{ width: 80 }}>Qty</TableCell>
-                <TableCell align="center" sx={{ width: 80 }}>Unit</TableCell>
-                <TableCell align="right" sx={{ width: 100 }}>Rate</TableCell>
-                <TableCell align="center" sx={{ width: 80 }}>Disc %</TableCell>
-                <TableCell align="center" sx={{ width: 80 }}>GST %</TableCell>
-                <TableCell align="right" sx={{ width: 100 }}>Amount</TableCell>
+<TableCell align="center" sx={{ width: 100 }}>Qty</TableCell>
+<TableCell align="center" sx={{ width: 90 }}>Unit</TableCell>
+<TableCell align="right" sx={{ width: 130 }}>Rate</TableCell>
+<TableCell align="center" sx={{ width: 90 }}>Disc %</TableCell>
+<TableCell align="center" sx={{ width: 90 }}>GST %</TableCell>
+<TableCell align="right" sx={{ width: 120 }}>Amount</TableCell>
                 <TableCell sx={{ width: 40 }}></TableCell>
               </TableRow>
             </TableHead>
@@ -273,19 +275,19 @@ export default function EditInvoicePage() {
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <TextField type="number" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))} size="small" sx={{ width: 60 }} inputProps={{ min: 0 }} />
+                      <TextField type="number" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))} size="small" sx={{ width: 80 }} inputProps={{ min: 0 }} />
                     </TableCell>
                     <TableCell align="center">
-                      <TextField value={item.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)} size="small" sx={{ width: 60 }} />
+                      <TextField value={item.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)} size="small" sx={{ width: 80 }} />
                     </TableCell>
                     <TableCell align="right">
-                      <TextField type="number" value={item.rate} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} size="small" sx={{ width: 90 }} inputProps={{ min: 0, step: 0.01 }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} />
+                      <TextField type="number" value={item.rate} onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))} size="small" sx={{ width: 110 }} inputProps={{ min: 0, step: 0.01 }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }} />
                     </TableCell>
                     <TableCell align="center">
-                      <TextField type="number" value={item.discount} onChange={(e) => updateItem(idx, 'discount', Number(e.target.value))} size="small" sx={{ width: 60 }} inputProps={{ min: 0, max: 100 }} />
+                      <TextField type="number" value={item.discount} onChange={(e) => updateItem(idx, 'discount', Number(e.target.value))} size="small" sx={{ width: 75 }} inputProps={{ min: 0, max: 100 }} />
                     </TableCell>
                     <TableCell align="center">
-                      <TextField type="number" value={item.taxRate} onChange={(e) => updateItem(idx, 'taxRate', Number(e.target.value))} size="small" sx={{ width: 60 }} inputProps={{ min: 0 }} />
+                      <TextField type="number" value={item.taxRate} onChange={(e) => updateItem(idx, 'taxRate', Number(e.target.value))} size="small" sx={{ width: 75 }} inputProps={{ min: 0 }} />
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={600}>₹{t.total.toFixed(2)}</Typography>

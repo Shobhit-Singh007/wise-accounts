@@ -112,6 +112,8 @@ function calcTotals(items: LineItem[]) {
 
 const emptyItem: LineItem = { itemName: '', quantity: 1, unit: 'piece', rate: 0, discount: 0, taxRate: 18 };
 
+const TAX_RATES = [0, 5, 18, 28, 40];
+
 interface CreateInvoiceDialogProps {
   open: boolean;
   onClose: () => void;
@@ -484,17 +486,17 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
           <Table size="small" sx={{ '& td, & th': { whiteSpace: 'nowrap' } }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: '30%' }}>Item Name</TableCell>
-                <TableCell sx={{ width: 80 }} align="center">Qty</TableCell>
-                <TableCell sx={{ width: 80 }}>Unit</TableCell>
-                <TableCell sx={{ width: 110 }} align="right">Rate</TableCell>
-                <TableCell sx={{ width: 70 }} align="center">Disc %</TableCell>
-                <TableCell sx={{ width: 70 }} align="center">GST %</TableCell>
-                <TableCell sx={{ width: 90 }} align="right">Taxable</TableCell>
-                <TableCell sx={{ width: 80 }} align="right">CGST</TableCell>
-                <TableCell sx={{ width: 80 }} align="right">SGST</TableCell>
-                <TableCell sx={{ width: 90 }} align="right">Amount</TableCell>
-                <TableCell sx={{ width: 40 }} align="center" />
+<TableCell sx={{ width: '25%' }}>Item Name</TableCell>
+<TableCell sx={{ width: 100 }} align="center">Qty</TableCell>
+<TableCell sx={{ width: 90 }}>Unit</TableCell>
+<TableCell sx={{ width: 140 }} align="right">Rate</TableCell>
+<TableCell sx={{ width: 85 }} align="center">Disc %</TableCell>
+<TableCell sx={{ width: 85 }} align="center">GST %</TableCell>
+<TableCell sx={{ width: 110 }} align="right">Taxable</TableCell>
+<TableCell sx={{ width: 95 }} align="right">CGST</TableCell>
+<TableCell sx={{ width: 95 }} align="right">SGST</TableCell>
+<TableCell sx={{ width: 110 }} align="right">Amount</TableCell>
+<TableCell sx={{ width: 40 }} align="center" />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -530,50 +532,55 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                         fullWidth
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ width: 100 }}>
                       <TextField
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
                         size="small"
+                        sx={{ width: '100%' }}
                         inputProps={{ min: 0 }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ width: 90 }}>
                       <TextField
                         value={item.unit}
                         onChange={(e) => updateItem(idx, 'unit', e.target.value)}
                         size="small"
+                        sx={{ width: '100%' }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ width: 140 }}>
                       <TextField
                         type="number"
                         value={item.rate}
                         onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))}
                         size="small"
+                        sx={{ width: '100%' }}
                         inputProps={{ min: 0 }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ width: 85 }}>
                       <TextField
                         type="number"
                         value={item.discount}
                         onChange={(e) => updateItem(idx, 'discount', Number(e.target.value))}
                         size="small"
+                        sx={{ width: '100%' }}
                         inputProps={{ min: 0, max: 100 }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ width: 85 }}>
                       <TextField
                         select
                         value={item.taxRate}
                         onChange={(e) => updateItem(idx, 'taxRate', Number(e.target.value))}
                         size="small"
+                        sx={{ width: '100%' }}
                       >
-                        {[0, 5, 12, 18, 28].map((r) => (
-                          <MenuItem key={r} value={r}>{r}%</MenuItem>
-                        ))}
+{TAX_RATES.map((r) => (
+  <MenuItem key={r} value={r}>{r}%</MenuItem>
+))}
                       </TextField>
                     </TableCell>
                     <TableCell align="right">

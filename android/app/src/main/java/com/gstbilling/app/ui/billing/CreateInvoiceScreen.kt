@@ -359,9 +359,12 @@ class CreateInvoiceViewModel @Inject constructor(
         isLoading = true
         errorMessage = null
         viewModelScope.launch {
-            val items = lineItems.map { item ->
+            val items = lineItems
+                .filter { it.productId.isNotBlank() || it.productName.isNotBlank() }
+                .map { item ->
                 InvoiceItemRequest(
                     productId = item.productId,
+                    itemName = item.productName,
                     quantity = item.quantity.toDoubleOrNull() ?: 1.0,
                     unitPrice = item.unitPrice.toDoubleOrNull() ?: 0.0,
                     discount = item.discount.toDoubleOrNull() ?: 0.0,
@@ -373,6 +376,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 invoiceDate = invoiceDate,
                 dueDate = dueDate.ifBlank { null },
                 items = items,
+                type = invoiceType,
+                direction = "SALE",
                 discount = discountAmount,
                 notes = notes.ifBlank { null }
             )
@@ -896,18 +901,42 @@ fun LineItemCard(
                 )
             }
 
+            val gstOptions = listOf("0", "3", "5", "18", "28", "40")
+            var gstDropdownExpanded by remember { mutableStateOf(false) }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = item.gstRate,
-                    onValueChange = { onUpdate(item.copy(gstRate = it)) },
-                    label = { Text("GST %") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
+                ExposedDropdownMenuBox(
+                    expanded = gstDropdownExpanded,
+                    onExpandedChange = { gstDropdownExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = item.gstRate,
+                        onValueChange = {},
+                        label = { Text("GST %") },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        readOnly = true,
+                        singleLine = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gstDropdownExpanded) }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = gstDropdownExpanded,
+                        onDismissRequest = { gstDropdownExpanded = false }
+                    ) {
+                        gstOptions.forEach { rate ->
+                            DropdownMenuItem(
+                                text = { Text("$rate%") },
+                                onClick = {
+                                    onUpdate(item.copy(gstRate = rate))
+                                    gstDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             OutlinedTextField(

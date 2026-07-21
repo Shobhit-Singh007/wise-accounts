@@ -45,6 +45,7 @@ class CustomerRepository @Inject constructor(
                 val paginated = response.body()?.data
                 val customers = paginated?.data ?: emptyList()
                 val entities = customers.map { it.toEntity() }
+                customerDao.deleteSyncedByBusinessId(businessId.hashCode().toLong())
                 customerDao.insertAll(entities)
                 customers
             } else {

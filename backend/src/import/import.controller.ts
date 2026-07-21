@@ -169,6 +169,12 @@ export class ImportController {
     return this.importService.clearCustomers(businessId);
   }
 
+  @Delete('empty-items')
+  @ApiOperation({ summary: 'Remove invoice items with empty names (dummy entries)' })
+  async cleanupEmptyItems(@Param('businessId') businessId: string) {
+    return this.importService.cleanupEmptyItems(businessId);
+  }
+
   @Delete('all')
   @ApiOperation({ summary: 'Delete ALL data (customers, invoices, products) for this business' })
   async clearAllData(@Param('businessId') businessId: string) {

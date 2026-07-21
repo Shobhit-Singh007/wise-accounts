@@ -442,7 +442,7 @@ export default function ProductsPage() {
               value={form.taxRate}
               onChange={(e) => setForm({ ...form, taxRate: Number(e.target.value) })}
             >
-              {[0, 5, 12, 18, 28].map((r) => (
+              {[0, 5, 18, 28, 40].map((r) => (
                 <MenuItem key={r} value={r}>{r}%</MenuItem>
               ))}
             </TextField>

@@ -12,7 +12,7 @@ struct TaxSettingsView: View {
     @State private var defaultSACCode = ""
     @State private var toastMessage: String?
 
-    private let gstRates: [Double] = [0, 5, 12, 18, 28]
+    private let gstRates: [Double] = [0, 5, 18, 28, 40]
 
     var body: some View {
         Form {

@@ -19,7 +19,7 @@ fun TaxSettingsScreen(
     onBack: () -> Unit,
     viewModel: SubSettingsViewModel = hiltViewModel()
 ) {
-    val gstRates = listOf("0%", "5%", "12%", "18%", "28%")
+    val gstRates = listOf("0%", "5%", "18%", "28%", "40%")
     val taxDisplayOptions = listOf("Exclusive", "Inclusive", "Both")
     var gstRateDropdownExpanded by remember { mutableStateOf(false) }
     var taxDisplayDropdownExpanded by remember { mutableStateOf(false) }

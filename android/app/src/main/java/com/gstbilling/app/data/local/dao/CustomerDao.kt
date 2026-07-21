@@ -19,6 +19,9 @@ interface CustomerDao {
     @Query("SELECT * FROM customers WHERE id = :id")
     fun getCustomerByIdFlow(id: Long): Flow<CustomerEntity?>
 
+    @Query("DELETE FROM customers WHERE businessId = :businessId AND syncStatus != 'pending'")
+    suspend fun deleteSyncedByBusinessId(businessId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(customer: CustomerEntity)
 

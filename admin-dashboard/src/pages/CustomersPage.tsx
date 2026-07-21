@@ -9,16 +9,21 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
   Alert,
   CircularProgress,
   Chip,
   IconButton,
   InputAdornment,
 } from '@mui/material';
-import { Add as AddIcon, Receipt as ReceiptIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Group as GroupIcon, Receipt as ReceiptIcon, Search as SearchIcon } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import ExportMenu from '../components/ExportMenu';
 import { customersApi, type Customer, type CustomerCreate } from '../api/customers';
+import { groupsApi, type CustomerGroup } from '../api/groups';
 import client from '../api/client';
 import { useBusiness } from '../context/BusinessContext';
 import { fetchAllPages } from '../utils/exportUtils';
@@ -33,6 +38,8 @@ const initialState: CustomerCreate = {
   state: '',
   pincode: '',
   creditLimit: 0,
+  openingBalance: 0,
+  notes: '',
 };
 
 export default function CustomersPage() {
@@ -53,6 +60,7 @@ export default function CustomersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [groups, setGroups] = useState<CustomerGroup[]>([]);
 
   const lookupGstin = async (gstin: string) => {
     if (!currentBusinessId || !gstin || gstin.length < 15) return;
@@ -98,7 +106,10 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [fetchCustomers]);
+    if (currentBusinessId) {
+      groupsApi.list(currentBusinessId).then(({ data }) => setGroups(Array.isArray(data) ? data : [])).catch(() => {});
+    }
+  }, [fetchCustomers, currentBusinessId]);
 
   const handleOpenCreate = () => {
     setEditing(null);
@@ -118,6 +129,9 @@ export default function CustomersPage() {
       state: c.state,
       pincode: c.pincode,
       creditLimit: c.creditLimit,
+      openingBalance: c.openingBalance || 0,
+      notes: c.notes || '',
+      groupId: c.group?.id || '',
     });
     setDialogOpen(true);
   };
@@ -170,6 +184,7 @@ export default function CustomersPage() {
     { id: 'phone', label: 'Phone', render: (r: Customer) => r.phone },
     { id: 'gstin', label: 'GSTIN', render: (r: Customer) => r.gstin || '-' },
     { id: 'city', label: 'City', render: (r: Customer) => r.city },
+    { id: 'group', label: 'Group', render: (r: Customer) => r.group?.name || '-' },
     {
       id: 'balance',
       label: 'Outstanding',
@@ -211,6 +226,9 @@ export default function CustomersPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Customers</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<GroupIcon />} onClick={() => navigate('/customers/groups')}>
+            Groups
+          </Button>
           {currentBusinessId && (
             <ExportMenu
               headers={['Name', 'Phone', 'Email', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Balance', 'Credit Limit', 'Status']}
@@ -280,6 +298,15 @@ export default function CustomersPage() {
             <TextField label="State" value={form.state || ''} onChange={(e) => setForm({ ...form, state: e.target.value })} />
             <TextField label="Pincode" value={form.pincode || ''} onChange={(e) => setForm({ ...form, pincode: e.target.value })} />
             <TextField label="Credit Limit" type="number" value={form.creditLimit || 0} onChange={(e) => setForm({ ...form, creditLimit: Number(e.target.value) })} />
+            <TextField label="Opening Balance" type="number" value={form.openingBalance || 0} onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })} />
+            <TextField label="Notes" value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <FormControl>
+              <InputLabel>Group</InputLabel>
+              <Select value={form.groupId || ''} label="Group" onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
+                <MenuItem value="">None</MenuItem>
+                {groups.map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
+              </Select>
+            </FormControl>
             <TextField label="Address" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} fullWidth sx={{ gridColumn: '1 / -1' }} />
           </Box>
         </DialogContent>

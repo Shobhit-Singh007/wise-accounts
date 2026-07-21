@@ -34,6 +34,14 @@ export class BillingService {
     const business = await this.prisma.business.findUnique({ where: { id: businessId } });
     if (!business) throw new NotFoundException('Business not found');
 
+    if (dto.referenceId) {
+      const existing = await this.prisma.invoice.findFirst({
+        where: { businessId, referenceId: dto.referenceId },
+        include: { items: true, customer: true },
+      });
+      if (existing) return existing;
+    }
+
     const direction = dto.direction || 'SALE';
     const invoiceNo = dto.invoiceNo || await this.generateInvoiceNumber(businessId, dto.type, direction, dto.documentType);
 
@@ -196,7 +204,12 @@ export class BillingService {
       this.prisma.invoice.count({ where }),
     ]);
 
-    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    const cleaned = data.map((inv) => ({
+      ...inv,
+      items: (inv.items || []).filter((it) => it.itemName?.trim()),
+    }));
+
+    return { data: cleaned, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 
   async findOneInvoice(businessId: string, invoiceId: string) {
@@ -210,7 +223,7 @@ export class BillingService {
       },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
-    return invoice;
+    return { ...invoice, items: (invoice.items || []).filter((it) => it.itemName?.trim()) };
   }
 
   async updateInvoice(businessId: string, invoiceId: string, dto: any) {
@@ -305,10 +318,19 @@ export class BillingService {
 
   async deleteInvoice(businessId: string, invoiceId: string) {
     const invoice = await this.findOneInvoice(businessId, invoiceId);
+
+    await this.prisma.creditNoteItem.deleteMany({
+      where: { creditNote: { invoiceId } },
+    });
+    await this.prisma.creditNoteItem.deleteMany({
+      where: { invoiceItem: { invoiceId } },
+    });
+
     await this.prisma.invoiceItem.deleteMany({ where: { invoiceId } });
-    await this.prisma.payment.deleteMany({ where: { invoiceId } });
     await this.prisma.creditNote.deleteMany({ where: { invoiceId } });
+    await this.prisma.payment.deleteMany({ where: { invoiceId } });
     await this.prisma.razorpayOrder.deleteMany({ where: { invoiceId } });
+    await this.prisma.reconciliationLog.deleteMany({ where: { invoiceId } });
     await this.prisma.invoice.delete({ where: { id: invoiceId } });
     return { message: 'Invoice deleted successfully' };
   }
