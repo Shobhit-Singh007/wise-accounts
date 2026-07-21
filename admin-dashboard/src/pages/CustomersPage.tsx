@@ -50,6 +50,9 @@ export default function CustomersPage() {
   const [form, setForm] = useState<CustomerCreate>(initialState);
   const [saving, setSaving] = useState(false);
   const [gstLookupLoading, setGstLookupLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const lookupGstin = async (gstin: string) => {
     if (!currentBusinessId || !gstin || gstin.length < 15) return;
@@ -123,6 +126,24 @@ export default function CustomersPage() {
     navigate(`/customers/${c.id}/ledger`);
   };
 
+  const handleDelete = async () => {
+    if (!currentBusinessId || !customerToDelete) return;
+    setDeleting(true);
+    try {
+      await customersApi.delete(currentBusinessId, customerToDelete.id);
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
+      fetchCustomers();
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Failed to delete customer',
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!currentBusinessId) return;
     setSaving(true);
@@ -176,6 +197,9 @@ export default function CustomersPage() {
           <Button size="small" onClick={() => handleOpenEdit(r)}>Edit</Button>
           <Button size="small" startIcon={<ReceiptIcon />} onClick={() => handleViewLedger(r)}>
             Ledger
+          </Button>
+          <Button size="small" color="error" onClick={() => { setCustomerToDelete(r); setDeleteDialogOpen(true); }}>
+            Delete
           </Button>
         </Box>
       ),
@@ -263,6 +287,24 @@ export default function CustomersPage() {
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}>
             {saving ? <CircularProgress size={20} /> : editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Customer</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete <strong>{customerToDelete?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Customers with invoices, payments, or ledger entries will be deactivated instead. Those without any records will be permanently deleted.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDelete} disabled={deleting}>
+            {deleting ? <CircularProgress size={20} /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

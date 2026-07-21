@@ -69,7 +69,7 @@ export class CustomerController {
   }
 
   @Delete(':customerId')
-  @ApiOperation({ summary: 'Deactivate customer' })
+  @ApiOperation({ summary: 'Delete or deactivate customer' })
   async remove(@Param('businessId') businessId: string, @Param('customerId') customerId: string) {
     return this.customerService.remove(businessId, customerId);
   }

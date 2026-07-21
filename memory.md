@@ -199,6 +199,8 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-19**: Refactored Android bottom navigation — replaced embedded tab content with nested `NavHost` for proper lifecycle/ViewModel per tab. See `MainTabsScreen.kt`.
 - **2026-07-19**: Fixed CustomerListViewModel `collect` blocking refresh — moved to `launch { collect {} }`. See `CustomerListScreen.kt`.
 - **2026-07-19**: Fixed ledger date display — backend `getLedger` now uses `transactionDate` instead of `createdAt`. See `customer.service.ts`.
+- **2026-07-21**: Fixed customer delete API — `remove()` now checks for associated records (transactions, invoices, payments, recurring invoices). Customers with zero records get permanently deleted; others get soft-deactivated (isActive=false). Added Delete button + confirmation dialog to admin dashboard. See `customer.service.ts`, `CustomersPage.tsx`.
+- **2026-07-21**: Fixed Android app showing duplicate/inactive customers — added `isActive` field to `Customer` API model, `CustomerEntity` Room entity, and `isActive = 1` filter to `CustomerDao` queries. Added Room migration 7→8. See `ApiService.kt`, `CustomerEntity.kt`, `CustomerDao.kt`, `CustomerRepository.kt`, `AppDatabase.kt`, `AppModule.kt`.
 
 ## One-time Scripts
 ```powershell

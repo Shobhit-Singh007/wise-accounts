@@ -660,6 +660,7 @@ data class Customer(
     val openingBalance: Double = 0.0,
     val creditLimit: Double = 0.0,
     val businessId: String = "",
+    val isActive: Boolean = true,
     val createdAt: String? = null,
     val updatedAt: String? = null
 )

@@ -96,10 +96,24 @@ export class CustomerService {
 
   async remove(businessId: string, customerId: string) {
     await this.findOne(businessId, customerId);
-    return this.prisma.customer.update({
-      where: { id: customerId },
-      data: { isActive: false },
-    });
+
+    const [transactionCount, invoiceCount, paymentCount, recurringCount] = await Promise.all([
+      this.prisma.customerTransaction.count({ where: { customerId } }),
+      this.prisma.invoice.count({ where: { customerId } }),
+      this.prisma.payment.count({ where: { customerId } }),
+      this.prisma.recurringInvoice.count({ where: { customerId } }),
+    ]);
+
+    const hasRecords = transactionCount + invoiceCount + paymentCount + recurringCount > 0;
+
+    if (hasRecords) {
+      return this.prisma.customer.update({
+        where: { id: customerId },
+        data: { isActive: false },
+      });
+    }
+
+    return this.prisma.customer.delete({ where: { id: customerId } });
   }
 
   async createGroup(businessId: string, dto: CreateCustomerGroupDto) {

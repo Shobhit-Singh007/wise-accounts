@@ -84,7 +84,7 @@ object AppModule {
             AppDatabase::class.java,
             "wise_accounts_db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
     }
 
@@ -134,4 +134,8 @@ object AppModule {
     private val MIGRATION_5_6 = Migration(5, 6) { }
 
     private val MIGRATION_6_7 = Migration(6, 7) { }
+
+    private val MIGRATION_7_8 = Migration(7, 8) { db ->
+        db.execSQL("ALTER TABLE customers ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1")
+    }
 }

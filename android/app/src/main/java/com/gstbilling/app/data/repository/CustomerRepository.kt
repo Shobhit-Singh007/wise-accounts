@@ -184,6 +184,7 @@ class CustomerRepository @Inject constructor(
         openingBalance = openingBalance,
         creditLimit = creditLimit,
         businessId = businessId.hashCode().toLong(),
+        isActive = isActive,
         createdAt = createdAt,
         updatedAt = updatedAt,
         syncStatus = "synced"
@@ -202,6 +203,7 @@ class CustomerRepository @Inject constructor(
         openingBalance = openingBalance,
         creditLimit = creditLimit,
         businessId = businessId.toString(),
+        isActive = isActive,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

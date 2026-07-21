@@ -7,10 +7,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CustomerDao {
 
-    @Query("SELECT * FROM customers WHERE businessId = :businessId ORDER BY name ASC")
+    @Query("SELECT * FROM customers WHERE businessId = :businessId AND isActive = 1 ORDER BY name ASC")
     fun getCustomersByBusiness(businessId: Long): Flow<List<CustomerEntity>>
 
-    @Query("SELECT * FROM customers WHERE businessId = :businessId AND (name LIKE '%' || :query || '%' OR phone LIKE '%' || :query || '%') ORDER BY name ASC")
+    @Query("SELECT * FROM customers WHERE businessId = :businessId AND isActive = 1 AND (name LIKE '%' || :query || '%' OR phone LIKE '%' || :query || '%') ORDER BY name ASC")
     fun searchCustomers(businessId: Long, query: String): Flow<List<CustomerEntity>>
 
     @Query("SELECT * FROM customers WHERE id = :id")

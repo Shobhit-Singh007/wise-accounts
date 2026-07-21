@@ -17,7 +17,7 @@ import com.gstbilling.app.data.local.entity.ProductEntity
         CustomerEntity::class,
         InvoiceEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

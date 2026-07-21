@@ -19,6 +19,7 @@ data class CustomerEntity(
     val openingBalance: Double = 0.0,
     val creditLimit: Double = 0.0,
     val businessId: Long = 0,
+    val isActive: Boolean = true,
     val createdAt: String? = null,
     val updatedAt: String? = null,
     val syncStatus: String = "synced",
