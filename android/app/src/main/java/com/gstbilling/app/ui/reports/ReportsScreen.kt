@@ -1,5 +1,7 @@
 package com.gstbilling.app.ui.reports
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,10 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.gstbilling.app.ui.dataimport.ExportUtils
+import java.io.File
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gstbilling.app.data.remote.api.*
@@ -411,11 +417,70 @@ fun DateRangeSelector(
 }
 
 @Composable
+private fun buildReportData(reportType: String, vm: ReportsViewModel): Pair<List<String>, List<List<String>>> {
+    val headers: List<String>
+    val rows: List<List<String>>
+    when (reportType) {
+        "sales" -> {
+            val s = vm.salesReport?.summary
+            headers = listOf("Metric", "Value")
+            rows = listOf(
+                listOf("Total Sales", s?.totalSales?.toString() ?: "0"),
+                listOf("Total GST", s?.totalTax?.toString() ?: "0"),
+                listOf("Invoice Count", s?.totalInvoices?.toString() ?: "0"),
+                listOf("Average Invoice", s?.averageInvoice?.toString() ?: "0"),
+            )
+        }
+        "gstr1" -> {
+            val r = vm.gstr1Report
+            headers = listOf("Section", "Count", "Taxable Value", "Tax")
+            rows = (r?.b2b?.map { listOf("B2B", "1", (it.taxableValue ?: 0.0).toString(), (it.taxAmount ?: 0.0).toString()) } ?: emptyList())
+        }
+        "gstr3b" -> {
+            val s = vm.gstr3bReport?.summary
+            headers = listOf("Metric", "Value")
+            rows = listOf(
+                listOf("Total Invoices", s?.totalInvoices?.toString() ?: "0"),
+                listOf("Total Taxable Value", s?.totalTaxableValue?.toString() ?: "0"),
+                listOf("Total Tax", s?.totalTax?.toString() ?: "0"),
+                listOf("Total Paid", s?.totalPaid?.toString() ?: "0"),
+                listOf("Outstanding", s?.outstanding?.toString() ?: "0"),
+            )
+        }
+        "pl" -> {
+            val p = vm.profitLoss
+            headers = listOf("Metric", "Value")
+            rows = listOf(
+                listOf("Revenue", p?.total_revenue?.toString() ?: "0"),
+                listOf("Expenses", p?.total_expenses?.toString() ?: "0"),
+                listOf("Net Profit", p?.net_profit?.toString() ?: "0"),
+            )
+        }
+        else -> { headers = emptyList(); rows = emptyList() }
+    }
+    return headers to rows
+}
+
+private fun shareReport(context: Context, filename: String, headers: List<String>, rows: List<List<String>>) {
+    val csv = ExportUtils.buildCsv(headers, rows)
+    val file = File(context.cacheDir, filename)
+    file.writeText(csv)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/csv"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Export Report"))
+}
+
+@Composable
 fun ReportDetailView(
     reportType: String,
     viewModel: ReportsViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
@@ -430,8 +495,21 @@ fun ReportDetailView(
                     else -> "Report"
                 },
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = {
+                val hdrs = listOf("Metric", "Value")
+                val rws = listOf(
+                    listOf("Total Sales", viewModel.salesReport?.summary?.totalSales?.toString() ?: "0"),
+                    listOf("Total GST", viewModel.salesReport?.summary?.totalTax?.toString() ?: "0"),
+                    listOf("Invoice Count", viewModel.salesReport?.summary?.totalInvoices?.toString() ?: "0"),
+                    listOf("Average Invoice", viewModel.salesReport?.summary?.averageInvoice?.toString() ?: "0"),
+                )
+                if (rws.isNotEmpty()) shareReport(context, "${reportType}_report.csv", hdrs, rws)
+            }) {
+                Icon(Icons.Default.Share, contentDescription = "Export CSV")
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
 
