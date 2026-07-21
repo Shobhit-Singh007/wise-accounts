@@ -27,6 +27,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
   Divider,
 } from '@mui/material';
 import {
@@ -52,6 +53,7 @@ import {
 import { useBusiness } from '../context/BusinessContext';
 import client from '../api/client';
 import { reportsApi } from '../api/reports';
+import { warehousesApi, type Warehouse } from '../api/warehouses';
 import { exportToCsv } from '../utils/exportUtils';
 import type {
   InventoryDashboardReport,
@@ -853,6 +855,94 @@ function PurchaseOrdersTab({ businessId }: { businessId: string }) {
   );
 }
 
+function WarehousesTab({ businessId }: { businessId: string }) {
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Warehouse | null>(null);
+  const [form, setForm] = useState({ name: '', address: '', city: '', state: '' });
+  const [saving, setSaving] = useState(false);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try { const { data } = await warehousesApi.list(businessId); setWarehouses(Array.isArray(data) ? data : []); }
+    catch { }
+    setLoading(false);
+  }, [businessId]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const handleOpenCreate = () => { setEditing(null); setForm({ name: '', address: '', city: '', state: '' }); setDialogOpen(true); };
+  const handleOpenEdit = (w: Warehouse) => { setEditing(w); setForm({ name: w.name, address: w.address || '', city: w.city || '', state: w.state || '' }); setDialogOpen(true); };
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      if (editing) await warehousesApi.update(businessId, editing.id, form);
+      else await warehousesApi.create(businessId, form);
+      setDialogOpen(false); fetch();
+    } catch { }
+    setSaving(false);
+  };
+  const handleDelete = async (w: Warehouse) => {
+    if (!window.confirm(`Deactivate warehouse "${w.name}"?`)) return;
+    try { await warehousesApi.delete(businessId, w.id); fetch(); } catch { }
+  };
+
+  if (loading) return <CircularProgress />;
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>Add Warehouse</Button>
+      </Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Address</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>City</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>State</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {warehouses.map((w) => (
+              <TableRow key={w.id}>
+                <TableCell>{w.name}</TableCell>
+                <TableCell>{w.address || '-'}</TableCell>
+                <TableCell>{w.city || '-'}</TableCell>
+                <TableCell>{w.state || '-'}</TableCell>
+                <TableCell><Chip label={w.isActive ? 'Active' : 'Inactive'} size="small" color={w.isActive ? 'success' : 'default'} /></TableCell>
+                <TableCell>
+                  <IconButton onClick={() => handleOpenEdit(w)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => handleDelete(w)} color="error"><DeleteIcon /></IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>{editing ? 'Edit Warehouse' : 'Add Warehouse'}</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2, minWidth: 400 }}>
+          <TextField label="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
+          <TextField label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          <TextField label="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          <TextField label="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={saving || !form.name.trim()}>
+            {saving ? <CircularProgress size={20} /> : editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
 export default function InventoryManagementPage() {
   const { currentBusinessId } = useBusiness();
   const [tab, setTab] = useState(0);
@@ -877,6 +967,7 @@ export default function InventoryManagementPage() {
           <Tab label="Categories" icon={<CategoryIcon />} iconPosition="start" />
           <Tab label="Suppliers" icon={<BusinessIcon />} iconPosition="start" />
           <Tab label="Purchase Orders" icon={<CartIcon />} iconPosition="start" />
+          <Tab label="Warehouses" icon={<BusinessIcon />} iconPosition="start" />
         </Tabs>
         <Divider />
         <Box sx={{ p: 3 }}>
@@ -885,6 +976,7 @@ export default function InventoryManagementPage() {
           <TabPanel value={tab} index={2}><CategoriesTab businessId={currentBusinessId} /></TabPanel>
           <TabPanel value={tab} index={3}><SuppliersTab businessId={currentBusinessId} /></TabPanel>
           <TabPanel value={tab} index={4}><PurchaseOrdersTab businessId={currentBusinessId} /></TabPanel>
+          <TabPanel value={tab} index={5}><WarehousesTab businessId={currentBusinessId} /></TabPanel>
         </Box>
       </Paper>
     </Box>

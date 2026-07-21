@@ -388,4 +388,25 @@ export class InventoryService {
     }
     return warehouse;
   }
+
+  async findAllWarehouses(businessId: string) {
+    return this.prisma.warehouse.findMany({ where: { businessId }, orderBy: { name: 'asc' } });
+  }
+
+  async createWarehouse(businessId: string, dto: { name: string; address?: string; city?: string; state?: string }) {
+    return this.prisma.warehouse.create({ data: { ...dto, businessId } });
+  }
+
+  async updateWarehouse(businessId: string, warehouseId: string, dto: { name?: string; address?: string; city?: string; state?: string }) {
+    const wh = await this.prisma.warehouse.findFirst({ where: { id: warehouseId, businessId } });
+    if (!wh) throw new NotFoundException('Warehouse not found');
+    return this.prisma.warehouse.update({ where: { id: warehouseId }, data: dto });
+  }
+
+  async removeWarehouse(businessId: string, warehouseId: string) {
+    const wh = await this.prisma.warehouse.findFirst({ where: { id: warehouseId, businessId } });
+    if (!wh) throw new NotFoundException('Warehouse not found');
+    await this.prisma.warehouse.update({ where: { id: warehouseId }, data: { isActive: false } });
+    return { message: 'Warehouse deactivated' };
+  }
 }

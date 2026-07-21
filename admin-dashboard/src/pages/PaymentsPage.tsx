@@ -31,6 +31,7 @@ import {
   Add as AddIcon,
   Autorenew as ReconcileIcon,
   Payment as RazorpayIcon,
+  QrCode as QrCodeIcon,
 } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { paymentsApi, type Payment, type CreatePaymentRequest } from '../api/payments';
@@ -451,6 +452,9 @@ export default function PaymentsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [razorpayOpen, setRazorpayOpen] = useState(false);
   const [razorpayKey, setRazorpayKey] = useState('');
+  const [upiQrOpen, setUpiQrOpen] = useState(false);
+  const [upiQrAmount, setUpiQrAmount] = useState('');
+  const [upiQrUpiId, setUpiQrUpiId] = useState('');
 
   const fetchPayments = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -520,6 +524,13 @@ export default function PaymentsPage() {
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
+            startIcon={<QrCodeIcon />}
+            onClick={() => setUpiQrOpen(true)}
+          >
+            UPI QR
+          </Button>
+          <Button
+            variant="outlined"
             startIcon={<RazorpayIcon />}
             onClick={() => setRazorpayOpen(true)}
           >
@@ -579,6 +590,31 @@ export default function PaymentsPage() {
             razorpayKey={razorpayKey}
             onSaved={() => { setRazorpayOpen(false); fetchPayments(); }}
           />
+          <Dialog open={upiQrOpen} onClose={() => setUpiQrOpen(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>Generate UPI QR Code</DialogTitle>
+            <DialogContent>
+              <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                <TextField label="UPI ID (e.g. name@upi)" value={upiQrUpiId} onChange={(e) => setUpiQrUpiId(e.target.value)} fullWidth placeholder="name@upi" />
+                <TextField label="Amount" type="number" value={upiQrAmount} onChange={(e) => setUpiQrAmount(e.target.value)} fullWidth inputProps={{ min: 0 }} />
+                {upiQrUpiId && Number(upiQrAmount) > 0 && (
+                  <>
+                    <Typography variant="body2" color="text.secondary">Scan to pay ₹{Number(upiQrAmount).toFixed(2)}</Typography>
+                    <img
+                      src={`https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=upi://pay?pa=${encodeURIComponent(upiQrUpiId)}&am=${upiQrAmount}&tn=Payment&cu=INR`}
+                      alt="UPI QR Code"
+                      style={{ width: 250, height: 250 }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all', textAlign: 'center' }}>
+                      upi://pay?pa={upiQrUpiId}&am={upiQrAmount}&tn=Payment&cu=INR
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setUpiQrOpen(false)}>Close</Button>
+            </DialogActions>
+          </Dialog>
         </>
       )}
     </Box>

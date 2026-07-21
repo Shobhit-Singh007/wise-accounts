@@ -205,6 +205,34 @@ export class InventoryController {
     return this.inventoryService.receivePurchaseOrder(businessId, orderId);
   }
 
+  @Get('warehouses')
+  @ApiOperation({ summary: 'List warehouses' })
+  async findAllWarehouses(@Param('businessId') businessId: string) {
+    return this.inventoryService.findAllWarehouses(businessId);
+  }
+
+  @Post('warehouses')
+  @ApiOperation({ summary: 'Create a warehouse' })
+  async createWarehouse(@Param('businessId') businessId: string, @Body() dto: { name: string; address?: string; city?: string; state?: string }) {
+    return this.inventoryService.createWarehouse(businessId, dto);
+  }
+
+  @Put('warehouses/:warehouseId')
+  @ApiOperation({ summary: 'Update a warehouse' })
+  async updateWarehouse(
+    @Param('businessId') businessId: string,
+    @Param('warehouseId') warehouseId: string,
+    @Body() dto: { name?: string; address?: string; city?: string; state?: string },
+  ) {
+    return this.inventoryService.updateWarehouse(businessId, warehouseId, dto);
+  }
+
+  @Delete('warehouses/:warehouseId')
+  @ApiOperation({ summary: 'Deactivate a warehouse' })
+  async removeWarehouse(@Param('businessId') businessId: string, @Param('warehouseId') warehouseId: string) {
+    return this.inventoryService.removeWarehouse(businessId, warehouseId);
+  }
+
   @Get('products/:productId/stock-movements')
   @ApiOperation({ summary: 'Get stock movement history for a product' })
   @ApiQuery({ name: 'page', required: false })
