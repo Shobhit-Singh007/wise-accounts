@@ -32,6 +32,7 @@ import {
   Autorenew as ReconcileIcon,
   Payment as RazorpayIcon,
   QrCode as QrCodeIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import DataTable from '../components/DataTable';
 import { paymentsApi, type Payment, type CreatePaymentRequest } from '../api/payments';
@@ -455,6 +456,31 @@ export default function PaymentsPage() {
   const [upiQrOpen, setUpiQrOpen] = useState(false);
   const [upiQrAmount, setUpiQrAmount] = useState('');
   const [upiQrUpiId, setUpiQrUpiId] = useState('');
+  const [remindersOpen, setRemindersOpen] = useState(false);
+  const [reminders, setReminders] = useState<{ customer: string; invoiceNo: string; amount: number; daysOverdue: number; phone?: string }[]>([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!remindersOpen || !currentBusinessId) return;
+    setRemindersLoading(true);
+    invoicesApi.list(currentBusinessId, { status: 'CONFIRMED', limit: 100 })
+      .then(({ data }) => {
+        const now = new Date();
+        const overdue = (data.data || [])
+          .filter((inv) => inv.dueDate && new Date(inv.dueDate) < now && (inv.paidAmount || 0) < inv.grandTotal)
+          .map((inv) => ({
+            customer: inv.customer?.name || 'Unknown',
+            invoiceNo: inv.invoiceNo || '',
+            amount: inv.grandTotal - (inv.paidAmount || 0),
+            daysOverdue: Math.floor((now.getTime() - new Date(inv.dueDate!).getTime()) / 86400000),
+            phone: inv.customerPhone || inv.customer?.phone || undefined,
+          }))
+          .sort((a, b) => b.daysOverdue - a.daysOverdue);
+        setReminders(overdue);
+      })
+      .catch(() => {})
+      .finally(() => setRemindersLoading(false));
+  }, [remindersOpen, currentBusinessId]);
 
   const fetchPayments = useCallback(async () => {
     if (!currentBusinessId) return;
@@ -531,6 +557,14 @@ export default function PaymentsPage() {
           </Button>
           <Button
             variant="outlined"
+            color="warning"
+            startIcon={<NotificationsIcon />}
+            onClick={() => setRemindersOpen(true)}
+          >
+            Reminders
+          </Button>
+          <Button
+            variant="outlined"
             startIcon={<RazorpayIcon />}
             onClick={() => setRazorpayOpen(true)}
           >
@@ -590,6 +624,44 @@ export default function PaymentsPage() {
             razorpayKey={razorpayKey}
             onSaved={() => { setRazorpayOpen(false); fetchPayments(); }}
           />
+          <Dialog open={remindersOpen} onClose={() => setRemindersOpen(false)} maxWidth="md" fullWidth>
+            <DialogTitle>Payment Reminders</DialogTitle>
+            <DialogContent>
+              {remindersLoading ? <CircularProgress /> : reminders.length === 0 ? (
+                <Typography color="text.secondary" sx={{ py: 2 }}>No overdue invoices found.</Typography>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Invoice</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Amount</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="center">Overdue</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {reminders.map((r, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{r.customer}</TableCell>
+                          <TableCell>{r.invoiceNo}</TableCell>
+                          <TableCell align="right">₹{r.amount.toLocaleString('en-IN')}</TableCell>
+                          <TableCell align="center"><Chip label={`${r.daysOverdue}d`} color={r.daysOverdue > 30 ? 'error' : r.daysOverdue > 7 ? 'warning' : 'default'} size="small" /></TableCell>
+                          <TableCell>
+                            <Button size="small" variant="outlined" onClick={() => { const url = encodeURIComponent(`https://wiseaccs.com/pay/${r.invoiceNo}`); window.open(`https://wa.me/91${r.phone?.replace(/\D/g, '')}?text=Reminder: Invoice ${r.invoiceNo} of ₹${r.amount.toFixed(2)} is overdue. Please pay at your earliest convenience.`, '_blank'); }}>Remind</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setRemindersOpen(false)}>Close</Button>
+            </DialogActions>
+          </Dialog>
           <Dialog open={upiQrOpen} onClose={() => setUpiQrOpen(false)} maxWidth="sm" fullWidth>
             <DialogTitle>Generate UPI QR Code</DialogTitle>
             <DialogContent>
