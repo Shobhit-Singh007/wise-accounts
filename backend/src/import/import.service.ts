@@ -509,20 +509,19 @@ export class ImportService {
   }
 
   async clearInvoices(businessId: string): Promise<{ deleted: number }> {
-    const invoices = await this.prisma.invoice.findMany({
-      where: { businessId },
-      include: { _count: { select: { items: true } } },
-    });
-    const toDelete = invoices.filter(inv => inv._count.items === 0);
-    for (const inv of toDelete) {
-      await this.prisma.invoiceItem.deleteMany({ where: { invoiceId: inv.id } });
-      await this.prisma.payment.deleteMany({ where: { invoiceId: inv.id } });
-      await this.prisma.creditNote.deleteMany({ where: { invoiceId: inv.id } });
-      await this.prisma.razorpayOrder.deleteMany({ where: { invoiceId: inv.id } });
-      await this.prisma.reconciliationLog.deleteMany({ where: { invoiceId: inv.id } });
-      await this.prisma.invoice.delete({ where: { id: inv.id } });
+    const ids: { id: string }[] = await this.prisma.$queryRawUnsafe(`
+      SELECT id FROM "Invoice"
+      WHERE "businessId" = $1
+      AND id NOT IN (SELECT "invoiceId" FROM "InvoiceItem")
+    `, businessId);
+    for (const row of ids) {
+      await this.prisma.$executeRawUnsafe(`DELETE FROM "ReconciliationLog" WHERE "invoiceId" = $1`, row.id);
+      await this.prisma.$executeRawUnsafe(`DELETE FROM "RazorpayOrder" WHERE "invoiceId" = $1`, row.id);
+      await this.prisma.$executeRawUnsafe(`DELETE FROM "CreditNote" WHERE "invoiceId" = $1`, row.id);
+      await this.prisma.$executeRawUnsafe(`DELETE FROM "Payment" WHERE "invoiceId" = $1`, row.id);
+      await this.prisma.$executeRawUnsafe(`DELETE FROM "Invoice" WHERE id = $1`, row.id);
     }
-    return { deleted: toDelete.length };
+    return { deleted: ids.length };
   }
 
   async clearCustomers(businessId: string): Promise<{ deleted: number }> {
