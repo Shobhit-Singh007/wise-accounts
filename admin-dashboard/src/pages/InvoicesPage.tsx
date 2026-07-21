@@ -481,7 +481,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
           </Typography>
         </Box>
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, overflowX: 'auto' }}>
-          <Table size="small">
+          <Table size="small" sx={{ '& td, & th': { whiteSpace: 'nowrap' } }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: '30%' }}>Item Name</TableCell>
