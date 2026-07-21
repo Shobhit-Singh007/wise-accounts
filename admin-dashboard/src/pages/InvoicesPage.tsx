@@ -1689,6 +1689,17 @@ function ActionMenu({ invoice, businessId, onView, onRefresh }: ActionMenuProps)
         <MenuItem onClick={handleDownload}>
           <DownloadIcon fontSize="small" sx={{ mr: 1 }} /> Download PDF
         </MenuItem>
+        <Divider />
+        <MenuItem onClick={async () => {
+          setAnchorEl(null);
+          if (!confirm('Delete this invoice?')) return;
+          try {
+            await invoicesApi.delete(businessId, invoice.id);
+            onRefresh();
+          } catch { alert('Failed to delete invoice'); }
+        }} sx={{ color: 'error.main' }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+        </MenuItem>
       </Dialog>
     </>
   );

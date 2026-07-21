@@ -305,10 +305,10 @@ export class BillingService {
 
   async deleteInvoice(businessId: string, invoiceId: string) {
     const invoice = await this.findOneInvoice(businessId, invoiceId);
-    if (invoice.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft invoices can be deleted');
-    }
     await this.prisma.invoiceItem.deleteMany({ where: { invoiceId } });
+    await this.prisma.payment.deleteMany({ where: { invoiceId } });
+    await this.prisma.creditNote.deleteMany({ where: { invoiceId } });
+    await this.prisma.razorpayOrder.deleteMany({ where: { invoiceId } });
     await this.prisma.invoice.delete({ where: { id: invoiceId } });
     return { message: 'Invoice deleted successfully' };
   }
