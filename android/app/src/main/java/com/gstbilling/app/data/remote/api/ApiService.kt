@@ -879,7 +879,8 @@ data class CreateInvoiceRequest(
     val direction: String = "SALE",
     val discount: Double = 0.0,
     val notes: String? = null,
-    val referenceId: String? = null
+    val referenceId: String? = null,
+    val documentType: String = "INVOICE"
 )
 
 data class InvoiceItemRequest(

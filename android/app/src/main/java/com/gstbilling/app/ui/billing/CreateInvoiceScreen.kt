@@ -66,6 +66,7 @@ class CreateInvoiceViewModel @Inject constructor(
     var customerAddress by mutableStateOf<String?>(null)
     var customerPhone by mutableStateOf<String?>(null)
     var invoiceType by mutableStateOf("B2C")
+    var documentType by mutableStateOf("INVOICE")
     var invoiceDate by mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
     var dueDate by mutableStateOf("")
     var discount by mutableStateOf("0")
@@ -379,7 +380,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 type = invoiceType,
                 direction = "SALE",
                 discount = discountAmount,
-                notes = notes.ifBlank { null }
+                notes = notes.ifBlank { null },
+                documentType = documentType
             )
             val businessId = sessionManager.getBusinessId() ?: ""
             val result = if (isEditing) {
@@ -464,7 +466,7 @@ fun CreateInvoiceScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Invoice Type
+            // Invoice Type & Document Type
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -476,6 +478,10 @@ fun CreateInvoiceScreen(
                         label = { Text(type) }
                     )
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                val docTypes = listOf("INVOICE" to "Invoice", "QUOTATION" to "Quotation", "PROFORMA" to "Proforma", "DELIVERY_CHALLAN" to "Challan", "JOBWORK" to "Jobwork", "CREDIT_NOTE" to "Credit", "LETTERHEAD" to "Letter")
+                var docExpanded by remember { mutableStateOf(false) }
+                Box { OutlinedButton(onClick = { docExpanded = true }, modifier = Modifier.height(32.dp)) { Text(docTypes.find { it.first == viewModel.documentType }?.second ?: "Doc", style = MaterialTheme.typography.labelSmall) }; DropdownMenu(expanded = docExpanded, onDismissRequest = { docExpanded = false }) { docTypes.forEach { (v, l) -> DropdownMenuItem(text = { Text(l) }, onClick = { viewModel.documentType = v; docExpanded = false }) } } }
             }
 
             // Customer Selection
