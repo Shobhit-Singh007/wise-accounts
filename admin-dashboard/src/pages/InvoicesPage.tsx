@@ -480,16 +480,16 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
             {isEdit ? `EDIT mode - ${items.length} items` : 'CREATE mode'}
           </Typography>
         </Box>
-        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: '30%' }}>Item Name</TableCell>
-                <TableCell sx={{ width: 70 }} align="center">Qty</TableCell>
-                <TableCell sx={{ width: 70 }}>Unit</TableCell>
-                <TableCell sx={{ width: 90 }} align="right">Rate</TableCell>
-                <TableCell sx={{ width: 60 }} align="center">Disc %</TableCell>
-                <TableCell sx={{ width: 60 }} align="center">GST %</TableCell>
+                <TableCell sx={{ width: 80 }} align="center">Qty</TableCell>
+                <TableCell sx={{ width: 80 }}>Unit</TableCell>
+                <TableCell sx={{ width: 110 }} align="right">Rate</TableCell>
+                <TableCell sx={{ width: 70 }} align="center">Disc %</TableCell>
+                <TableCell sx={{ width: 70 }} align="center">GST %</TableCell>
                 <TableCell sx={{ width: 90 }} align="right">Taxable</TableCell>
                 <TableCell sx={{ width: 80 }} align="right">CGST</TableCell>
                 <TableCell sx={{ width: 80 }} align="right">SGST</TableCell>
