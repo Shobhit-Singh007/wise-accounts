@@ -1,5 +1,6 @@
 package com.gstbilling.app.ui.inventory
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,7 +22,14 @@ import com.gstbilling.app.util.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.common.BitMatrix
 
 @HiltViewModel
 class ProductDetailViewModel @Inject constructor(
@@ -204,6 +212,25 @@ fun ProductDetailScreen(
                             DetailRow(icon = Icons.Default.Scale, label = "Unit", value = p.unit ?: "N/A")
                             if (p.sku != null) {
                                 DetailRow(icon = Icons.Default.QrCode, label = "Barcode", value = p.sku!!)
+                                val barcodeBitmap = remember(p.sku) {
+                                    try {
+                                        val writer = com.google.zxing.oned.Code128Writer()
+                                        val bitMatrix = writer.encode(p.sku, BarcodeFormat.CODE_128, 400, 100)
+                                        val w = bitMatrix.width; val h = bitMatrix.height
+                                        val pixels = IntArray(w * h) { i ->
+                                            val x = i % w; val y = i / w
+                                            if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                                        }
+                                        Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
+                                    } catch (_: Exception) { null }
+                                }
+                                if (barcodeBitmap != null) {
+                                    Image(
+                                        bitmap = barcodeBitmap.asImageBitmap(),
+                                        contentDescription = "Barcode",
+                                        modifier = Modifier.fillMaxWidth().height(60.dp).padding(vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }

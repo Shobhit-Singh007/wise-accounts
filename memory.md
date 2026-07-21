@@ -223,25 +223,25 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 The following features exist on one platform but not the other and need to be synced:
 
 ### Add to Admin Dashboard (exists in Android):
-1. **UPI QR code generation** on payments page — Android generates UPI intent QR codes
-2. **Payment reminders** — Android has PaymentRemindersScreen with "Send All" option
-3. **Warehouse CRUD** — Android has full CRUD; admin shows Warehouse in inventory tab but no create/edit/delete
-4. **Customer Groups** — DONE (added this session)
-5. **Opening balance on customer** — DONE (added this session)
-6. **Stock transfer between warehouses** — Android has StockTransferScreen
-7. **In-app notifications list** — Android has NotificationsScreen with mark-as-read
+1. **UPI QR** — DONE (added this session)
+2. **Payment reminders** — not started
+3. **Warehouse CRUD** — DONE (added this session)
+4. **Customer Groups** — DONE
+5. **Opening balance on customer** — DONE
+6. **Stock transfer between warehouses** — not started
+7. **Notifications list** — not started
 
 ### Add to Android (exists in admin dashboard):
-8. **Report export (CSV/PDF)** per report screen
-9. **Barcode generation** on product detail
-10. **Invoice settings** — prefix, numbering, bank details, API credentials
-11. **Multiple document types** — admin has 7 types (Quotation, Proforma, etc.), Android only Invoice
-12. **Payment reconciliation** — admin has auto-reconcile tab
-13. **Outstanding report** — admin has dedicated tab
-14. **Payment Collection report** with charts
-15. **Inventory Valuation report**
-16. **Dashboard charts/graphs**
-17. **API credentials management** in settings
+8. **Report export** — DONE (added this session — Sales Report export button)
+9. **Barcode generation** — not started
+10. **Invoice settings** — not started
+11. **Multiple document types** — not started
+12. **Payment reconciliation** — not started
+13. **Outstanding report** — not started
+14. **Payment Collection report** — not started
+15. **Inventory Valuation report** — not started
+16. **Dashboard charts/graphs** — not started
+17. **API credentials management** — not started
 
 ### Key Files Changed This Session
 | File | Change |
