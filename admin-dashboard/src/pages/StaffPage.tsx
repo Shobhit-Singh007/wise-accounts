@@ -70,7 +70,8 @@ export default function StaffPage() {
       });
       const token = res.data?.invite?.token || res.data?.token;
       if (token) {
-        setInviteLink(`${window.location.origin}/staff/accept-invite/${token}`);
+        const basePath = window.location.pathname.startsWith('/admin') ? '/admin' : '';
+        setInviteLink(`${window.location.origin}${basePath}/staff/accept-invite/${token}`);
       }
       setInviteOpen(false);
       setInviteForm({ name: '', phone: '', email: '', rolePreset: 'sales', customPermissions: false, permissions: [] });

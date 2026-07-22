@@ -27,7 +27,11 @@ export class StaffService {
       throw new ForbiddenException('Only business admins can invite staff');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    const existingUser = dto.phone
+      ? await this.prisma.user.findUnique({ where: { phone: dto.phone } })
+      : dto.email
+        ? await this.prisma.user.findUnique({ where: { email: dto.email } })
+        : null;
     if (existingUser) {
       const existingMembership = await this.prisma.userBusiness.findUnique({
         where: { userId_businessId: { userId: existingUser.id, businessId } },
@@ -40,13 +44,15 @@ export class StaffService {
     const existingInvite = await this.prisma.staffInvite.findFirst({
       where: {
         businessId,
-        phone: dto.phone,
+        ...(dto.phone ? { phone: dto.phone } : {}),
+        ...(dto.email ? { email: dto.email } : {}),
         acceptedAt: null,
         expiresAt: { gt: new Date() },
       },
     });
     if (existingInvite) {
-      throw new ConflictException('An invitation has already been sent to this phone number');
+      const identifier = dto.phone ? 'phone number' : 'email';
+      throw new ConflictException(`An invitation has already been sent to this ${identifier}`);
     }
 
     const permissions = dto.rolePreset
@@ -77,7 +83,8 @@ export class StaffService {
     });
 
     const frontendUrl = this.configService.get('FRONTEND_URL', 'https://wiseaccs.com');
-    const inviteLink = `${frontendUrl}/staff/accept-invite/${token}`;
+    const basePath = frontendUrl.includes('/admin') ? '' : '/admin';
+    const inviteLink = `${frontendUrl}${basePath}/staff/accept-invite/${token}`;
 
     const inviter = dto.email ? await this.prisma.user.findUnique({ where: { id: inviterId }, select: { name: true } }) : null;
 
