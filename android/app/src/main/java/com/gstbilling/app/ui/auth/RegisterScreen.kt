@@ -33,7 +33,6 @@ class RegisterViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    var regMethod by mutableStateOf("phone")
     var name by mutableStateOf("")
     var phone by mutableStateOf("")
     var email by mutableStateOf("")
@@ -43,16 +42,8 @@ class RegisterViewModel @Inject constructor(
     var step by mutableStateOf(1) // 1 = details, 2 = OTP sent confirmation
 
     fun register(onSuccess: () -> Unit) {
-        if (name.isBlank() || password.isBlank()) {
+        if (name.isBlank() || phone.isBlank() || password.isBlank()) {
             errorMessage = "Please fill in all required fields"
-            return
-        }
-        if (regMethod == "phone" && phone.isBlank()) {
-            errorMessage = "Phone number is required"
-            return
-        }
-        if (regMethod == "email" && email.isBlank()) {
-            errorMessage = "Email is required"
             return
         }
         if (password.length < 8) {
@@ -63,9 +54,9 @@ class RegisterViewModel @Inject constructor(
         errorMessage = null
         viewModelScope.launch {
             when (val result = authRepository.register(
-                phone = if (regMethod == "phone") phone else null,
+                phone = phone,
                 name = name,
-                email = if (regMethod == "email") email else email.ifBlank { null },
+                email = email.ifBlank { null },
                 password = password
             )) {
                 is AppResult.Success -> {
@@ -180,40 +171,23 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("phone" to "Phone", "email" to "Email").forEach { (value, label) ->
-                        FilterChip(
-                            selected = viewModel.regMethod == value,
-                            onClick = { viewModel.regMethod = value },
-                            label = { Text(label) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            if (useOtp || viewModel.regMethod == "phone") {
-                OutlinedTextField(
-                    value = viewModel.phone,
-                    onValueChange = { viewModel.phone = it },
-                    label = { if (useOtp) Text("Phone Number *") else Text("Phone Number") },
-                    leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
-                        imeAction = ImeAction.Next
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            OutlinedTextField(
+                value = viewModel.phone,
+                onValueChange = { viewModel.phone = it },
+                label = { Text("Phone Number *") },
+                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone,
+                    imeAction = ImeAction.Next
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (!useOtp && viewModel.regMethod == "email") {
+            if (!useOtp) {
                 OutlinedTextField(
                     value = viewModel.email,
                     onValueChange = { viewModel.email = it },

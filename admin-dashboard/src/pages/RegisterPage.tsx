@@ -13,8 +13,6 @@ import {
   CircularProgress,
   Divider,
   Link,
-  ToggleButtonGroup,
-  ToggleButton,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Phone, Mail, Lock, Person, Receipt } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +20,6 @@ import { useAuth } from '../context/AuthContext';
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [regMethod, setRegMethod] = useState<'phone' | 'email'>('phone');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -35,16 +32,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name || !password) {
+    if (!name || !phone || !password) {
       setError('Please fill in all required fields');
-      return;
-    }
-    if (regMethod === 'phone' && !phone) {
-      setError('Phone number is required');
-      return;
-    }
-    if (regMethod === 'email' && !email) {
-      setError('Email is required');
       return;
     }
     if (password.length < 8) {
@@ -57,13 +46,7 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const data: { name: string; phone?: string; email?: string; password: string } = { name, password };
-      if (regMethod === 'email') {
-        data.email = email;
-      } else {
-        data.phone = phone;
-      }
-      await register(data);
+      await register({ name, phone, email: email || undefined, password });
       navigate('/');
     } catch (err: unknown) {
       const message =
@@ -129,53 +112,38 @@ export default function RegisterPage() {
                 ),
               }}
             />
-            <ToggleButtonGroup
-              value={regMethod}
-              exclusive
-              onChange={(_, val) => val && setRegMethod(val)}
-              size="small"
+            <TextField
               fullWidth
-              sx={{ mt: 1 }}
-            >
-              <ToggleButton value="phone">Phone</ToggleButton>
-              <ToggleButton value="email">Email</ToggleButton>
-            </ToggleButtonGroup>
-            {regMethod === 'phone' ? (
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
-                margin="normal"
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Phone color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            ) : (
-              <TextField
-                fullWidth
-                label="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                margin="normal"
-                required
-                type="email"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Mail color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            )}
+              label="Phone Number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter your phone number"
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Phone color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email (for login & notifications)"
+              margin="normal"
+              type="email"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Mail color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
             <TextField
               fullWidth
               label="Password"

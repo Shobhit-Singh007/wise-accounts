@@ -33,6 +33,7 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { useBusiness } from '../context/BusinessContext';
+import { useAuth } from '../context/AuthContext';
 import { businessesApi, type Business } from '../api/businesses';
 import { invoicesApi } from '../api/invoices';
 import client from '../api/client';
@@ -77,6 +78,25 @@ export default function SettingsPage() {
   });
   const [exportFormat, setExportFormat] = useState('csv');
   const [exporting, setExporting] = useState(false);
+
+  const [oldPwd, setOldPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState('');
+  const { changePassword } = useAuth();
+  const handleChangePwd = async () => {
+    if (!oldPwd || newPwd.length < 8 || newPwd !== confirmPwd) return;
+    setPwdSaving(true); setPwdMsg('');
+    try {
+      await changePassword(oldPwd, newPwd);
+      setPwdMsg('Password changed successfully');
+      setOldPwd(''); setNewPwd(''); setConfirmPwd('');
+    } catch (err: any) {
+      setPwdMsg(err?.response?.data?.message || 'Failed to change password');
+    }
+    setPwdSaving(false);
+  };
   const [gstinLookupLoading, setGstinLookupLoading] = useState(false);
 
   const loadAll = useCallback(async () => {
@@ -250,7 +270,7 @@ export default function SettingsPage() {
     );
   }
 
-  const tabIcons = [<BusinessIcon />, <InvoiceIcon />, <TaxIcon />, <NotifIcon />, <KeyIcon />, <ImportExportIcon />, <DangerIcon />];
+  const tabIcons = [<BusinessIcon />, <InvoiceIcon />, <TaxIcon />, <NotifIcon />, <KeyIcon />, <KeyIcon />, <ImportExportIcon />, <DangerIcon />];
 
   return (
     <Box>
@@ -260,7 +280,7 @@ export default function SettingsPage() {
 
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          {['Business Profile', 'Invoice Settings', 'Tax Settings', 'Notifications', 'API Credentials', 'Import / Export', 'Danger Zone'].map((label, i) => (
+          {['Business Profile', 'Invoice Settings', 'Tax Settings', 'Notifications', 'Security', 'API Credentials', 'Import / Export', 'Danger Zone'].map((label, i) => (
             <Tab key={label} label={label} icon={tabIcons[i]} iconPosition="start" />
           ))}
         </Tabs>
@@ -422,7 +442,18 @@ export default function SettingsPage() {
               )}
 
               {tab === 4 && (
-                <Box sx={{ maxWidth: 600 }}>
+                <Box sx={{ maxWidth: 700 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Security</Typography>
+                  <TextField fullWidth label="Current Password" type="password" size="small" sx={{ mb: 2 }} value={oldPwd} onChange={(e) => setOldPwd(e.target.value)} />
+                  <TextField fullWidth label="New Password" type="password" size="small" sx={{ mb: 2 }} value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="Min 8 characters" helperText={pwdMsg} />
+                  <TextField fullWidth label="Confirm New Password" type="password" size="small" sx={{ mb: 2 }} value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} />
+                  <Button variant="contained" disabled={pwdSaving || !oldPwd || newPwd.length < 8 || newPwd !== confirmPwd} onClick={handleChangePwd}>
+                    {pwdSaving ? <CircularProgress size={20} /> : 'Change Password'}
+                  </Button>
+                </Box>
+              )}
+              {tab === 5 && (
+                <Box sx={{ maxWidth: 700 }}>
                   <Typography variant="h6" sx={{ mb: 2 }}>API Credentials</Typography>
                   <Alert severity="info" sx={{ mb: 2 }}>Credentials are stored securely. Never share your API keys.</Alert>
 
@@ -487,7 +518,7 @@ export default function SettingsPage() {
                 </Box>
               )}
 
-              {tab === 5 && (
+              {tab === 6 && (
                 <Box sx={{ maxWidth: 600 }}>
                   <Typography variant="h6" sx={{ mb: 1 }}>Import / Export</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -568,7 +599,7 @@ export default function SettingsPage() {
                 </Box>
               )}
 
-              {tab === 6 && (
+              {tab === 7 && (
                 <Box sx={{ maxWidth: 500 }}>
                   <Typography variant="h6" color="error" sx={{ mb: 1 }}>Danger Zone</Typography>
                   <Alert severity="error" sx={{ mb: 2 }}>

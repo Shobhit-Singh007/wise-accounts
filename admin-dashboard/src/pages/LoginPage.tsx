@@ -14,6 +14,10 @@ import {
   Divider,
   Tabs,
   Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Phone, Mail, Lock, Smartphone } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +36,17 @@ export default function LoginPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotOtpSent, setForgotOtpSent] = useState(false);
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState<'input' | 'otp' | 'done'>('input');
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const { forgotPassword, resetPassword } = useAuth();
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +184,12 @@ export default function LoginPage() {
 
           <Divider sx={{ my: 3 }} />
 
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 1 }}>
+            <Button size="small" onClick={() => setForgotOpen(true)} sx={{ textTransform: 'none', color: '#1a237e' }}>
+              Forgot Password?
+            </Button>
+          </Typography>
+
           <Typography variant="body2" color="text.secondary" align="center">
             Don't have an account?{' '}
             <Link
@@ -180,6 +201,50 @@ export default function LoginPage() {
           </Typography>
         </CardContent>
       </Card>
+
+      <Dialog open={forgotOpen} onClose={() => setForgotOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Reset Password</DialogTitle>
+        <DialogContent>
+          {forgotStep === 'done' ? (
+            <Alert severity="success" sx={{ mt: 1 }}>{forgotMsg}</Alert>
+          ) : forgotStep === 'otp' ? (
+            <>
+              <TextField fullWidth label="Enter OTP" value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value)} placeholder="6-digit OTP" margin="normal" inputProps={{ maxLength: 6 }} />
+              <TextField fullWidth label="New Password" type="password" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="Min 8 characters" margin="normal" />
+              <Button fullWidth variant="contained" disabled={forgotLoading || forgotOtp.length < 6 || forgotNewPassword.length < 8} onClick={async () => {
+                setForgotLoading(true); setForgotMsg('');
+                try {
+                  await resetPassword(forgotPhone || forgotEmail, forgotOtp, forgotNewPassword);
+                  setForgotMsg('Password reset successfully!');
+                  setForgotStep('done');
+                } catch (err: any) { setForgotMsg(err?.response?.data?.message || 'Failed'); }
+                setForgotLoading(false);
+              }} sx={{ mt: 2, py: 1.5 }}>
+                {forgotLoading ? <CircularProgress size={24} /> : 'Reset Password'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <TextField fullWidth label="Phone Number" value={forgotPhone} onChange={(e) => setForgotPhone(e.target.value)} placeholder="Registered phone" margin="normal" />
+              <Typography variant="body2" color="text.secondary" align="center" sx={{ my: 1 }}>OR</Typography>
+              <TextField fullWidth label="Email Address" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Registered email" margin="normal" type="email" />
+              <Button fullWidth variant="contained" disabled={forgotLoading || (!forgotPhone && !forgotEmail)} onClick={async () => {
+                setForgotLoading(true); setForgotMsg('');
+                try {
+                  await forgotPassword({ phone: forgotPhone || undefined, email: forgotEmail || undefined });
+                  setForgotOtpSent(true);
+                  setForgotStep('otp');
+                } catch (err: any) { setForgotMsg(err?.response?.data?.message || 'Failed'); }
+                setForgotLoading(false);
+              }} sx={{ mt: 2, py: 1.5 }}>
+                {forgotLoading ? <CircularProgress size={24} /> : 'Send OTP'}
+              </Button>
+            </>
+          )}
+          {forgotMsg && forgotStep !== 'done' && <Alert severity="error" sx={{ mt: 1 }}>{forgotMsg}</Alert>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => { setForgotOpen(false); setForgotStep('input'); setForgotOtp(''); setForgotNewPassword(''); setForgotMsg(''); }}>Close</Button></DialogActions>
+      </Dialog>
     </Box>
   );
 }

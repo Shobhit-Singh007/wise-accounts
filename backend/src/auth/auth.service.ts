@@ -148,6 +148,95 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async forgotPassword(phone?: string, email?: string) {
+    if (!phone && !email) {
+      throw new BadRequestException('Phone or email is required');
+    }
+
+    const identifier = phone || email!;
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    this.otpStore.set(`reset_${identifier}`, { otp, expiresAt });
+
+    const isDev = this.configService.get('NODE_ENV') !== 'production';
+    if (isDev) {
+      this.logger.log(`Reset OTP for ${identifier}: ${otp}`);
+    }
+
+    if (phone) {
+      try {
+        await this.notificationsService.sendOtpSms(phone, otp);
+      } catch (err) {
+        this.logger.error(`SMS failed for ${phone}: ${(err as Error).message}`);
+      }
+    }
+    if (email) {
+      try {
+        await this.notificationsService.sendOtpEmail(email, otp);
+      } catch (err) {
+        this.logger.error(`Email failed for ${email}: ${(err as Error).message}`);
+      }
+    }
+
+    if (isDev) {
+      return { message: 'OTP sent', otp };
+    }
+    return { message: 'OTP sent to your registered contact' };
+  }
+
+  async resetPassword(identifier: string, otp: string, newPassword: string) {
+    const cached = this.otpStore.get(`reset_${identifier}`);
+    if (!cached) {
+      throw new BadRequestException('OTP not found. Please request a new one.');
+    }
+    if (cached.expiresAt < new Date()) {
+      this.otpStore.delete(`reset_${identifier}`);
+      throw new BadRequestException('OTP has expired. Please request a new one.');
+    }
+    if (cached.otp !== otp) {
+      throw new BadRequestException('Invalid OTP.');
+    }
+
+    this.otpStore.delete(`reset_${identifier}`);
+
+    const isEmail = identifier.includes('@');
+    const user = isEmail
+      ? await this.prisma.user.findUnique({ where: { email: identifier } })
+      : await this.prisma.user.findUnique({ where: { phone: identifier } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
+
   async sendOtp(phone: string, email?: string) {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);

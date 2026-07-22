@@ -21,6 +21,9 @@ interface AuthContextType {
     phone?: string;
     password: string;
   }) => Promise<void>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  forgotPassword: (data: { phone?: string; email?: string }) => Promise<{ message: string; otp?: string }>;
+  resetPassword: (identifier: string, otp: string, newPassword: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -65,6 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authApi.sendOtp(phone);
   }, []);
 
+  const changePassword = useCallback(async (oldPassword: string, newPassword: string) => {
+    await authApi.changePassword(oldPassword, newPassword);
+  }, []);
+
+  const forgotPassword = useCallback(async (data: { phone?: string; email?: string }) => {
+    const res = await authApi.forgotPassword(data);
+    return res.data;
+  }, []);
+
+  const resetPassword = useCallback(async (identifier: string, otp: string, newPassword: string) => {
+    await authApi.resetPassword(identifier, otp, newPassword);
+  }, []);
+
   const register = useCallback(
     async (regData: { name: string; email?: string; phone?: string; password: string }) => {
       const { data } = await authApi.register(regData);
@@ -91,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loginWithOtp,
           sendOtp,
           register,
+          changePassword,
+          forgotPassword,
+          resetPassword,
           logout,
         }}
       >

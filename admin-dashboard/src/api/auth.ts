@@ -43,6 +43,15 @@ export const authApi = {
   verifyOtp: (phone: string, otp: string) =>
     client.post<AuthResponse>('/auth/verify-otp', { phone, otp }),
 
+  changePassword: (oldPassword: string, newPassword: string) =>
+    client.post<{ message: string }>('/auth/change-password', { oldPassword, newPassword }),
+
+  forgotPassword: (data: { phone?: string; email?: string }) =>
+    client.post<{ message: string; otp?: string }>('/auth/forgot-password', data),
+
+  resetPassword: (identifier: string, otp: string, newPassword: string) =>
+    client.post<{ message: string }>('/auth/reset-password', { identifier, otp, newPassword }),
+
   refresh: (refreshToken: string) =>
     client.post<{ accessToken: string; refreshToken?: string }>(
       '/auth/refresh',

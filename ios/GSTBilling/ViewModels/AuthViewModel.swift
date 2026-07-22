@@ -42,18 +42,8 @@ class AuthViewModel: ObservableObject {
     }
 
     func register() async {
-        guard !name.isEmpty, !password.isEmpty else {
+        guard !name.isEmpty, !phone.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill all required fields"
-            showError = true
-            return
-        }
-        if loginMethod == "phone" && phone.isEmpty {
-            errorMessage = "Phone number is required"
-            showError = true
-            return
-        }
-        if loginMethod == "email" && email.isEmpty {
-            errorMessage = "Email is required"
             showError = true
             return
         }
@@ -65,11 +55,7 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            if loginMethod == "email" {
-                try await authManager.register(email: email, password: password, name: name)
-            } else {
-                try await authManager.register(phone: phone, password: password, name: name, email: email.isEmpty ? nil : email)
-            }
+            try await authManager.register(phone: phone, password: password, name: name, email: email.isEmpty ? nil : email)
         } catch {
             errorMessage = error.localizedDescription
             showError = true
