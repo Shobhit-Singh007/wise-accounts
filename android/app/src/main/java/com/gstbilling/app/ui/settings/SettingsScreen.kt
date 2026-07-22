@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.gstbilling.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,6 +51,16 @@ class SettingsViewModel @Inject constructor(
             onLogout()
         }
     }
+
+    fun changePassword(oldPassword: String, newPassword: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            when (val result = authRepository.changePassword(oldPassword, newPassword)) {
+                is AppResult.Success -> onResult(true, "Password changed successfully!")
+                is AppResult.Error -> onResult(false, result.message ?: "Failed to change password")
+                is AppResult.Loading -> {}
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +87,12 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showChangePwdDialog by remember { mutableStateOf(false) }
+    var oldPwd by remember { mutableStateOf("") }
+    var newPwd by remember { mutableStateOf("") }
+    var confirmPwd by remember { mutableStateOf("") }
+    var pwdSaving by remember { mutableStateOf(false) }
+    var pwdMsg by remember { mutableStateOf("") }
 
     if (showLogoutDialog) {
         AlertDialog(
@@ -95,6 +112,43 @@ fun SettingsScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showChangePwdDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangePwdDialog = false },
+            title = { Text("Change Password") },
+            text = {
+                Column {
+                    OutlinedTextField(value = oldPwd, onValueChange = { oldPwd = it }, label = { Text("Current Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = newPwd, onValueChange = { newPwd = it }, label = { Text("New Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = confirmPwd, onValueChange = { confirmPwd = it }, label = { Text("Confirm New Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    if (pwdMsg.isNotEmpty()) {
+                        Text(pwdMsg, color = if (pwdMsg.contains("success")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                    Button(
+                        onClick = {
+                            if (oldPwd.isBlank() || newPwd.length < 8 || newPwd != confirmPwd) return@Button
+                            pwdSaving = true; pwdMsg = ""
+                            viewModel.changePassword(oldPwd, newPwd) { success, msg ->
+                                pwdMsg = msg
+                                if (success) { oldPwd = ""; newPwd = ""; confirmPwd = "" }
+                                pwdSaving = false
+                            }
+                        },
+                        enabled = !pwdSaving && oldPwd.isNotBlank() && newPwd.length >= 8 && newPwd == confirmPwd
+                    ) {
+                    if (pwdSaving) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    else Text("Save")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showChangePwdDialog = false; pwdMsg = "" }) { Text("Cancel") } }
         )
     }
 
@@ -192,6 +246,25 @@ fun SettingsScreen(
                     subtitle = "Invite and manage your team",
                     icon = Icons.Default.Groups,
                     onClick = onNavigateToStaff
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Security",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            item {
+                SettingsItem(
+                    title = "Change Password",
+                    subtitle = "Update your account password",
+                    icon = Icons.Default.Lock,
+                    onClick = { showChangePwdDialog = true }
                 )
             }
 

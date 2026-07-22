@@ -23,6 +23,15 @@ interface ApiService {
     @POST("auth/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<ApiResponse<TokenResponse>>
 
+    @POST("auth/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse<Map<String, Any>>>
+
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ApiResponse<Map<String, Any>>>
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ApiResponse<Map<String, Any>>>
+
     // ── Businesses ──
     @GET("businesses")
     suspend fun getBusinesses(): Response<ApiResponse<List<Business>>>
@@ -609,6 +618,10 @@ data class RefreshTokenRequest(val refreshToken: String)
 data class SendOtpRequest(val phone: String, val email: String? = null)
 
 data class VerifyOtpRequest(val phone: String, val otp: String)
+
+data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
+data class ForgotPasswordRequest(val phone: String? = null, val email: String? = null)
+data class ResetPasswordRequest(val identifier: String, val otp: String, val newPassword: String)
 
 data class CreateBusinessRequest(
     val name: String,

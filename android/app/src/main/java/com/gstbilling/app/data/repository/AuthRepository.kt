@@ -181,6 +181,30 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun changePassword(oldPassword: String, newPassword: String): AppResult<Boolean> {
+        return when (val result = safeApiCall { apiService.changePassword(ChangePasswordRequest(oldPassword = oldPassword, newPassword = newPassword)) }) {
+            is AppResult.Success -> AppResult.Success(true)
+            is AppResult.Error -> AppResult.Error(result.message ?: "Failed to change password")
+            is AppResult.Loading -> AppResult.Loading
+        }
+    }
+
+    suspend fun forgotPassword(phone: String? = null, email: String? = null): AppResult<Boolean> {
+        return when (val result = safeApiCall { apiService.forgotPassword(ForgotPasswordRequest(phone = phone, email = email)) }) {
+            is AppResult.Success -> AppResult.Success(true)
+            is AppResult.Error -> AppResult.Error(result.message ?: "Failed to send OTP")
+            is AppResult.Loading -> AppResult.Loading
+        }
+    }
+
+    suspend fun resetPassword(identifier: String, otp: String, newPassword: String): AppResult<Boolean> {
+        return when (val result = safeApiCall { apiService.resetPassword(ResetPasswordRequest(identifier = identifier, otp = otp, newPassword = newPassword)) }) {
+            is AppResult.Success -> AppResult.Success(true)
+            is AppResult.Error -> AppResult.Error(result.message ?: "Failed to reset password")
+            is AppResult.Loading -> AppResult.Loading
+        }
+    }
+
     suspend fun refreshToken(): AppResult<TokenResponse> {
         return safeApiCall {
             val currentRefreshToken = sessionManager.getRefreshToken() ?: throw Exception("No refresh token")

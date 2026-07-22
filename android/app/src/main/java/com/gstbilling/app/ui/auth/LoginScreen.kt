@@ -42,6 +42,16 @@ class LoginViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    // Forgot password
+    var showForgotDialog by mutableStateOf(false)
+    var forgotPhone by mutableStateOf("")
+    var forgotEmail by mutableStateOf("")
+    var forgotOtp by mutableStateOf("")
+    var forgotNewPassword by mutableStateOf("")
+    var forgotStep by mutableStateOf("input") // input → otp → done
+    var forgotMsg by mutableStateOf("")
+    var forgotLoading by mutableStateOf(false)
+
     fun login(onSuccess: () -> Unit) {
         val identifier = if (loginMethod == "email") email else phone
         if (identifier.isBlank() || password.isBlank()) {
@@ -63,6 +73,35 @@ class LoginViewModel @Inject constructor(
                 is AppResult.Loading -> { }
             }
         }
+    }
+
+    fun sendForgotOtp() {
+        if (forgotPhone.isBlank() && forgotEmail.isBlank()) return
+        forgotLoading = true; forgotMsg = ""
+        viewModelScope.launch {
+            when (val result = authRepository.forgotPassword(forgotPhone.ifBlank { null }, forgotEmail.ifBlank { null })) {
+                is AppResult.Success -> { forgotStep = "otp"; forgotLoading = false }
+                is AppResult.Error -> { forgotMsg = result.message ?: "Failed"; forgotLoading = false }
+                is AppResult.Loading -> {}
+            }
+        }
+    }
+
+    fun resetForgotPassword() {
+        val identifier = forgotPhone.ifBlank { forgotEmail }
+        if (identifier.isBlank() || forgotOtp.length < 6 || forgotNewPassword.length < 8) return
+        forgotLoading = true; forgotMsg = ""
+        viewModelScope.launch {
+            when (val result = authRepository.resetPassword(identifier, forgotOtp, forgotNewPassword)) {
+                is AppResult.Success -> { forgotStep = "done"; forgotMsg = "Password reset successfully!"; forgotLoading = false }
+                is AppResult.Error -> { forgotMsg = result.message ?: "Failed"; forgotLoading = false }
+                is AppResult.Loading -> {}
+            }
+        }
+    }
+
+    fun resetForgotState() {
+        showForgotDialog = false; forgotStep = "input"; forgotOtp = ""; forgotNewPassword = ""; forgotMsg = ""
     }
 }
 
@@ -193,6 +232,10 @@ fun LoginScreen(
                 }
             }
 
+            TextButton(onClick = { viewModel.showForgotDialog = true }) {
+                Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
@@ -204,5 +247,46 @@ fun LoginScreen(
                 Text("Create Account", style = MaterialTheme.typography.titleMedium)
             }
         }
+    }
+
+    if (viewModel.showForgotDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetForgotState() },
+            title = { Text(if (viewModel.forgotStep == "done") "Success" else "Reset Password") },
+            text = {
+                Column {
+                    if (viewModel.forgotStep == "done") {
+                        Text(viewModel.forgotMsg, color = MaterialTheme.colorScheme.primary)
+                    } else if (viewModel.forgotStep == "otp") {
+                        OutlinedTextField(value = viewModel.forgotOtp, onValueChange = { viewModel.forgotOtp = it }, label = { Text("Enter OTP") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(value = viewModel.forgotNewPassword, onValueChange = { viewModel.forgotNewPassword = it }, label = { Text("New Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        OutlinedTextField(value = viewModel.forgotPhone, onValueChange = { viewModel.forgotPhone = it }, label = { Text("Phone Number") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Text("OR", modifier = Modifier.padding(vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
+                        OutlinedTextField(value = viewModel.forgotEmail, onValueChange = { viewModel.forgotEmail = it }, label = { Text("Email Address") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    }
+                    if (viewModel.forgotMsg.isNotEmpty() && viewModel.forgotStep != "done") {
+                        Text(viewModel.forgotMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (viewModel.forgotStep == "otp") viewModel.resetForgotPassword()
+                        else if (viewModel.forgotStep == "done") { viewModel.resetForgotState() }
+                        else viewModel.sendForgotOtp()
+                    },
+                    enabled = !viewModel.forgotLoading
+                ) {
+                    if (viewModel.forgotLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    else Text(if (viewModel.forgotStep == "otp") "Reset" else if (viewModel.forgotStep == "done") "OK" else "Send OTP")
+                }
+            },
+            dismissButton = {
+                if (viewModel.forgotStep != "done") TextButton(onClick = { viewModel.resetForgotState() }) { Text("Cancel") }
+            }
+        )
     }
 }
