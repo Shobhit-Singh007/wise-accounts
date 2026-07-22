@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,8 +49,7 @@ data class LineItemState(
     val sgst: Double = 0.0,
     val igst: Double = 0.0,
     val totalPrice: Double = 0.0,
-    val isAmountEditing: Boolean = false,
-    val amountEditValue: String = "0"
+    val amountEditValue: String = "0.00"
 )
 
 @HiltViewModel
@@ -123,6 +123,7 @@ class CreateInvoiceViewModel @Inject constructor(
                     if (items.isNotEmpty()) {
                         lineItems.clear()
                         items.forEach { item ->
+                            val total = item.totalPrice
                             lineItems.add(
                                 LineItemState(
                                     productId = item.productId ?: "",
@@ -136,7 +137,8 @@ class CreateInvoiceViewModel @Inject constructor(
                                     cgst = item.cgst,
                                     sgst = item.sgst,
                                     igst = item.igst,
-                                    totalPrice = item.totalPrice
+                                    totalPrice = total,
+                                    amountEditValue = String.format("%.2f", total)
                                 )
                             )
                         }
@@ -313,7 +315,7 @@ class CreateInvoiceViewModel @Inject constructor(
 
     fun updateLineItem(index: Int, item: LineItemState) {
         lineItems[index] = item
-        recalculateItem(index)
+        recalculateItem(index, isAmountChange = false)
     }
 
     fun onAmountChanged(index: Int, amountStr: String) {
@@ -330,10 +332,10 @@ class CreateInvoiceViewModel @Inject constructor(
             unitPrice = String.format("%.2f", rate),
             amountEditValue = amountStr
         )
-        recalculateItem(index)
+        recalculateItem(index, isAmountChange = true)
     }
 
-    private fun recalculateItem(index: Int) {
+    private fun recalculateItem(index: Int, isAmountChange: Boolean = false) {
         val item = lineItems[index]
         val qty = item.quantity.toDoubleOrNull() ?: 0.0
         val price = item.unitPrice.toDoubleOrNull() ?: 0.0
@@ -344,6 +346,7 @@ class CreateInvoiceViewModel @Inject constructor(
         val discAmount = lineTotal * (disc / 100.0)
         val taxable = lineTotal - discAmount
         val taxAmount = taxable * (gst / 100.0)
+        val totalPrice = taxable + taxAmount
 
         if (taxType == "IGST") {
             lineItems[index] = item.copy(
@@ -351,7 +354,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 cgst = 0.0,
                 sgst = 0.0,
                 igst = taxAmount,
-                totalPrice = taxable + taxAmount
+                totalPrice = totalPrice,
+                amountEditValue = if (isAmountChange) item.amountEditValue else String.format("%.2f", totalPrice)
             )
         } else {
             val half = taxAmount / 2.0
@@ -360,7 +364,8 @@ class CreateInvoiceViewModel @Inject constructor(
                 cgst = half,
                 sgst = half,
                 igst = 0.0,
-                totalPrice = taxable + taxAmount
+                totalPrice = totalPrice,
+                amountEditValue = if (isAmountChange) item.amountEditValue else String.format("%.2f", totalPrice)
             )
         }
     }
@@ -450,7 +455,7 @@ fun CreateInvoiceScreen(
                 title = { Text(if (viewModel.isEditing) "Edit Invoice" else "Create Invoice") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -946,7 +951,7 @@ fun LineItemCard(
                         value = item.gstRate,
                         onValueChange = {},
                         label = { Text("GST %") },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                         readOnly = true,
                         singleLine = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gstDropdownExpanded) }
@@ -969,7 +974,7 @@ fun LineItemCard(
             }
 
             OutlinedTextField(
-                value = String.format("%.2f", item.totalPrice),
+                value = item.amountEditValue,
                 onValueChange = { onAmountChanged(it) },
                 label = { Text("Amount") },
                 leadingIcon = { Text("₹", style = MaterialTheme.typography.bodyLarge) },
