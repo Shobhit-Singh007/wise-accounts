@@ -1,13 +1,15 @@
 import client from './client';
 
 export interface LoginRequest {
-  phone: string;
+  phone?: string;
+  email?: string;
   password: string;
 }
 
 export interface RegisterRequest {
   name: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   password: string;
   businessName?: string;
   gstin?: string;
@@ -20,6 +22,7 @@ export interface AuthResponse {
     id: string;
     name: string;
     phone: string;
+    email?: string;
     role: string;
   };
 }

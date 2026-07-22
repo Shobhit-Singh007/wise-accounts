@@ -50,10 +50,10 @@ class AuthManager: ObservableObject {
         }
     }
 
-    func login(phone: String, password: String) async throws {
+    func login(phone: String? = nil, email: String? = nil, password: String) async throws {
         isLoading = true
         defer { isLoading = false }
-        let response: AuthResponse = try await apiService.request(.auth, endpoint: "auth/login", method: "POST", body: LoginRequest(phone: phone, password: password))
+        let response: AuthResponse = try await apiService.request(.auth, endpoint: "auth/login", method: "POST", body: LoginRequest(phone: phone, email: email, password: password))
         accessToken = response.accessToken
         refreshToken = response.refreshToken
         apiService.setAuthToken(response.accessToken)
@@ -67,10 +67,10 @@ class AuthManager: ObservableObject {
         isAuthenticated = true
     }
 
-    func register(phone: String, password: String, name: String, email: String? = nil) async throws {
+    func register(phone: String? = nil, password: String, name: String, email: String? = nil) async throws {
         isLoading = true
         defer { isLoading = false }
-        let response: AuthResponse = try await apiService.request(.auth, endpoint: "auth/register", method: "POST", body: RegisterRequest(phone: phone, password: password, name: name, email: email))
+        let response: AuthResponse = try await apiService.request(.auth, endpoint: "auth/register", method: "POST", body: RegisterRequest(name: name, password: password, email: email, phone: phone))
         accessToken = response.accessToken
         refreshToken = response.refreshToken
         apiService.setAuthToken(response.accessToken)

@@ -24,14 +24,27 @@ struct LoginView: View {
                             .autocapitalization(.words)
                     }
 
-                    TextField("Phone Number", text: $viewModel.phone)
-                        .keyboardType(.phonePad)
-                        .textContentType(.telephoneNumber)
+                    Picker("", selection: $viewModel.loginMethod) {
+                        Text("Phone").tag("phone")
+                        Text("Email").tag("email")
+                    }
+                    .pickerStyle(.segmented)
+
+                    if viewModel.loginMethod == "email" {
+                        TextField("Email Address", text: $viewModel.email)
+                            .keyboardType(.emailAddress)
+                            .textContentType(.emailAddress)
+                            .autocapitalization(.none)
+                    } else {
+                        TextField("Phone Number", text: $viewModel.phone)
+                            .keyboardType(.phonePad)
+                            .textContentType(.telephoneNumber)
+                    }
 
                     SecureField("Password", text: $viewModel.password)
                         .textContentType(viewModel.isRegistering ? .newPassword : .password)
 
-                    if viewModel.isRegistering {
+                    if viewModel.isRegistering && viewModel.loginMethod == "phone" {
                         TextField("Email (optional)", text: $viewModel.email)
                             .keyboardType(.emailAddress)
                             .textContentType(.emailAddress)

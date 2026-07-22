@@ -24,15 +24,28 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
-    if (existing) {
-      throw new ConflictException('Phone number already registered');
+    if (!dto.email && !dto.phone) {
+      throw new BadRequestException('Email or phone number is required');
+    }
+
+    if (dto.email) {
+      const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (existingEmail) {
+        throw new ConflictException('Email already registered');
+      }
+    }
+
+    if (dto.phone) {
+      const existingPhone = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+      if (existingPhone) {
+        throw new ConflictException('Phone number already registered');
+      }
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
       data: {
-        phone: dto.phone,
+        phone: dto.phone || `email_${uuidv4().split('-')[0]}`,
         email: dto.email,
         name: dto.name,
         passwordHash,
@@ -44,7 +57,13 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    let user = null;
+    if (dto.email) {
+      user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    }
+    if (!user && dto.phone) {
+      user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+    }
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }

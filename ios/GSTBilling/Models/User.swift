@@ -20,14 +20,15 @@ struct AuthResponse: Codable {
 }
 
 struct RegisterRequest: Codable {
-    let phone: String
-    let password: String
     let name: String
+    let password: String
     let email: String?
+    let phone: String?
 }
 
 struct LoginRequest: Codable {
-    let phone: String
+    let phone: String?
+    let email: String?
     let password: String
 }
 

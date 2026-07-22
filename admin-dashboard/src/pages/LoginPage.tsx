@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -12,14 +12,19 @@ import {
   IconButton,
   CircularProgress,
   Divider,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Phone, Lock, Receipt } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Phone, Mail, Lock, Receipt } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -28,14 +33,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!phone || !password) {
+    const identifier = loginMethod === 'email' ? email : phone;
+    if (!identifier || !password) {
       setError('Please fill in all fields');
       return;
     }
     setLoading(true);
     try {
-      await login(phone, password);
-      navigate('/');
+      await login(identifier, password);
+      const redirect = searchParams.get('redirect') || '/';
+      navigate(redirect);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -84,21 +91,52 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <TextField
+            <ToggleButtonGroup
+              value={loginMethod}
+              exclusive
+              onChange={(_, val) => val && setLoginMethod(val)}
+              size="small"
               fullWidth
-              label="Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Phone color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
+              sx={{ mb: 1 }}
+            >
+              <ToggleButton value="phone">Phone</ToggleButton>
+              <ToggleButton value="email">Email</ToggleButton>
+            </ToggleButtonGroup>
+
+            {loginMethod === 'phone' ? (
+              <TextField
+                fullWidth
+                label="Phone Number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Phone color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            ) : (
+              <TextField
+                fullWidth
+                label="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                margin="normal"
+                type="email"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Mail color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
             <TextField
               fullWidth
               label="Password"

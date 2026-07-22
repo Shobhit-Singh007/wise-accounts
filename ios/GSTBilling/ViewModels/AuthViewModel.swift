@@ -3,10 +3,11 @@ import SwiftUI
 
 @MainActor
 class AuthViewModel: ObservableObject {
+    @Published var loginMethod = "phone"
     @Published var phone = ""
+    @Published var email = ""
     @Published var password = ""
     @Published var name = ""
-    @Published var email = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showError = false
@@ -19,15 +20,20 @@ class AuthViewModel: ObservableObject {
     }
 
     func login() async {
-        guard !phone.isEmpty, !password.isEmpty else {
-            errorMessage = "Please enter phone and password"
+        let identifier = loginMethod == "email" ? email : phone
+        guard !identifier.isEmpty, !password.isEmpty else {
+            errorMessage = "Please enter \(loginMethod == "email" ? "email" : "phone") and password"
             showError = true
             return
         }
         isLoading = true
         errorMessage = nil
         do {
-            try await authManager.login(phone: phone, password: password)
+            if loginMethod == "email" {
+                try await authManager.login(email: email, password: password)
+            } else {
+                try await authManager.login(phone: phone, password: password)
+            }
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -36,8 +42,18 @@ class AuthViewModel: ObservableObject {
     }
 
     func register() async {
-        guard !phone.isEmpty, !password.isEmpty, !name.isEmpty else {
+        guard !name.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill all required fields"
+            showError = true
+            return
+        }
+        if loginMethod == "phone" && phone.isEmpty {
+            errorMessage = "Phone number is required"
+            showError = true
+            return
+        }
+        if loginMethod == "email" && email.isEmpty {
+            errorMessage = "Email is required"
             showError = true
             return
         }
@@ -49,7 +65,11 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            try await authManager.register(phone: phone, password: password, name: name, email: email.isEmpty ? nil : email)
+            if loginMethod == "email" {
+                try await authManager.register(email: email, password: password, name: name)
+            } else {
+                try await authManager.register(phone: phone, password: password, name: name, email: email.isEmpty ? nil : email)
+            }
         } catch {
             errorMessage = error.localizedDescription
             showError = true

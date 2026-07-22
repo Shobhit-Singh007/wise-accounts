@@ -35,20 +35,23 @@ class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
+    var loginMethod by mutableStateOf("phone")
     var phone by mutableStateOf("")
+    var email by mutableStateOf("")
     var password by mutableStateOf("")
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
     fun login(onSuccess: () -> Unit) {
-        if (phone.isBlank() || password.isBlank()) {
+        val identifier = if (loginMethod == "email") email else phone
+        if (identifier.isBlank() || password.isBlank()) {
             errorMessage = "Please fill in all fields"
             return
         }
         isLoading = true
         errorMessage = null
         viewModelScope.launch {
-            when (val result = authRepository.login(phone, password)) {
+            when (val result = authRepository.login(identifier, password)) {
                 is AppResult.Success -> {
                     isLoading = false
                     onSuccess()
@@ -92,20 +95,50 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            OutlinedTextField(
-                value = viewModel.phone,
-                onValueChange = { viewModel.phone = it },
-                label = { Text("Phone Number") },
-                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Phone,
-                    imeAction = ImeAction.Next
-                ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("phone" to "Phone", "email" to "Email").forEach { (value, label) ->
+                    FilterChip(
+                        selected = viewModel.loginMethod == value,
+                        onClick = { viewModel.loginMethod = value },
+                        label = { Text(label) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (viewModel.loginMethod == "email") {
+                OutlinedTextField(
+                    value = viewModel.email,
+                    onValueChange = { viewModel.email = it },
+                    label = { Text("Email Address") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                OutlinedTextField(
+                    value = viewModel.phone,
+                    onValueChange = { viewModel.phone = it },
+                    label = { Text("Phone Number") },
+                    leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(

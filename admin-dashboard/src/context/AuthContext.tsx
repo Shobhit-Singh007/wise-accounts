@@ -12,10 +12,11 @@ interface AuthContextType {
   user: AuthResponse['user'] | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   register: (data: {
     name: string;
-    phone: string;
+    email?: string;
+    phone?: string;
     password: string;
   }) => Promise<void>;
   logout: () => void;
@@ -43,15 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (phone: string, password: string) => {
-    const { data } = await authApi.login({ phone, password });
+  const login = useCallback(async (identifier: string, password: string) => {
+    const isEmail = identifier.includes('@');
+    const { data } = await authApi.login(isEmail ? { email: identifier, password } : { phone: identifier, password });
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     setUser(data.user);
   }, []);
 
   const register = useCallback(
-    async (regData: { name: string; phone: string; password: string }) => {
+    async (regData: { name: string; email?: string; phone?: string; password: string }) => {
       const { data } = await authApi.register(regData);
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);

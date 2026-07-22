@@ -25,6 +25,7 @@ import InventoryManagementPage from './pages/InventoryManagementPage';
 import ImportPage from './pages/ImportPage';
 import EditInvoicePage from './pages/EditInvoicePage';
 import NotificationsPage from './pages/NotificationsPage';
+import AcceptInvitePage from './pages/AcceptInvitePage';
 import { CircularProgress, Box } from '@mui/material';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,7 @@ function AppRoutes() {
           </PublicRoute>
         }
       />
+      <Route path="/staff/accept-invite/:token" element={<AcceptInvitePage />} />
       <Route
         element={
           <ProtectedRoute>
