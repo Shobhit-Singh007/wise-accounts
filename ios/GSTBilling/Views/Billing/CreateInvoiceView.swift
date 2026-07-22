@@ -32,6 +32,10 @@ struct CreateInvoiceView: View {
                     Text("B2C").tag("B2C")
                     Text("B2B").tag("B2B")
                 }
+                Picker("Tax", selection: $viewModel.taxType) {
+                    Text("CGST+SGST").tag("CGST_SGST")
+                    Text("IGST").tag("IGST")
+                }
 
                 DatePicker("Invoice Date", selection: $viewModel.invoiceDate, displayedComponents: .date)
                 DatePicker("Due Date", selection: Binding(get: { viewModel.dueDate ?? Date() }, set: { viewModel.dueDate = $0 }), displayedComponents: .date)
@@ -141,6 +145,12 @@ struct CreateInvoiceView: View {
             viewModel.customers = customerVM.customers
             if let invoiceId = editInvoiceId {
                 await viewModel.loadInvoiceForEdit(businessId: business.id, invoiceId: invoiceId)
+            }
+        }
+        .onChange(of: viewModel.taxType) { newValue in
+            let intra = newValue == "CGST_SGST"
+            for i in viewModel.items.indices {
+                viewModel.items[i].isIntraState = intra
             }
         }
         .sheet(isPresented: $showCustomerPicker) {

@@ -84,17 +84,22 @@ interface LineItem {
   taxRate: number;
 }
 
-function calcItemTax(item: LineItem) {
+type TaxType = 'CGST_SGST' | 'IGST';
+
+function calcItemTax(item: LineItem, taxType: TaxType = 'CGST_SGST') {
   const gross = item.quantity * item.rate;
   const discountAmt = gross * (item.discount / 100);
   const taxable = gross - discountAmt;
+  if (taxType === 'IGST') {
+    const igst = taxable * (item.taxRate / 100);
+    return { taxable, cgst: 0, sgst: 0, igst, total: taxable + igst };
+  }
   const cgst = taxable * (item.taxRate / 200);
   const sgst = taxable * (item.taxRate / 200);
-  const igst = 0;
-  return { taxable, cgst, sgst, igst, total: taxable + cgst + sgst };
+  return { taxable, cgst, sgst, igst: 0, total: taxable + cgst + sgst };
 }
 
-function calcTotals(items: LineItem[]) {
+function calcTotals(items: LineItem[], taxType: TaxType = 'CGST_SGST') {
   let subtotal = 0;
   let taxAmount = 0;
   let discount = 0;
@@ -102,9 +107,9 @@ function calcTotals(items: LineItem[]) {
     const gross = item.quantity * item.rate;
     const disc = gross * (item.discount / 100);
     discount += disc;
-    const { taxable, cgst, sgst } = calcItemTax(item);
-    subtotal += taxable;
-    taxAmount += cgst + sgst;
+    const calc = calcItemTax(item, taxType);
+    subtotal += calc.taxable;
+    taxAmount += taxType === 'IGST' ? calc.igst : calc.cgst + calc.sgst;
   }
   const grandTotal = subtotal + taxAmount;
   return { subtotal, taxAmount, discount, grandTotal };
@@ -159,6 +164,8 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [taxType, setTaxType] = useState<TaxType>('CGST_SGST');
+
   const [productSearch, setProductSearch] = useState('');
   const [productList, setProductList] = useState<Product[]>([]);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
@@ -184,6 +191,8 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       setTotalInWords(editInvoice.totalInWords || '');
       invoicesApi.getById(businessId, editInvoice.id).then(({ data }) => {
         if (data?.items && data.items.length > 0) {
+          const hasIgst = data.items.some((it: InvoiceItem) => (it.igst || 0) > 0);
+          setTaxType(hasIgst ? 'IGST' : 'CGST_SGST');
           setItems(data.items.map((it) => ({
             productId: it.productId || undefined,
             itemName: it.itemName,
@@ -197,6 +206,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       }).catch(() => {});
     } else {
       setType('B2C');
+      setTaxType('CGST_SGST');
       setInvoiceNo('');
       setInvoiceDate(new Date().toISOString().slice(0, 10));
       setDueDate('');
@@ -246,7 +256,7 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
     return () => clearTimeout(timer);
   }, [productSearch, open, businessId]);
 
-  const totals = calcTotals(items);
+  const totals = calcTotals(items, taxType);
 
   const updateItem = (idx: number, field: keyof LineItem, value: string | number) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -257,7 +267,11 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
       if (i !== idx) return it;
       const qty = it.quantity || 1;
       const disc = it.discount || 0;
-      const rate = qty > 0 ? Number(((amount / qty) / (1 - disc / 100)).toFixed(2)) : 0;
+      const gstRate = it.taxRate || 0;
+      // Treat entered amount as final total including tax
+      const taxable = gstRate > 0 ? Number((amount / (1 + gstRate / 100)).toFixed(2)) : amount;
+      const gross = disc > 0 ? taxable / (1 - disc / 100) : taxable;
+      const rate = qty > 0 ? Number((gross / qty).toFixed(2)) : 0;
       return { ...it, rate };
     }));
   };
@@ -385,6 +399,10 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
             <FormControlLabel value="B2B" control={<Radio size="small" />} label="B2B" />
             <FormControlLabel value="B2C" control={<Radio size="small" />} label="B2C" />
           </RadioGroup>
+          <RadioGroup row value={taxType} onChange={(e) => setTaxType(e.target.value as TaxType)}>
+            <FormControlLabel value="CGST_SGST" control={<Radio size="small" />} label="CGST+SGST" />
+            <FormControlLabel value="IGST" control={<Radio size="small" />} label="IGST" />
+          </RadioGroup>
         </Box>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -493,15 +511,21 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
 <TableCell sx={{ width: 85 }} align="center">Disc %</TableCell>
 <TableCell sx={{ width: 85 }} align="center">GST %</TableCell>
 <TableCell sx={{ width: 110 }} align="right">Taxable</TableCell>
-<TableCell sx={{ width: 95 }} align="right">CGST</TableCell>
-<TableCell sx={{ width: 95 }} align="right">SGST</TableCell>
+{taxType === 'IGST' ? (
+  <TableCell sx={{ width: 95 }} align="right">IGST</TableCell>
+) : (
+  <>
+    <TableCell sx={{ width: 95 }} align="right">CGST</TableCell>
+    <TableCell sx={{ width: 95 }} align="right">SGST</TableCell>
+  </>
+)}
 <TableCell sx={{ width: 110 }} align="right">Amount</TableCell>
 <TableCell sx={{ width: 40 }} align="center" />
               </TableRow>
             </TableHead>
             <TableBody>
               {items.map((item, idx) => {
-                const t = calcItemTax(item);
+                const t = calcItemTax(item, taxType);
                 return (
                   <TableRow key={idx}>
                     <TableCell>
@@ -586,12 +610,20 @@ function CreateInvoiceDialog({ open, onClose, businessId, direction, editInvoice
                     <TableCell align="right">
                       <Typography variant="body2">₹{t.taxable.toFixed(2)}</Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2">₹{t.cgst.toFixed(2)}</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2">₹{t.sgst.toFixed(2)}</Typography>
-                    </TableCell>
+                    {taxType === 'IGST' ? (
+                      <TableCell align="right">
+                        <Typography variant="body2">₹{t.igst.toFixed(2)}</Typography>
+                      </TableCell>
+                    ) : (
+                      <>
+                        <TableCell align="right">
+                          <Typography variant="body2">₹{t.cgst.toFixed(2)}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2">₹{t.sgst.toFixed(2)}</Typography>
+                        </TableCell>
+                      </>
+                    )}
                     <TableCell align="right">
                       <TextField
                         type="number"

@@ -12,6 +12,8 @@ import { customersApi, Customer } from '../api/customers';
 import { productsApi, Product } from '../api/products';
 import { useBusiness } from '../context/BusinessContext';
 
+type TaxType = 'CGST_SGST' | 'IGST';
+
 interface LineItem {
   productId?: string;
   itemName: string;
@@ -22,22 +24,25 @@ interface LineItem {
   taxRate: number;
 }
 
-function calcItemTax(item: LineItem) {
+function calcItemTax(item: LineItem, taxType: TaxType = 'CGST_SGST') {
   const gross = item.quantity * item.rate;
   const discountAmt = gross * (item.discount / 100);
   const taxable = gross - discountAmt;
+  if (taxType === 'IGST') {
+    const igst = taxable * (item.taxRate / 100);
+    return { taxable, cgst: 0, sgst: 0, igst, total: taxable + igst };
+  }
   const cgst = taxable * (item.taxRate / 200);
   const sgst = taxable * (item.taxRate / 200);
-  const igst = 0;
-  return { taxable, cgst, sgst, igst, total: taxable + cgst + sgst };
+  return { taxable, cgst, sgst, igst: 0, total: taxable + cgst + sgst };
 }
 
-function calcTotals(items: LineItem[]) {
+function calcTotals(items: LineItem[], taxType: TaxType = 'CGST_SGST') {
   let subtotal = 0, taxAmount = 0, discount = 0, grandTotal = 0;
   for (const item of items) {
-    const t = calcItemTax(item);
+    const t = calcItemTax(item, taxType);
     subtotal += t.taxable;
-    taxAmount += t.cgst + t.sgst + t.igst;
+    taxAmount += taxType === 'IGST' ? t.igst : t.cgst + t.sgst;
     discount += item.quantity * item.rate * (item.discount / 100);
     grandTotal += t.total;
   }
@@ -58,6 +63,7 @@ export default function EditInvoicePage() {
   const [error, setError] = useState('');
   const [invoice, setInvoice] = useState<Invoice | null>(null);
 
+  const [taxType, setTaxType] = useState<TaxType>('CGST_SGST');
   const [type, setType] = useState<'B2B' | 'B2C'>('B2C');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
@@ -85,6 +91,8 @@ export default function EditInvoicePage() {
         setNotes(data.notes || '');
         setTerms(data.terms || '');
         if (data.items) {
+          const hasIgst = data.items.some((it: InvoiceItem) => (it.igst || 0) > 0);
+          setTaxType(hasIgst ? 'IGST' : 'CGST_SGST');
           setItems(data.items.map((it: InvoiceItem) => ({
             productId: it.productId || undefined,
             itemName: it.itemName,
@@ -175,7 +183,7 @@ export default function EditInvoicePage() {
     }
   };
 
-  const totals = calcTotals(items);
+  const totals = calcTotals(items, taxType);
   const direction = invoice?.direction || 'SALE';
   const partyLabel = direction === 'SALE' ? 'Customer' : 'Supplier';
 
@@ -207,10 +215,16 @@ export default function EditInvoicePage() {
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <RadioGroup row value={type} onChange={(e) => setType(e.target.value as 'B2B' | 'B2C')}>
-              <FormControlLabel value="B2B" control={<Radio size="small" />} label="B2B" />
-              <FormControlLabel value="B2C" control={<Radio size="small" />} label="B2C" />
-            </RadioGroup>
+            <Box sx={{ display: 'flex', gap: 3 }}>
+              <RadioGroup row value={type} onChange={(e) => setType(e.target.value as 'B2B' | 'B2C')}>
+                <FormControlLabel value="B2B" control={<Radio size="small" />} label="B2B" />
+                <FormControlLabel value="B2C" control={<Radio size="small" />} label="B2C" />
+              </RadioGroup>
+              <RadioGroup row value={taxType} onChange={(e) => setTaxType(e.target.value as TaxType)}>
+                <FormControlLabel value="CGST_SGST" control={<Radio size="small" />} label="CGST+SGST" />
+                <FormControlLabel value="IGST" control={<Radio size="small" />} label="IGST" />
+              </RadioGroup>
+            </Box>
           </Grid>
           <Grid item xs={12} md={4}>
             <Autocomplete
@@ -258,7 +272,7 @@ export default function EditInvoicePage() {
             </TableHead>
             <TableBody>
               {items.map((item, idx) => {
-                const t = calcItemTax(item);
+                const t = calcItemTax(item, taxType);
                 return (
                   <TableRow key={idx}>
                     <TableCell>
@@ -292,7 +306,7 @@ export default function EditInvoicePage() {
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={600}>₹{t.total.toFixed(2)}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Tax: ₹{(t.cgst + t.sgst).toFixed(2)}
+                        {taxType === 'IGST' ? `IGST: ₹${t.igst.toFixed(2)}` : `CGST: ₹${t.cgst.toFixed(2)} | SGST: ₹${t.sgst.toFixed(2)}`}
                       </Typography>
                     </TableCell>
                     <TableCell>

@@ -12,6 +12,7 @@ class InvoiceViewModel: ObservableObject {
 
     @Published var customerId: String?
     @Published var invoiceType = "B2C"
+    @Published var taxType = "CGST_SGST"
     @Published var invoiceDate = Date()
     @Published var dueDate: Date?
     @Published var notes = ""
@@ -183,15 +184,19 @@ class InvoiceViewModel: ObservableObject {
                 self.notes = invoice.notes ?? ""
                 self.terms = invoice.terms ?? ""
                 self.discountAmount = invoice.discount ?? 0
+                let hasIgst = invoice.items?.contains(where: { ($0.igst ?? 0) > 0 }) ?? false
+                self.taxType = hasIgst ? "IGST" : "CGST_SGST"
                 self.items = invoice.items?.map { item in
-                    InvoiceItemInput(
+                    let isIntra = !hasIgst
+                    return InvoiceItemInput(
                         productId: item.productId,
                         itemName: item.itemName,
                         quantity: item.quantity,
                         unit: item.unit ?? "piece",
                         rate: item.rate,
                         discount: item.discount ?? 0,
-                        taxRate: item.taxRate ?? 18
+                        taxRate: item.taxRate ?? 18,
+                        isIntraState: isIntra
                     )
                 } ?? []
             }
@@ -222,6 +227,7 @@ class InvoiceViewModel: ObservableObject {
     func resetForm() {
         customerId = nil
         invoiceType = "B2C"
+        taxType = "CGST_SGST"
         invoiceDate = Date()
         dueDate = nil
         notes = ""
@@ -235,7 +241,7 @@ class InvoiceViewModel: ObservableObject {
     }
 
     func addItem() {
-        items.append(InvoiceItemInput(itemName: "", quantity: 1, unit: "piece", rate: 0, discount: 0, taxRate: 18))
+        items.append(InvoiceItemInput(itemName: "", quantity: 1, unit: "piece", rate: 0, discount: 0, taxRate: 18, isIntraState: isIntraState))
     }
 
     func removeItem(at index: Int) {
@@ -252,6 +258,8 @@ class InvoiceViewModel: ObservableObject {
     }
 
     var isIntraState: Bool {
+        if taxType == "IGST" { return false }
+        if taxType == "CGST_SGST" { return true }
         guard let bs = businessState, let cs = customerState else { return true }
         return bs.lowercased() == cs.lowercased()
     }
@@ -301,15 +309,19 @@ struct InvoiceItemInput: Identifiable {
     var rate: Double
     var discount: Double
     var taxRate: Double
+    var isIntraState: Bool = true
 
     var total: Double {
-        let result = GSTCalculator.calculate(rate: rate, quantity: quantity, discount: discount, taxRate: taxRate, isIntraState: true)
+        let result = GSTCalculator.calculate(rate: rate, quantity: quantity, discount: discount, taxRate: taxRate, isIntraState: isIntraState)
         return result.taxableValue + result.cgst + result.sgst + result.igst
     }
 
     mutating func updateFromAmount(_ amount: Double) {
+        let gst = taxRate / 100.0
+        // Treat entered amount as final total including tax
+        let taxable = gst > 0 ? amount / (1 + gst) : amount
         let disc = discount / 100.0
-        let gross = quantity > 0 ? amount / (1 - disc) : 0
+        let gross = disc > 0 ? taxable / (1 - disc) : taxable
         rate = quantity > 0 ? gross / quantity : 0
     }
 }

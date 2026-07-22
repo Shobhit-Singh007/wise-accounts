@@ -66,6 +66,7 @@ class CreateInvoiceViewModel @Inject constructor(
     var customerAddress by mutableStateOf<String?>(null)
     var customerPhone by mutableStateOf<String?>(null)
     var invoiceType by mutableStateOf("B2C")
+    var taxType by mutableStateOf("CGST_SGST")
     var documentType by mutableStateOf("INVOICE")
     var invoiceDate by mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
     var dueDate by mutableStateOf("")
@@ -320,7 +321,10 @@ class CreateInvoiceViewModel @Inject constructor(
         val amount = amountStr.toDoubleOrNull() ?: 0.0
         val qty = item.quantity.toDoubleOrNull() ?: 1.0
         val disc = item.discount.toDoubleOrNull() ?: 0.0
-        val gross = if (qty > 0) amount / (1 - disc / 100.0) else 0.0
+        val gst = item.gstRate.toDoubleOrNull() ?: 0.0
+        // Treat entered amount as final total including tax
+        val taxable = if (gst > 0) amount / (1 + gst / 100.0) else amount
+        val gross = if (disc > 0) taxable / (1 - disc / 100.0) else taxable
         val rate = if (qty > 0) gross / qty else 0.0
         lineItems[index] = item.copy(
             unitPrice = String.format("%.2f", rate),
@@ -339,17 +343,26 @@ class CreateInvoiceViewModel @Inject constructor(
         val lineTotal = qty * price
         val discAmount = lineTotal * (disc / 100.0)
         val taxable = lineTotal - discAmount
-        val igst = taxable * (gst / 100.0)
-        val cgst = igst / 2.0
-        val sgst = igst / 2.0
+        val taxAmount = taxable * (gst / 100.0)
 
-        lineItems[index] = item.copy(
-            taxableAmount = taxable,
-            cgst = cgst,
-            sgst = sgst,
-            igst = igst,
-            totalPrice = taxable + igst
-        )
+        if (taxType == "IGST") {
+            lineItems[index] = item.copy(
+                taxableAmount = taxable,
+                cgst = 0.0,
+                sgst = 0.0,
+                igst = taxAmount,
+                totalPrice = taxable + taxAmount
+            )
+        } else {
+            val half = taxAmount / 2.0
+            lineItems[index] = item.copy(
+                taxableAmount = taxable,
+                cgst = half,
+                sgst = half,
+                igst = 0.0,
+                totalPrice = taxable + taxAmount
+            )
+        }
     }
 
     fun createInvoice(onSuccess: () -> Unit) {
@@ -466,7 +479,7 @@ fun CreateInvoiceScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Invoice Type & Document Type
+            // Invoice Type, Tax Type & Document Type
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -478,7 +491,15 @@ fun CreateInvoiceScreen(
                         label = { Text(type) }
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                listOf("CGST_SGST" to "CGST+SGST", "IGST" to "IGST").forEach { (value, label) ->
+                    FilterChip(
+                        selected = viewModel.taxType == value,
+                        onClick = { viewModel.taxType = value },
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
                 val docTypes = listOf("INVOICE" to "Invoice", "QUOTATION" to "Quotation", "PROFORMA" to "Proforma", "DELIVERY_CHALLAN" to "Challan", "JOBWORK" to "Jobwork", "CREDIT_NOTE" to "Credit", "LETTERHEAD" to "Letter")
                 var docExpanded by remember { mutableStateOf(false) }
                 Box { OutlinedButton(onClick = { docExpanded = true }, modifier = Modifier.height(32.dp)) { Text(docTypes.find { it.first == viewModel.documentType }?.second ?: "Doc", style = MaterialTheme.typography.labelSmall) }; DropdownMenu(expanded = docExpanded, onDismissRequest = { docExpanded = false }) { docTypes.forEach { (v, l) -> DropdownMenuItem(text = { Text(l) }, onClick = { viewModel.documentType = v; docExpanded = false }) } } }
@@ -742,9 +763,12 @@ fun CreateInvoiceScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     SummaryRow("Taxable Amount", viewModel.taxableAmount)
-                    SummaryRow("CGST", viewModel.totalCgst)
-                    SummaryRow("SGST", viewModel.totalSgst)
-                    SummaryRow("IGST", viewModel.totalIgst)
+                    if (viewModel.taxType == "IGST") {
+                        SummaryRow("IGST", viewModel.totalIgst)
+                    } else {
+                        SummaryRow("CGST", viewModel.totalCgst)
+                        SummaryRow("SGST", viewModel.totalSgst)
+                    }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     SummaryRow("Total Amount", viewModel.totalAmount, bold = true)
                 }
@@ -894,9 +918,15 @@ fun LineItemCard(
                     onValueChange = { onUpdate(item.copy(unitPrice = it)) },
                     label = { Text("Rate") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(2f),
                     singleLine = true
                 )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = item.discount,
                     onValueChange = { onUpdate(item.copy(discount = it)) },
@@ -905,19 +935,12 @@ fun LineItemCard(
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
-            }
-
-            val gstOptions = listOf("0", "3", "5", "18", "28", "40")
-            var gstDropdownExpanded by remember { mutableStateOf(false) }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+                val gstOptions = listOf("0", "3", "5", "18", "28", "40")
+                var gstDropdownExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = gstDropdownExpanded,
                     onExpandedChange = { gstDropdownExpanded = it },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(2f)
                 ) {
                     OutlinedTextField(
                         value = item.gstRate,
