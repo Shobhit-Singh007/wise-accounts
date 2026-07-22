@@ -127,6 +127,11 @@ function DashboardTab({ businessId }: { businessId: string }) {
   const [data, setData] = useState<InventoryDashboardReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState({ productId: '', fromWarehouseId: '', toWarehouseId: '', quantity: 1 });
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
+  const [warehouses, setWarehouses] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     reportsApi
@@ -139,6 +144,8 @@ function DashboardTab({ businessId }: { businessId: string }) {
         ),
       )
       .finally(() => setLoading(false));
+    client.get(`/businesses/${businessId}/products?limit=9999`).then(({ data }: any) => setProducts((data?.data || data || []).map((p: any) => ({ id: p.id, name: p.name })))).catch(() => {});
+    client.get(`/businesses/${businessId}/warehouses`).then(({ data }: any) => setWarehouses(Array.isArray(data) ? data.map((w: any) => ({ id: w.id, name: w.name })) : [])).catch(() => {});
   }, [businessId]);
 
   if (loading) return <CircularProgress />;
@@ -198,6 +205,20 @@ function DashboardTab({ businessId }: { businessId: string }) {
         </Grid>
       </Grid>
 
+      <Box sx={{ mb: 2 }}><Button variant="outlined" startIcon={<AddIcon />} onClick={() => setTransferOpen(true)}>Stock Transfer</Button></Box>
+      <Dialog open={transferOpen} onClose={() => setTransferOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Transfer Stock Between Warehouses</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <FormControl fullWidth><InputLabel>Product</InputLabel><Select value={transferForm.productId} label="Product" onChange={(e) => setTransferForm({ ...transferForm, productId: e.target.value })}>{products.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}</Select></FormControl>
+          <FormControl fullWidth><InputLabel>From Warehouse</InputLabel><Select value={transferForm.fromWarehouseId} label="From Warehouse" onChange={(e) => setTransferForm({ ...transferForm, fromWarehouseId: e.target.value })}>{warehouses.map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}</Select></FormControl>
+          <FormControl fullWidth><InputLabel>To Warehouse</InputLabel><Select value={transferForm.toWarehouseId} label="To Warehouse" onChange={(e) => setTransferForm({ ...transferForm, toWarehouseId: e.target.value })}>{warehouses.map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}</Select></FormControl>
+          <TextField label="Quantity" type="number" value={transferForm.quantity} onChange={(e) => setTransferForm({ ...transferForm, quantity: Number(e.target.value) })} inputProps={{ min: 1 }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTransferOpen(false)}>Cancel</Button>
+          <Button variant="contained" disabled={!transferForm.productId || !transferForm.fromWarehouseId || !transferForm.toWarehouseId || transferSaving} onClick={async () => { setTransferSaving(true); try { await client.post(`/businesses/${businessId}/stock-transfer`, transferForm); setTransferOpen(false); } catch {} setTransferSaving(false); }}>{transferSaving ? <CircularProgress size={20} /> : 'Transfer'}</Button>
+        </DialogActions>
+      </Dialog>
       {data.stockByWarehouse.length > 0 && (
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Stock by Warehouse</Typography>

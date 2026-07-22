@@ -223,19 +223,19 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 The following features exist on one platform but not the other and need to be synced:
 
 ### Add to Admin Dashboard (exists in Android):
-1. **UPI QR** — DONE (added this session)
-2. **Payment reminders** — not started
-3. **Warehouse CRUD** — DONE (added this session)
+1. **UPI QR** — DONE
+2. **Payment reminders** — DONE (overdue invoice dialog with WhatsApp remind)
+3. **Warehouse CRUD** — DONE
 4. **Customer Groups** — DONE
 5. **Opening balance on customer** — DONE
 6. **Stock transfer between warehouses** — not started
 7. **Notifications list** — not started
 
 ### Add to Android (exists in admin dashboard):
-8. **Report export** — DONE (added this session — Sales Report export button)
-9. **Barcode generation** — not started
-10. **Invoice settings** — not started
-11. **Multiple document types** — not started
+8. **Report export** — DONE (sales report CSV share)
+9. **Barcode generation** — DONE (CODE128 image on product detail)
+10. **Invoice settings** — already synced (prefix, numbering, bank, UPI)
+11. **Multiple document types** — DONE (creation + print/PDF)
 12. **Payment reconciliation** — not started
 13. **Outstanding report** — not started
 14. **Payment Collection report** — not started
