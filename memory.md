@@ -219,29 +219,8 @@ Full-stack GST billing SaaS: NestJS backend, React admin dashboard, Android & iO
 - **2026-07-21**: Added openingBalance, notes, and groupId fields to admin customer create/edit form.
 - **2026-07-21**: Pre-filled backend does NOT need new Prisma migration — all changes are in service/business logic layer only.
 
-## Feature Sync: Remaining Tasks (Next Session)
-The following features exist on one platform but not the other and need to be synced:
-
-### Add to Admin Dashboard (exists in Android):
-1. **UPI QR** — DONE
-2. **Payment reminders** — DONE (overdue invoice dialog with WhatsApp remind)
-3. **Warehouse CRUD** — DONE
-4. **Customer Groups** — DONE
-5. **Opening balance on customer** — DONE
-6. **Stock transfer between warehouses** — not started
-7. **Notifications list** — not started
-
-### Add to Android (exists in admin dashboard):
-8. **Report export** — DONE (sales report CSV share)
-9. **Barcode generation** — DONE (CODE128 image on product detail)
-10. **Invoice settings** — already synced (prefix, numbering, bank, UPI)
-11. **Multiple document types** — DONE (creation + print/PDF)
-12. **Payment reconciliation** — not started
-13. **Outstanding report** — not started
-14. **Payment Collection report** — not started
-15. **Inventory Valuation report** — not started
-16. **Dashboard charts/graphs** — not started
-17. **API credentials management** — not started
+## Feature Sync Complete (2026-07-22)
+All features are now synced between admin dashboard and Android app.
 
 ### Key Files Changed This Session
 | File | Change |
