@@ -24,6 +24,7 @@ import BatchExpiryPage from './pages/BatchExpiryPage';
 import InventoryManagementPage from './pages/InventoryManagementPage';
 import ImportPage from './pages/ImportPage';
 import EditInvoicePage from './pages/EditInvoicePage';
+import NotificationsPage from './pages/NotificationsPage';
 import { CircularProgress, Box } from '@mui/material';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -107,6 +108,7 @@ function AppRoutes() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/import" element={<ImportPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

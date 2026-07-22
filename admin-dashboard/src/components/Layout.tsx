@@ -221,6 +221,10 @@ export default function Layout() {
                   ))}
                 </List>
               )}
+              <Divider />
+              <Box sx={{ p: 1, textAlign: 'center' }}>
+                <Button size="small" fullWidth onClick={() => { handleNotifClose(); window.location.href = '/notifications'; }}>View All Notifications</Button>
+              </Box>
             </Popover>
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
               <Avatar sx={{ width: 34, height: 34, bgcolor: '#1a237e' }}>
