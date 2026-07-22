@@ -13,6 +13,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (identifier: string, password: string) => Promise<void>;
+  loginWithOtp: (phone: string, otp: string) => Promise<void>;
+  sendOtp: (phone: string) => Promise<void>;
   register: (data: {
     name: string;
     email?: string;
@@ -52,6 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }, []);
 
+  const loginWithOtp = useCallback(async (phone: string, otp: string) => {
+    const { data } = await authApi.verifyOtp(phone, otp);
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    setUser(data.user);
+  }, []);
+
+  const sendOtp = useCallback(async (phone: string) => {
+    await authApi.sendOtp(phone);
+  }, []);
+
   const register = useCallback(
     async (regData: { name: string; email?: string; phone?: string; password: string }) => {
       const { data } = await authApi.register(regData);
@@ -69,16 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        loading,
-        login,
-        register,
-        logout,
-      }}
-    >
+      <AuthContext.Provider
+        value={{
+          user,
+          isAuthenticated: !!user,
+          loading,
+          login,
+          loginWithOtp,
+          sendOtp,
+          register,
+          logout,
+        }}
+      >
       {children}
     </AuthContext.Provider>
   );

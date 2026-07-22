@@ -34,6 +34,15 @@ export const authApi = {
   register: (data: RegisterRequest) =>
     client.post<AuthResponse>('/auth/register', data),
 
+  sendOtp: (phone: string, email?: string) =>
+    client.post<{ success: boolean; message: string; expiresIn: number; otp?: string }>(
+      '/auth/send-otp',
+      { phone, email },
+    ),
+
+  verifyOtp: (phone: string, otp: string) =>
+    client.post<AuthResponse>('/auth/verify-otp', { phone, otp }),
+
   refresh: (refreshToken: string) =>
     client.post<{ accessToken: string; refreshToken?: string }>(
       '/auth/refresh',

@@ -12,28 +12,32 @@ import {
   IconButton,
   CircularProgress,
   Divider,
-  ToggleButtonGroup,
-  ToggleButton,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Phone, Mail, Lock, Receipt } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Phone, Mail, Lock, Smartphone } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login } = useAuth();
-  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
+  const { login, loginWithOtp, sendOtp } = useAuth();
+  const [tab, setTab] = useState(0);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const identifier = loginMethod === 'email' ? email : phone;
+    const isEmail = tab === 1;
+    const identifier = isEmail ? email : phone;
     if (!identifier || !password) {
       setError('Please fill in all fields');
       return;
@@ -47,6 +51,42 @@ export default function LoginPage() {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || 'Login failed. Please check your credentials.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setError('');
+    if (!phone) { setError('Enter your phone number'); return; }
+    setOtpLoading(true);
+    try {
+      await sendOtp(phone);
+      setOtpSent(true);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Failed to send OTP';
+      setError(message);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!phone || !otp) { setError('Enter phone and OTP'); return; }
+    setLoading(true);
+    try {
+      await loginWithOtp(phone, otp);
+      const redirect = searchParams.get('redirect') || '/';
+      navigate(redirect);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Verification failed';
       setError(message);
     } finally {
       setLoading(false);
@@ -90,91 +130,42 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <ToggleButtonGroup
-              value={loginMethod}
-              exclusive
-              onChange={(_, val) => val && setLoginMethod(val)}
-              size="small"
-              fullWidth
-              sx={{ mb: 1 }}
-            >
-              <ToggleButton value="phone">Phone</ToggleButton>
-              <ToggleButton value="email">Email</ToggleButton>
-            </ToggleButtonGroup>
+          <Tabs value={tab} onChange={(_, v) => { setTab(v); setOtpSent(false); setOtp(''); setError(''); }} variant="fullWidth" sx={{ mb: 2 }}>
+            <Tab icon={<Phone fontSize="small" />} label="Phone" />
+            <Tab icon={<Mail fontSize="small" />} label="Email" />
+            <Tab icon={<Smartphone fontSize="small" />} label="OTP" />
+          </Tabs>
 
-            {loginMethod === 'phone' ? (
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
-                margin="normal"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Phone color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            ) : (
-              <TextField
-                fullWidth
-                label="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                margin="normal"
-                type="email"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Mail color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            )}
-            <TextField
-              fullWidth
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 3, py: 1.5, borderRadius: 2, fontSize: '1rem', bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
-            </Button>
-          </form>
+          {tab === 0 && (
+            <form onSubmit={handlePasswordLogin}>
+              <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter your phone number" margin="normal" InputProps={{ startAdornment: <InputAdornment position="start"><Phone color="action" /></InputAdornment> }} />
+              <TextField fullWidth label="Password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" margin="normal" InputProps={{ startAdornment: <InputAdornment position="start"><Lock color="action" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> }} />
+              <Button type="submit" fullWidth variant="contained" size="large" disabled={loading} sx={{ mt: 3, py: 1.5, borderRadius: 2, fontSize: '1rem', bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}>{loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}</Button>
+            </form>
+          )}
+
+          {tab === 1 && (
+            <form onSubmit={handlePasswordLogin}>
+              <TextField fullWidth label="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" margin="normal" type="email" InputProps={{ startAdornment: <InputAdornment position="start"><Mail color="action" /></InputAdornment> }} />
+              <TextField fullWidth label="Password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" margin="normal" InputProps={{ startAdornment: <InputAdornment position="start"><Lock color="action" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> }} />
+              <Button type="submit" fullWidth variant="contained" size="large" disabled={loading} sx={{ mt: 3, py: 1.5, borderRadius: 2, fontSize: '1rem', bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}>{loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}</Button>
+            </form>
+          )}
+
+          {tab === 2 && (
+            <form onSubmit={handleOtpLogin}>
+              <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter your phone number" margin="normal" InputProps={{ startAdornment: <InputAdornment position="start"><Smartphone color="action" /></InputAdornment> }} />
+              {!otpSent ? (
+                <Button onClick={handleSendOtp} fullWidth variant="contained" size="large" disabled={otpLoading || !phone} sx={{ mt: 2, py: 1.5, borderRadius: 2, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}>{otpLoading ? <CircularProgress size={24} color="inherit" /> : 'Send OTP'}</Button>
+              ) : (
+                <>
+                  <TextField fullWidth label="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="6-digit OTP" margin="normal" inputProps={{ maxLength: 6 }} InputProps={{ startAdornment: <InputAdornment position="start"><Lock color="action" /></InputAdornment> }} />
+                  <Button type="submit" fullWidth variant="contained" size="large" disabled={loading || otp.length < 6} sx={{ mt: 2, py: 1.5, borderRadius: 2, bgcolor: '#1a237e', '&:hover': { bgcolor: '#283593' } }}>{loading ? <CircularProgress size={24} color="inherit" /> : 'Verify & Login'}</Button>
+                  <Button onClick={() => { setOtpSent(false); setOtp(''); }} fullWidth size="small" sx={{ mt: 1 }}>Change phone number</Button>
+                </>
+              )}
+            </form>
+          )}
 
           <Divider sx={{ my: 3 }} />
 
