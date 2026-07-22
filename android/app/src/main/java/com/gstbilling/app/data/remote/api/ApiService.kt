@@ -438,6 +438,25 @@ interface ApiService {
         @Query("to") to: String? = null
     ): Response<ApiResponse<ProfitLossReport>>
 
+    @GET("businesses/{businessId}/reports/payment-collection")
+    suspend fun getPaymentCollectionReport(
+        @Path("businessId") businessId: String,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
+    ): Response<ApiResponse<PaymentCollectionReport>>
+
+    @GET("businesses/{businessId}/reports/inventory-valuation")
+    suspend fun getInventoryValuation(
+        @Path("businessId") businessId: String
+    ): Response<ApiResponse<InventoryValuationReport>>
+
+    @GET("businesses/{businessId}/payments/reconciliation-logs")
+    suspend fun getReconciliationLogs(
+        @Path("businessId") businessId: String,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): Response<ApiResponse<ReconciliationLogResponse>>
+
     // ── Sync ──
     @POST("sync/push")
     suspend fun pushChanges(@Body request: SyncPushRequest): Response<ApiResponse<SyncResponse>>
@@ -1242,6 +1261,38 @@ data class ProfitLossReport(
 data class BreakdownItem(
     val label: String,
     val amount: Double
+)
+
+data class PaymentCollectionReport(
+    val totalCollected: Double = 0.0,
+    val totalPayments: Int = 0,
+    val averagePayment: Double = 0.0,
+    val byMethod: List<PaymentByMethod> = emptyList(),
+    val recentPayments: List<PaymentRow> = emptyList()
+)
+data class PaymentByMethod(val method: String = "", val amount: Double = 0.0, val count: Int = 0)
+data class PaymentRow(val date: String = "", val customer: String = "", val amount: Double = 0.0, val method: String = "")
+
+data class InventoryValuationReport(
+    val totalProducts: Int = 0,
+    val totalValue: Double = 0.0,
+    val totalRetailValue: Double = 0.0,
+    val lowStockCount: Int = 0,
+    val categories: List<InventoryCategory> = emptyList()
+)
+data class InventoryCategory(val name: String = "", val products: Int = 0, val value: Double = 0.0, val retailValue: Double = 0.0)
+
+data class ReconciliationLogResponse(
+    val data: List<ReconciliationEntry> = emptyList(),
+    val meta: PaginationMeta? = null
+)
+data class ReconciliationEntry(
+    val id: String = "",
+    val paymentId: String = "",
+    val invoiceId: String? = null,
+    val matchedAmount: Double = 0.0,
+    val matchType: String = "",
+    val reconciledAt: String = ""
 )
 
 // ── Sync Models ──

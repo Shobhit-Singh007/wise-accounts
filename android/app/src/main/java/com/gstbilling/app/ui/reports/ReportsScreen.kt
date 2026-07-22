@@ -44,6 +44,9 @@ class ReportsViewModel @Inject constructor(
     var gstr3bReport by mutableStateOf<Gstr3bReport?>(null)
     var profitLoss by mutableStateOf<ProfitLossReport?>(null)
     var outstandingReport by mutableStateOf<List<CustomerReport>>(emptyList())
+    var paymentCollectionReport by mutableStateOf<PaymentCollectionReport?>(null)
+    var inventoryValuationReport by mutableStateOf<InventoryValuationReport?>(null)
+    var reconciliationLogs by mutableStateOf<List<ReconciliationEntry>>(emptyList())
     var isLoading by mutableStateOf(false)
     var selectedReport by mutableStateOf<String?>(null)
     var errorMessage by mutableStateOf<String?>(null)
@@ -119,6 +122,51 @@ class ReportsViewModel @Inject constructor(
                 try {
                     val response = apiService.getCustomerReport(id)
                     if (response.isSuccessful) outstandingReport = response.body()?.data ?: emptyList()
+                    else errorMessage = response.errorBody()?.string()
+                } catch (e: Exception) { errorMessage = e.message }
+            }
+            isLoading = false
+        }
+    }
+
+    fun loadPaymentCollection() {
+        viewModelScope.launch {
+            isLoading = true; errorMessage = null; selectedReport = "payment_collection"
+            val id = sessionManager.getBusinessId()
+            if (id != null) {
+                try {
+                    val response = apiService.getPaymentCollectionReport(id)
+                    if (response.isSuccessful) paymentCollectionReport = response.body()?.data
+                    else errorMessage = response.errorBody()?.string()
+                } catch (e: Exception) { errorMessage = e.message }
+            }
+            isLoading = false
+        }
+    }
+
+    fun loadInventoryValuation() {
+        viewModelScope.launch {
+            isLoading = true; errorMessage = null; selectedReport = "inventory_valuation"
+            val id = sessionManager.getBusinessId()
+            if (id != null) {
+                try {
+                    val response = apiService.getInventoryValuation(id)
+                    if (response.isSuccessful) inventoryValuationReport = response.body()?.data
+                    else errorMessage = response.errorBody()?.string()
+                } catch (e: Exception) { errorMessage = e.message }
+            }
+            isLoading = false
+        }
+    }
+
+    fun loadReconciliation() {
+        viewModelScope.launch {
+            isLoading = true; errorMessage = null; selectedReport = "reconciliation"
+            val id = sessionManager.getBusinessId()
+            if (id != null) {
+                try {
+                    val response = apiService.getReconciliationLogs(id)
+                    if (response.isSuccessful) reconciliationLogs = response.body()?.data?.data ?: emptyList()
                     else errorMessage = response.errorBody()?.string()
                 } catch (e: Exception) { errorMessage = e.message }
             }
@@ -236,6 +284,33 @@ fun ReportsScreen(
                         icon = Icons.Default.Person,
                         color = Color(0xFFD84315),
                         onClick = { viewModel.loadOutstanding() }
+                    )
+                }
+                item {
+                    ReportCard(
+                        title = "Payment Collection",
+                        description = "Payment summary and breakdown",
+                        icon = Icons.Default.Payment,
+                        color = Color(0xFF00897B),
+                        onClick = { viewModel.loadPaymentCollection() }
+                    )
+                }
+                item {
+                    ReportCard(
+                        title = "Inventory Valuation",
+                        description = "Stock value by category",
+                        icon = Icons.Default.Inventory2,
+                        color = Color(0xFF5E35B1),
+                        onClick = { viewModel.loadInventoryValuation() }
+                    )
+                }
+                item {
+                    ReportCard(
+                        title = "Reconciliation",
+                        description = "Payment-invoice matching",
+                        icon = Icons.Default.Sync,
+                        color = Color(0xFF546E7A),
+                        onClick = { viewModel.loadReconciliation() }
                     )
                 }
                 item {
@@ -486,6 +561,16 @@ private fun buildReportData(reportType: String, vm: ReportsViewModel): Pair<List
             headers = listOf("Customer", "Phone", "Outstanding")
             rows = r.map { listOf(it.customerName, it.phone ?: "", it.outstanding.toString()) }
         }
+        "payment_collection" -> {
+            val r = vm.paymentCollectionReport
+            headers = listOf("Metric", "Value")
+            rows = listOf(listOf("Total Collected", r?.totalCollected?.toString() ?: "0"), listOf("Payments", r?.totalPayments?.toString() ?: "0"))
+        }
+        "inventory_valuation" -> {
+            val r = vm.inventoryValuationReport
+            headers = listOf("Metric", "Value")
+            rows = listOf(listOf("Products", r?.totalProducts?.toString() ?: "0"), listOf("Stock Value", r?.totalValue?.toString() ?: "0"))
+        }
         else -> { headers = emptyList(); rows = emptyList() }
     }
     return headers to rows
@@ -523,6 +608,9 @@ fun ReportDetailView(
                     "gstr3b" -> "GSTR-3B Report"
                     "pl" -> "Profit & Loss"
                     "outstanding" -> "Outstanding"
+                    "payment_collection" -> "Payment Collection"
+                    "inventory_valuation" -> "Inventory Valuation"
+                    "reconciliation" -> "Reconciliation"
                     else -> "Report"
                 },
                 style = MaterialTheme.typography.titleLarge,
@@ -588,6 +676,55 @@ fun ReportDetailView(
             }
             "pl" -> ProfitLossDetail(viewModel.profitLoss)
             "outstanding" -> OutstandingDetail(viewModel.outstandingReport)
+            "payment_collection" -> PaymentCollectionDetail(viewModel.paymentCollectionReport)
+            "inventory_valuation" -> InventoryValuationDetail(viewModel.inventoryValuationReport)
+            "reconciliation" -> ReconciliationDetail(viewModel.reconciliationLogs)
+        }
+    }
+}
+
+@Composable
+fun PaymentCollectionDetail(report: PaymentCollectionReport?) {
+    if (report == null) { Text("No data"); return }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Payment Collection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+            Text("Total Collected: \u20B9${String.format("%.2f", report.totalCollected)}", fontWeight = FontWeight.Bold)
+            Text("Total Payments: ${report.totalPayments}")
+            Text("Average: \u20B9${String.format("%.2f", report.averagePayment)}")
+            report.byMethod.forEach { Text("${it.method}: \u20B9${String.format("%.2f", it.amount)} (${it.count})") }
+        }}
+    }
+}
+
+@Composable
+fun InventoryValuationDetail(report: InventoryValuationReport?) {
+    if (report == null) { Text("No data"); return }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Inventory Valuation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+            Text("Total Products: ${report.totalProducts}")
+            Text("Stock Value: \u20B9${String.format("%.2f", report.totalValue)}")
+            Text("Retail Value: \u20B9${String.format("%.2f", report.totalRetailValue)}")
+            Text("Low Stock Items: ${report.lowStockCount}")
+            report.categories.forEach { Text("${it.name}: ${it.products} products, \u20B9${String.format("%.2f", it.value)}") }
+        }}
+    }
+}
+
+@Composable
+fun ReconciliationDetail(logs: List<ReconciliationEntry>) {
+    Column(Modifier.fillMaxWidth()) {
+        Text("Reconciliation Logs", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        if (logs.isEmpty()) { Text("No reconciliation logs", color = MaterialTheme.colorScheme.outline); return }
+        logs.forEach { log ->
+            Card(Modifier.fillMaxWidth().padding(vertical = 2.dp)) { Row(Modifier.padding(8.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${log.matchType} - \u20B9${String.format("%.2f", log.matchedAmount)}", modifier = Modifier.weight(1f))
+                Text(log.reconciledAt.take(10), style = MaterialTheme.typography.bodySmall)
+            }}
         }
     }
 }
