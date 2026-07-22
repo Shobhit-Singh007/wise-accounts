@@ -78,10 +78,30 @@ class SubSettingsViewModel @Inject constructor(
     var activeTemplate by mutableStateOf("classic")
         private set
 
-    // ── Payment Methods fields (subset of invoice settings) ──
+    // ── API Credentials ──
     var razorpayKeyId by mutableStateOf("")
         private set
     var razorpayKeySecret by mutableStateOf("")
+        private set
+    var einvoiceClientId by mutableStateOf("")
+        private set
+    var einvoiceClientSecret by mutableStateOf("")
+        private set
+    var einvoiceUsername by mutableStateOf("")
+        private set
+    var einvoicePassword by mutableStateOf("")
+        private set
+    var einvoiceEnvironment by mutableStateOf("sandbox")
+        private set
+    var ewayClientId by mutableStateOf("")
+        private set
+    var ewayClientSecret by mutableStateOf("")
+        private set
+    var ewayUsername by mutableStateOf("")
+        private set
+    var ewayPassword by mutableStateOf("")
+        private set
+    var ewayEnvironment by mutableStateOf("sandbox")
         private set
 
     // ── Tax Settings fields (stored in business settings JSON) ──
@@ -154,6 +174,16 @@ class SubSettingsViewModel @Inject constructor(
     fun onShowGstinChange(v: Boolean) { showGstin = v }
     fun onShowCustomerGstinChange(v: Boolean) { showCustomerGstin = v }
     fun onShowBankDetailsChange(v: Boolean) { showBankDetails = v }
+    fun onEinvoiceClientIdChange(v: String) { einvoiceClientId = v }
+    fun onEinvoiceClientSecretChange(v: String) { einvoiceClientSecret = v }
+    fun onEinvoiceUsernameChange(v: String) { einvoiceUsername = v }
+    fun onEinvoicePasswordChange(v: String) { einvoicePassword = v }
+    fun onEinvoiceEnvironmentChange(v: String) { einvoiceEnvironment = v }
+    fun onEwayClientIdChange(v: String) { ewayClientId = v }
+    fun onEwayClientSecretChange(v: String) { ewayClientSecret = v }
+    fun onEwayUsernameChange(v: String) { ewayUsername = v }
+    fun onEwayPasswordChange(v: String) { ewayPassword = v }
+    fun onEwayEnvironmentChange(v: String) { ewayEnvironment = v }
     fun onBankNameChange(v: String) { bankName = v }
     fun onAccountNumberChange(v: String) { accountNumber = v }
     fun onIfscCodeChange(v: String) { ifscCode = v }

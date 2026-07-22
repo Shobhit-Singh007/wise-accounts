@@ -9,8 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -188,6 +193,31 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+
+                val monthlySales = viewModel.dashboardData?.monthlySales ?: emptyList()
+                if (monthlySales.isNotEmpty()) {
+                    item {
+                        Text("Monthly Sales", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Card(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                            val maxAmount = monthlySales.maxOf { it.amount }
+                            val barColor = MaterialTheme.colorScheme.primary
+                            val textColor = MaterialTheme.colorScheme.onSurface
+                            val density = LocalDensity.current
+                            Canvas(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                                val barWidth = size.width / (monthlySales.size * 2)
+                                val chartHeight = size.height - 40f
+                                monthlySales.forEachIndexed { i, sale ->
+                                    val barHeight = if (maxAmount > 0) (sale.amount / maxAmount * chartHeight).toFloat() else 0f
+                                    val x = i * barWidth * 2 + barWidth / 2
+                                    drawRect(color = barColor, topLeft = Offset(x, chartHeight - barHeight), size = Size(barWidth, barHeight))
+                                    drawContext.canvas.nativeCanvas.drawText(sale.month.take(3), x, size.height - 5f, android.graphics.Paint().apply { color = textColor.hashCode(); textSize = 24f; textAlign = android.graphics.Paint.Align.CENTER })
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
 
