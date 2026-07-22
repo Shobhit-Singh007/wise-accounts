@@ -43,6 +43,7 @@ class ReportsViewModel @Inject constructor(
     var gstr1Report by mutableStateOf<Gstr1Report?>(null)
     var gstr3bReport by mutableStateOf<Gstr3bReport?>(null)
     var profitLoss by mutableStateOf<ProfitLossReport?>(null)
+    var outstandingReport by mutableStateOf<List<CustomerReport>>(emptyList())
     var isLoading by mutableStateOf(false)
     var selectedReport by mutableStateOf<String?>(null)
     var errorMessage by mutableStateOf<String?>(null)
@@ -105,6 +106,21 @@ class ReportsViewModel @Inject constructor(
                 } catch (e: Exception) {
                     errorMessage = e.message ?: "Network error"
                 }
+            }
+            isLoading = false
+        }
+    }
+
+    fun loadOutstanding() {
+        viewModelScope.launch {
+            isLoading = true; errorMessage = null; selectedReport = "outstanding"
+            val id = sessionManager.getBusinessId()
+            if (id != null) {
+                try {
+                    val response = apiService.getCustomerReport(id)
+                    if (response.isSuccessful) outstandingReport = response.body()?.data ?: emptyList()
+                    else errorMessage = response.errorBody()?.string()
+                } catch (e: Exception) { errorMessage = e.message }
             }
             isLoading = false
         }
@@ -206,11 +222,20 @@ fun ReportsScreen(
 
                 item {
                     ReportCard(
-                        title = "Sales Report",
-                        description = "Daily, monthly and yearly sales summary",
-                        icon = Icons.Default.TrendingUp,
-                        color = Color(0xFF1565C0),
-                        onClick = { viewModel.loadSalesReport() }
+                        title = "Profit & Loss",
+                        description = "View profit and loss summary",
+                        icon = Icons.Default.TrendingDown,
+                        color = Color(0xFF6A1B9A),
+                        onClick = { viewModel.loadProfitLoss() }
+                    )
+                }
+                item {
+                    ReportCard(
+                        title = "Outstanding",
+                        description = "Customers with outstanding balance",
+                        icon = Icons.Default.Person,
+                        color = Color(0xFFD84315),
+                        onClick = { viewModel.loadOutstanding() }
                     )
                 }
                 item {
@@ -456,6 +481,11 @@ private fun buildReportData(reportType: String, vm: ReportsViewModel): Pair<List
                 listOf("Net Profit", p?.net_profit?.toString() ?: "0"),
             )
         }
+        "outstanding" -> {
+            val r = vm.outstandingReport
+            headers = listOf("Customer", "Phone", "Outstanding")
+            rows = r.map { listOf(it.customerName, it.phone ?: "", it.outstanding.toString()) }
+        }
         else -> { headers = emptyList(); rows = emptyList() }
     }
     return headers to rows
@@ -492,6 +522,7 @@ fun ReportDetailView(
                     "gstr1" -> "GSTR-1 Report"
                     "gstr3b" -> "GSTR-3B Report"
                     "pl" -> "Profit & Loss"
+                    "outstanding" -> "Outstanding"
                     else -> "Report"
                 },
                 style = MaterialTheme.typography.titleLarge,
@@ -556,6 +587,24 @@ fun ReportDetailView(
                 Gstr3bReportDetail(viewModel.gstr3bReport)
             }
             "pl" -> ProfitLossDetail(viewModel.profitLoss)
+            "outstanding" -> OutstandingDetail(viewModel.outstandingReport)
+        }
+    }
+}
+
+@Composable
+fun OutstandingDetail(report: List<CustomerReport>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Outstanding Customers", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (report.isEmpty()) { Text("No outstanding customers", color = MaterialTheme.colorScheme.outline); return }
+        report.forEach { c ->
+            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) { Text(c.customerName, fontWeight = FontWeight.Bold); Text(c.phone ?: "", style = MaterialTheme.typography.bodySmall) }
+                    Text("\u20B9${String.format("%.2f", c.outstanding)}", fontWeight = FontWeight.Bold, color = if (c.outstanding > 0) Color.Red else Color(0xFF2E7D32))
+                }
+            }
         }
     }
 }
