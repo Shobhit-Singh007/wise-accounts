@@ -575,12 +575,13 @@ interface ApiService {
 
 // ── Auth Models ──
 data class LoginRequest(
-    val phone: String,
+    val phone: String? = null,
+    val email: String? = null,
     val password: String
 )
 
 data class RegisterRequest(
-    val phone: String,
+    val phone: String? = null,
     val email: String? = null,
     val name: String,
     val password: String

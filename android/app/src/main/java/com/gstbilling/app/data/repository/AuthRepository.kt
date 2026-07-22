@@ -14,9 +14,11 @@ class AuthRepository @Inject constructor(
     private val authInterceptor: AuthInterceptor
 ) {
 
-    suspend fun login(phone: String, password: String): AppResult<TokenResponse> {
+    suspend fun login(identifier: String, password: String): AppResult<TokenResponse> {
         return safeApiCall {
-            val response = apiService.login(LoginRequest(phone = phone, password = password))
+            val isEmail = identifier.contains("@")
+            val request = if (isEmail) LoginRequest(email = identifier, password = password) else LoginRequest(phone = identifier, password = password)
+            val response = apiService.login(request)
             if (response.isSuccessful) {
                 val apiResponse = response.body()
                 val tokenData = apiResponse?.data
@@ -75,7 +77,7 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun register(
-        phone: String,
+        phone: String?,
         name: String,
         email: String?,
         password: String
