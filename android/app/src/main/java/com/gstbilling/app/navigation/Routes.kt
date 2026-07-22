@@ -53,6 +53,7 @@ object Routes {
     const val INVOICE_TEMPLATE = "settings/invoice-template"
     const val PAYMENT_METHODS = "settings/payment-methods"
     const val PRINT_SETTINGS = "settings/print"
+    const val API_CREDENTIALS = "settings/api-credentials"
     const val SYNC_DATA = "settings/sync"
     const val BACKUP = "settings/backup"
 

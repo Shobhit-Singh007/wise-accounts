@@ -59,6 +59,7 @@ import com.gstbilling.app.ui.settings.TaxSettingsScreen
 import com.gstbilling.app.ui.settings.InvoiceTemplateScreen
 import com.gstbilling.app.ui.settings.PaymentMethodsScreen
 import com.gstbilling.app.ui.settings.PrintSettingsScreen
+import com.gstbilling.app.ui.settings.ApiCredentialsScreen
 import com.gstbilling.app.ui.settings.SyncDataScreen
 import com.gstbilling.app.ui.settings.BackupScreen
 import com.gstbilling.app.ui.settings.BusinessListScreen
@@ -430,6 +431,7 @@ fun NavGraph(
                 onNavigateToInvoiceTemplate = { navController.navigate(Routes.INVOICE_TEMPLATE) },
                 onNavigateToPaymentMethods = { navController.navigate(Routes.PAYMENT_METHODS) },
                 onNavigateToPrintSettings = { navController.navigate(Routes.PRINT_SETTINGS) },
+                onNavigateToApiCredentials = { navController.navigate(Routes.API_CREDENTIALS) },
                 onNavigateToSyncData = { navController.navigate(Routes.SYNC_DATA) },
                 onNavigateToBackup = { navController.navigate(Routes.BACKUP) },
                 onLogout = {
@@ -603,6 +605,12 @@ fun NavGraph(
 
         composable(Routes.PRINT_SETTINGS) {
             PrintSettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.API_CREDENTIALS) {
+            ApiCredentialsScreen(
                 onBack = { navController.popBackStack() }
             )
         }

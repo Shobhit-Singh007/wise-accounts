@@ -72,6 +72,7 @@ fun SettingsScreen(
     onNavigateToPrintSettings: () -> Unit = {},
     onNavigateToSyncData: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
+    onNavigateToApiCredentials: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -237,6 +238,15 @@ fun SettingsScreen(
                     subtitle = "Bluetooth printer configuration",
                     icon = Icons.Default.Print,
                     onClick = onNavigateToPrintSettings
+                )
+            }
+
+            item {
+                SettingsItem(
+                    title = "API Credentials",
+                    subtitle = "Razorpay, e-Invoice, E-Way Bill",
+                    icon = Icons.Default.Key,
+                    onClick = onNavigateToApiCredentials
                 )
             }
 
